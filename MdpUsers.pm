@@ -63,12 +63,152 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
      # One time
      'a2greg@gmail.com' => {
-                            'displayname' => 'Greg',
-                            'supervisor'  => 'pfarber',
-                            'expires'     => '2010-06-08 23:59:59',
-                            'usertype'    => 'onetime',
-                            'iprestrict'  => $gSuperuserSubnetRangesRef,
-                           },
+                    'displayname' => 'Greg',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2010-06-08 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                   },
+
+     # Michigan CRMS - Anne Karle-Zenith
+     'jaheim' =>   {
+                    'displayname' => 'Ahronheim, Judith R',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'gnichols' => {
+                    'displayname' => 'Nichols, Gregory C ',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'cwilcox' =>  {
+                    'displayname' => 'Wilcox, Christine R',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'dfulmer' =>  {
+                    'displayname' => 'Fulmer, David',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'sgueva' =>   {
+                    'displayname' => 'Guevara, Senovia',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'dmcw' =>     {
+                    'displayname' => 'McWhinnie, Dennis A ',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+
+     # Other Staff
+     'ekflanag' => {
+                    'displayname' => 'Campbell, Emily',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'amuro' =>    {
+                    'displayname' => 'Knott, Martin ',
+                    'supervisor'  => 'amuro',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'cmcguire' => {
+                    'displayname' => 'McGuire, Connie',
+                    'supervisor'  => 'amuro',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'emustard' => {
+                    'displayname' => 'Mustard, Liz',
+                    'supervisor'  => 'jaheim',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+     'ellenkw' =>  {
+                    'displayname' => 'Wilson, Ellen',
+                    'supervisor'  => 'layers',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => $gStaffSubnetRangesRef,
+                   },
+
+     # Indiana CRMS
+     'shmichae@indiana.edu' => {
+                    'displayname' => 'Michaels, Sherri',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-05-25 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+ 
+     'jmcclamr@indiana.edu' => {
+                    'displayname' => 'McClamroch, Jo',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-05-25 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+     'jamblack@indiana.edu' => {
+                    'displayname' => 'Black, Janet',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-05-25 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+     'hansone@indiana.edu' => {
+                    'displayname' => 'Hanson, Elizabeth',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-05-25 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                              },
+     'cameron3@indiana.edu' => {
+                    'displayname' => 'Cameron, Lisa',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-05-25 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+
+     # Digitization
+     'lwentzel' => {
+                    'displayname' => 'Wentzel, Lawrence R',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => [
+                                      '^141\.211\.84\.36$',
+                                     ],
+                   },
+     'ldunger' =>  {
+                    'displayname' => 'Unger, Lara D',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => $gStaffExpireDate,
+                    'usertype'    => 'staff',
+                    'iprestrict'  => [
+                                      '^141\.211\.84\.100$',
+                                     ],
+                   },
+
      # Superusers
      'tburtonw' => {
                     'displayname' => 'Burton-West, Tom',
@@ -188,102 +328,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                     'expires'     => $gSuperuserExpireDate,
                     'usertype'    => 'superuser',
                     'iprestrict'  => $gSuperuserSubnetRangesRef,
-                   },
-     # Staff, students, friends
-     'lwentzel' => {
-                    'displayname' => 'Wentzel, Lawrence R',
-                    'supervisor'  => 'pfarber',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => [
-                                      '^141\.211\.84\.36$',
-                                     ],
-                   },
-     'ldunger' =>  {
-                    'displayname' => 'Unger, Lara D',
-                    'supervisor'  => 'pfarber',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => [
-                                      '^141\.211\.84\.100$',
-                                     ],
-                   },
-     'jaheim' =>   {
-                    'displayname' => 'Ahronheim, Judith R',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'ekflanag' => {
-                    'displayname' => 'Campbell, Emily',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'dfulmer' =>  {
-                    'displayname' => 'Fulmer, David',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'sgueva' =>   {
-                    'displayname' => 'Guevara, Senovia',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'amuro' =>    {
-                    'displayname' => 'Knott, Martin ',
-                    'supervisor'  => 'amuro',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'cmcguire' => {
-                    'displayname' => 'McGuire, Connie',
-                    'supervisor'  => 'amuro',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'dmcw' =>     {
-                    'displayname' => 'McWhinnie, Dennis A ',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'emustard' => {
-                    'displayname' => 'Mustard, Liz',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'gnichols' => {
-                    'displayname' => 'Nichols, Gregory C ',
-                    'supervisor'  => 'jaheim',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'cwilcox' =>  {
-                    'displayname' => 'Wilcox, Christine R',
-                    'supervisor'  => 'pfarber',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
-                   },
-     'ellenkw' =>  {
-                    'displayname' => 'Wilson, Ellen',
-                    'supervisor'  => 'layers',
-                    'expires'     => $gStaffExpireDate,
-                    'usertype'    => 'staff',
-                    'iprestrict'  => $gStaffSubnetRangesRef,
                    },
     );
 
