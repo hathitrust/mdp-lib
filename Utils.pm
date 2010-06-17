@@ -11,8 +11,6 @@ specific dependencies.  Let's keep it that way.
 
 =head1 VERSION
 
-$Id: Utils.pm,v 1.67 2010/03/15 19:41:30 pfarber Exp $
-
 =head1 SUBROUTINES
 
 =over 8
@@ -522,7 +520,7 @@ sub url_over_SSL_to
 {
     my $url = shift;
 
-    $url =~ s,^http:,https:,;
+    $url =~ s,^http(:|%3A),https$1,;
     return $url;
 }
 
@@ -539,7 +537,7 @@ sub url_over_nonSSL_to
 {
     my $url = shift;
 
-    $url =~ s,^https:,http:,;
+    $url =~ s,^https,http,;
     return $url;
 }
 
