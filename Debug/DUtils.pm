@@ -10,8 +10,6 @@ This is a package of development enviroment tools
 
 =head1 VERSION
 
-$Id: DUtils.pm,v 1.57 2010/04/28 18:14:13 pfarber Exp $
-
 =head1 SYNOPSIS
 
 use Debug::DUtils;
@@ -35,8 +33,8 @@ BEGIN {
     use Exporter ();
     @Debug::DUtils::ISA = qw(Exporter);
     @Debug::DUtils::EXPORT = qw(
-                                     DEBUG
-                                    );
+                                   DEBUG
+                              );
 }
 
 use CGI;
@@ -54,16 +52,16 @@ my $g_xml_debugging = undef;
 # DEBUG
 my $non_HathiTrust_IP = '0.0.0.0';
 my %HathiTrust_IP_hash =
-    (
-     'uom'  => '141.211.175.37', # clamato
-     'wisc' => '198.150.174.127',
-     'ind'  => '192.203.115..127',
-     'ucal' => '128.195.127.127',
-     'msu'  => '207.73.115..127',
-     'nwu'  => '209.100.79.127',
-     'osu'  => '128.146.127.127',
-     'psu'  => '150.231.127.127',
-    );
+  (
+   'uom'  => '141.211.175.37', # clamato
+   'wisc' => '198.150.174.127',
+   'ind'  => '192.203.115..127',
+   'ucal' => '128.195.127.127',
+   'msu'  => '207.73.115..127',
+   'nwu'  => '209.100.79.127',
+   'osu'  => '128.146.127.127',
+   'psu'  => '150.231.127.127',
+  );
 
 # ---------------------------------------------------------------------
 
@@ -89,13 +87,13 @@ sub setup_debug_environment {
     # To retrieve the debug message buffer
     $g_session = $ses;
 
-    return if (! debugging_enabled(1));
+    return if (! debugging_enabled());
 
     my $cgi = new CGI;
     my $debugging = $cgi->param('debug');
 
     $ENV{'DEBUG'} = $debugging
-        if ($debugging);
+      if ($debugging);
 
     my @requested_switches =  split(',', $debugging);
     set_xml_debugging_enabled(\@requested_switches);
@@ -136,7 +134,7 @@ sub set_HathiTrust_debug_environment {
             $ENV{'AUTH_TYPE'} = 'shibboleth';
             $ENV{'affiliation'} = 'member@umich.edu';
             $ENV{'unscoped-affiliation'} = 'member';
-        }        
+        }
     }
     elsif (DEBUG('nonhathi')) {
         delete $ENV{'AUTH_TYPE'};
@@ -145,7 +143,7 @@ sub set_HathiTrust_debug_environment {
         delete $ENV{'eppn'};
         delete $ENV{'affiliation'};
         delete $ENV{'unscoped-affiliation'};
-        
+
         $ENV{'REMOTE_ADDR'} = $non_HathiTrust_IP;
     }
     elsif (DEBUG('notlogged')) {
@@ -155,7 +153,7 @@ sub set_HathiTrust_debug_environment {
         delete $ENV{'affiliation'};
         delete $ENV{'unscoped-affiliation'};
     }
-    
+
     if (DEBUG('nonlib')) {
         delete $ENV{'SDRLIB'};
         $ENV{'REMOTE_ADDR'} = $non_HathiTrust_IP;
@@ -191,7 +189,7 @@ Description
 sub set_xml_debugging_enabled {
     my $requested_switches_ref = shift;
     $Debug::DUtils::g_xml_debugging =
-        scalar(grep(/^xml$|^rawxml$|^xsl$/, @$requested_switches_ref));
+      scalar(grep(/^xml$|^rawxml$|^xsl$/, @$requested_switches_ref));
 }
 
 # ---------------------------------------------------------------------
@@ -269,7 +267,7 @@ sub handle_template_file {
     }
 
     CGI::Carp::DebugScreen->set_error_template($$template_ref)
-            if ($$template_ref);
+        if ($$template_ref);
 }
 
 
@@ -373,9 +371,9 @@ sub DEBUG {
     my @switches = split(',', $switches);
     if (! $g_xml_debugging) {
         @switches = ('all')
-            if (grep(/all/, @requested_switches)
-                 &&
-                grep(/all/, @switches));
+          if (grep(/all/, @requested_switches)
+              &&
+              grep(/all/, @switches));
     }
 
     my $msg_out = 0;
@@ -478,16 +476,16 @@ in production
 # ---------------------------------------------------------------------
 # Over-ride all user.cfg checking.  DO NOT GO INTO PRODUCTION WITH
 # THIS SET!
-my $___no_ACL_debugging_test = 1 || $ENV{'TERM'};
+my $___no_ACL_debugging_test = 0 || $ENV{'TERM'};
 
 sub debugging_enabled {
-    my $initial_call = shift;
+    my $user_type = shift;
 
-    return 1 
-        if ($___no_ACL_debugging_test);
+    return 1
+      if ($___no_ACL_debugging_test);
     # POSSIBLY NOTREACHED
 
-    return Auth::ACL::a_Authorized();
+    return Auth::ACL::a_Authorized($user_type);
 }
 
 
@@ -504,7 +502,7 @@ sub print_env {
     my $format = shift;
 
     my ($html_start, $html_end) = ('<h4>', '</h4>')
-        if ($format eq 'html');
+      if ($format eq 'html');
 
     my $s;
     foreach my $key (sort keys(%ENV)) {
