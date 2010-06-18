@@ -158,12 +158,20 @@ $HT_AFFILIATE           = 5;
 # "Public domain"
 # ---------------------------------------------------------------------
 @g_public_domain_attribute_values = (1, 7, 9);
+$g_public_domain_US_attribute_value = 9;
+
+# ---------------------------------------------------------------------
+# Source values authorized for full book PDF download.
+# ---------------------------------------------------------------------
+@g_full_PDF_download_open_source_values = (2, 4);
+@g_full_PDF_download_closed_source_values = (1);
+
+@g_source_values = keys %g_source_names;
+@g_rights_attribute_values = keys %g_rights_matrix;
 
 # ---------------------------------------------------------------------
 # Geographic IP Information
 # ---------------------------------------------------------------------
-@g_rights_attribute_values = keys %g_rights_matrix;
-
 # Country codes used to determine public domain via the GeoIP database
 # for attribute number 9
 @g_pdus_country_codes = 
