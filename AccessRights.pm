@@ -14,8 +14,6 @@ this user which rights attribute values equate to 'fulltext'.
 
 =head1 VERSION
 
-$Id: AccessRights.pm,v 1.1 2010/05/19 17:36:35 pfarber Exp $
-
 =head1 SYNOPSIS
 
 Do NOT call any of the PRIVATE: methods directly.
@@ -244,8 +242,8 @@ sub get_exclusivity {
     my $C = shift;
 
     return (
-            $self->{'exclusivity'}{'granted'}, 
-            $self->{'exclusivity'}{'owner'}, 
+            $self->{'exclusivity'}{'granted'},
+            $self->{'exclusivity'}{'owner'},
             $self->{'exclusivity'}{'expires'}
            );
 }
@@ -311,87 +309,86 @@ sub check_final_access_status_by_attribute {
 =item PUBLIC: get_full_PDF_access_status
 
 Under certain conditions the full book PDF download function is
-allowed.  As of Thu Mar 11 16:31:02 2010:
+authorized.
 
-1) User must be a Shibboleth authenticated HathiTrust affiliate. This
-includes UM but excludes UM friend accounts.
+As of  Wed Jun  9 16:11:22 2010:
 
-2) UM Press (source=3) and OPB (attr=3) volumes are excluded.
+0) DLPS-pd + IA volumes authorized for unaffiliated users
 
-3) SSD users of in-copyright works are excluded
+1) Google-pd are authorized for authenticated HathiTrust
+affiliates. This includes UM but excludes UM friend accounts.
+
+Notes: UM Press (source=3) and OPB (attr=3) volumes are never
+authorized. SSD users of in-copyright works are never
+authorized. These follow from the above.
 
 =cut
 
 # ---------------------------------------------------------------------
-use constant OUT_OF_PRINT_BRITTLE => 3;
-use constant UM_PRESS_SOURCED => 3;
-
 sub get_full_PDF_access_status {
     my $self = shift;
     my ($C, $id) = @_;
 
-    my $auth = $C->get_object('Auth');
-    if (# Not affiliated?
-        ! $auth->affiliation_is_hathitrust($C)
-        ||
-        # Press is limited to one page PDF
-        ($self->get_source_attribute($C, $id) == UM_PRESS_SOURCED) 
-        ||
-        # OPB is in-copyright material
-        ($self->get_rights_attribute($C, $id) == OUT_OF_PRINT_BRITTLE)
-       ) {
-        return 'deny';
-    }
-    # POSSIBLY NOTREACHED
+    $self->_validate_id($id);
 
-    # SSD users are allowed access to in-copyright books but full PDF
-    # functionality is not part of that deal.  However, don't deny
-    # full PDF to SSD users of public-domain materials
-    if ($self->check_final_access_status($C, $id) eq 'allow') {
-        # pd, pdus, world access, or ssd
-        if ($self->__public_domain($C, $id)) {
-            return 'allow';
+    my $status = 'deny';
+    my $pdpdus = $self->public_domain($C, $id);
+
+    # Unaffiliated users can get non-Google pd/pdus and IA volumes
+    if ($pdpdus) {
+        my $source = $self->get_source_attribute($C, $id);
+
+        # Open source?
+        if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
+            $status = 'allow';
         }
         else {
-            # Is ic access 'allow' because this is an ssd request? 
-            # Actually ssd is the only way a user can see ic works but
-            # check anyway in case a new category of access comes
-            # along with greater ic viewing rights.
-            my $ssd_request = $C->get_object('CGI')->param('ssd');
-            if ($ssd_request) {
-                return 'deny';
+            #  More restrictive cases require affiliation
+            if ($C->get_object('Auth')->affiliation_is_hathitrust($C)) {
+                if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
+                    $status = 'allow';
+                }
             }
         }
-    }    
-    # POSSIBLY NOTREACHED
+    }
 
-    return 'allow'
+    return $status;
 }
-
-
-# ----------------------------------------------------------------------
-#
-#                        Private Class Methods
-#
-# ----------------------------------------------------------------------
 
 # ---------------------------------------------------------------------
 
-=item PRIVATE: __public_domain
+=item PUBLIC: public_domain
 
-Description: is id parameter valid for this object instance?
+Description: is this id PD/PDUS?
 
 =cut
 
 # ---------------------------------------------------------------------
-sub __public_domain {
+sub public_domain {
     my $self = shift;
     my ($C, $id) = @_;
 
-    my $attr = $self->get_rights_attribute($C, $id);
-    return grep(/^$attr$/, @RightsGlobals::g_public_domain_attribute_values);
+    $self->_validate_id($id);
+    my $attribute = $self->get_rights_attribute($C, $id);
+
+    if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_attribute_values)) {
+        if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
+            return (_resolve_access_by_GeoIP() eq 'allow');
+        }
+        else {
+            return 1;
+        }
+    }
+    else {
+        return 0;
+    }
 }
 
+# ----------------------------------------------------------------------
+#
+#                        Private Instance Methods
+#
+# ----------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------
@@ -409,6 +406,12 @@ sub _validate_id {
     ASSERT((defined($id) && ($id eq $self->{'id'})),
            qq{Id="$id: not valid for this instance of AccessRights object});
 }
+
+# ----------------------------------------------------------------------
+#
+#                        Private Class Methods
+#
+# ----------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------
@@ -509,14 +512,14 @@ Description
 sub _Assert_final_access_status {
     my ($C, $initial_access_status, $id) = @_;
 
-    my ($final_access_status, $granted, $owner, $expires) = 
+    my ($final_access_status, $granted, $owner, $expires) =
         ($initial_access_status, undef, undef, undef);
 
     if ($initial_access_status eq 'allow_by_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP();
     }
     elsif ($initial_access_status eq 'allow_by_exclusivity') {
-        ($final_access_status, $granted, $owner, $expires) = 
+        ($final_access_status, $granted, $owner, $expires) =
             _assert_access_exclusivity($C, $id);
     }
     elsif ($initial_access_status eq 'allow_by_lib_ipaddr') {
@@ -593,7 +596,7 @@ Description
 sub _determine_rights_attribute {
     my ($C, $id) = @_;
 
-    my ($attr, $rc) = (undef, 0);
+    my ($attr, $rc) = (undef, RightsGlobals::OK_ID);
     my $cgi = $C->get_object('CGI');
 
     # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
@@ -625,17 +628,17 @@ Description
 sub _determine_source_attribute {
     my ($C, $id) = @_;
 
-    my ($source, $rc) = (undef, 0);
+    my ($source, $rc) = (undef, RightsGlobals::OK_ID);
     my $cgi = $C->get_object('CGI');
 
     # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-    if (defined($cgi->param('attr')) && Debug::DUtils::debugging_enabled()) {
-        # Default to google for attr=1 debugging if id not in database yet
-        ($source, $rc) = _get_source_attribute($C, $id);
-        if ($rc != RightsGlobals::OK_ID) {
-            $source = 1;
-            $rc = RightsGlobals::OK_ID;
-        }
+    # Allow use of 'src' only for superuser as it opens the door to
+    # full book download of certain volumes. Too dangerous to be
+    # widely enabled.
+    if (defined($cgi->param('src')) && Debug::DUtils::debugging_enabled('superuser')) {
+        $source = $cgi->param('src');
+        ASSERT(grep(/^$source$/, @RightsGlobals::g_source_values ),
+               qq{Invalid source value for 'src' parameter: } . $source);
     }
     else {
         ($source, $rc) = _get_source_attribute($C, $id);
@@ -646,7 +649,6 @@ sub _determine_source_attribute {
 
     return ($source, $rc);
 }
-
 
 
 # ---------------------------------------------------------------------
@@ -851,11 +853,11 @@ sub _assert_access_exclusivity {
     my ($C, $id) = @_;
 
     my $status;
-    
+
     my $auth = $C->get_object('Auth');
     my $identity = $auth->get_user_name($C);
     my $affiliation = $auth->get_eduPersonScopedAffiliation($C);
-    
+
     my ($granted, $owner, $expires) =
         Auth::Exclusive::acquire_exclusive_access($C, $id, $identity, $affiliation);
     if ($granted) {
