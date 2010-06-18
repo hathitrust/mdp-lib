@@ -13,8 +13,6 @@ others.
 
 =head1 VERSION
 
-$Id: ACL.pm,v 1.3 2010/05/19 13:58:03 pfarber Exp $
-
 =head1 SYNOPSIS
 
 Coding example
@@ -40,6 +38,7 @@ Description
 
 # ---------------------------------------------------------------------
 sub a_Authorized {
+    my $usertype_req = shift;
     my $authorized = 0;
 
     my $user = $ENV{'REMOTE_USER'};
@@ -53,16 +52,28 @@ sub a_Authorized {
     if (defined($usertype)) {
         # Check expiration
         if (! Utils::Time::expired($expiration_date)) {
-            # Not expired. correct IP? 
+            # Not expired. correct IP?
             foreach my $regexp (@$ip_rangeref) {
                 if ($ipaddr =~ m/$regexp/) {
-                    $authorized = 1;
-                    last;
+                    # Limit to certain usertype?
+                    if (defined($usertype_req)) {
+                        if ($usertype_req eq $usertype) {
+                            $authorized = 1;
+                            last;
+                        }
+                        else {
+                            last;
+                        }
+                    }
+                    else {
+                        $authorized = 1;
+                        last;
+                    }
                 }
             }
         }
     }
-        
+
     DEBUG('auth,all', qq{<h2>AUTH ACL: authorized="$authorized", IP="$ipaddr", user="$user" usertype="$usertype expires=$expiration_date"</h2>});
 
     return $authorized;
