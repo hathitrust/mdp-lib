@@ -6,20 +6,29 @@ MdpConfig (config)
 
 =head1 DESCRIPTION
 
-Overrides Config::Tiny to read and parse a config file.
+Wraps Config::Tiny to read and parse a config file.
+
+Typically the $primary_config_filename is the most global followed by
+a more local $secondary_config_filename.  So, for example the
+$primary_config_filename might be the configuration for a suite of
+applications and the $secondary_config_filename might be the
+supplements for a single application.
+
+The $tertiary_config_filename could be used to override setting in
+either the $primary_config_filename or $secondary_config_filename for
+development purposes.
+
+Either $secondary_config_filename or $tertiary_config_filename are
+optional.  Use undef for $secondary_config_filenameif not required and
+a $tertiary_config_filename is specified. The variations on this theme
+are apparent.
 
 =head1 SYNOPSIS
 
 use MdpConfig;
 
-my $config = new MdpConfig($config_file_name,
-                             [$local_config_filename]);
-
-if $local_config_filename is not defined, look in same directory as
-$global_config_file for a local config file.
-
-A local config file can also be used to supplement the global as well
-as override parts of it.
+my $config = new MdpConfig($primary_config_filename,
+                           [$secondary_config_filename, $tertiary_config_filename]);
 
 $config->get('db_hostname');
 
@@ -29,14 +38,7 @@ $config->get('db_hostname');
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
+use strict;
 
 use Config::Tiny;
 
@@ -56,46 +58,53 @@ Constructor. Calls Config::Auto::parse() and creates MdpConfig object.
 # ---------------------------------------------------------------------
 sub new {
     my $package = shift;
-    my $config_filename = shift;
-    my $local_config_filename = shift;
+    my $primary_config_filename = shift;
+    my $secondary_config_filename = shift;
+    my $tertiary_config_filename = shift;
 
-    ASSERT(-e "$config_filename",
-           qq{"Could not find config file $config_filename"});
-    ASSERT(-e "$local_config_filename",
-           qq{"Could not find LOCAL config file $local_config_filename"})
-        if (defined($local_config_filename));
+    ASSERT(-e "$primary_config_filename",
+           qq{"Could not find primary config file $primary_config_filename"});
+    ASSERT(-e "$secondary_config_filename",
+           qq{"Could not find secondary config file $secondary_config_filename"})
+        if (defined($secondary_config_filename));
+    ASSERT(-e "$tertiary_config_filename",
+           qq{"Could not find tertiary config file $tertiary_config_filename"})
+        if (defined($tertiary_config_filename));
 
-    my $config = Config::Tiny->read($config_filename);
-    ASSERT($config, qq{Error in config file $config_filename: } . Config::Tiny::errstr);
+    my $config;
 
-    my $local_config;
+    my $primary_config = $config = Config::Tiny->read($primary_config_filename);
+    ASSERT($primary_config, qq{Error in primary config file $primary_config_filename: } . Config::Tiny::errstr);
 
     my $self = {};
+    $self->{'primary_config'} = $primary_config;
+    $self->{'primary_config_file'} = $primary_config_filename;
+
+    my $secondary_config;
+    if (defined($secondary_config_filename)) {
+        $secondary_config = Config::Tiny->read($secondary_config_filename);
+        ASSERT($secondary_config, qq{Error in secondary config file $secondary_config_filename: } . Config::Tiny::errstr);
+        $self->{'secondary_config'} = $secondary_config;
+        $self->{'secondary_config_file'} = $secondary_config_filename;
+
+        foreach my $key (keys %{$secondary_config->{_}} ) {
+            $config->{_}{$key} = $secondary_config->{_}{$key};
+        }
+   }
+
+    my $tertiary_config;
+    if (defined($tertiary_config_filename)) {
+        $tertiary_config = Config::Tiny->read($tertiary_config_filename);
+        ASSERT($tertiary_config, qq{Error in tertiary config file $tertiary_config_filename: } . Config::Tiny::errstr);
+        $self->{'tertiary_config'} = $tertiary_config;
+        $self->{'tertiary_config_file'} = $tertiary_config_filename;
+
+        foreach my $key (keys %{$tertiary_config->{_}} ) {
+            $config->{_}{$key} = $tertiary_config->{_}{$key};
+        }
+    }
+
     $self->{'config'} = $config;
-    $self->{'global_config_file'} = $config_filename;
-
-    # Support Local development config if not passed in as second
-    # parameter
-    if (! defined($local_config_filename)) {
-        if ($config_filename =~ m,global.conf,) {
-            # Use the local sibling to global.conf for the path
-            $local_config_filename = $config_filename;
-            $local_config_filename =~ s,global,local,;
-        }
-    }
-
-    if (-e $local_config_filename) {
-        $local_config = Config::Tiny->read($local_config_filename);
-        ASSERT($local_config, qq{Error in config file $config_filename: } . Config::Tiny::errstr);
-    }
-
-    if ($local_config) {
-        $self->{'local_config_file'} = $local_config_filename;
-
-        foreach my $key (keys %{$local_config->{_}} ) {
-            $config->{_}{$key} = $local_config->{_}{$key};
-        }
-    }
 
     bless($self, $package);
     return $self;
@@ -112,19 +121,16 @@ Get a config variable value
 =cut
 
 # ---------------------------------------------------------------------
-sub get
-{
+sub get {
     my ($self, $var_name) = @_;
 
     my $val = $self->{'config'}->{_}{$var_name};
     ASSERT(defined($val), qq{config key="$var_name" does not have a value});
 
-    if (wantarray)
-    {
+    if (wantarray) {
         return split(/\|/, $val);
     }
-    else
-    {
+    else {
         return $val;
     }
 }
@@ -142,26 +148,31 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub __config_debug
-{
+sub __config_debug {
     my $self = shift;
 
     my $config = $self->{'config'};
-    my $local_config = $self->{'local_config'};
+    my $primary_config = $self->{'primary_config'};
+    my $secondary_config = $self->{'secondary_config'};
+    my $tertiary_config = $self->{'tertiary_config'};
 
     DEBUG('all,conf',
-          sub
-          {
+          sub {
               my $s;
 
-              $s .= q{GLOBAL config file=} . $self->{'global_config_file'} . qq{<br/>\n};
-              $s .= q{LOCAL config file=} . $self->{'local_config_file'} . qq{<br/><br/>\n};
+              $s .= q{primary config file=} . $self->{'primary_config_file'} . qq{<br/>\n};
+              $s .= q{secondary config file=} . $self->{'secondary_config_file'} . qq{<br/>\n};
+              $s .= q{tertiary config file=} . $self->{'tertiary_config_file'} . qq{<br/>\n};
 
-              foreach my $key (sort keys %{$config->{_}} )
-              {
-                  my $local_override = '<b>LOCAL</b>'
-                      if (defined($local_config->{_}{$key}));
-                  $s .= qq{$key = $config->{_}{$key} $local_override<br/>\n}
+              foreach my $key (sort keys %{$config->{_}} ) {
+                  my $res = $config->{_}{$key};
+                  
+                  my $pri = $primary_config->{_}{$key};
+                  my $sec = $secondary_config->{_}{$key};
+                  my $ter = $tertiary_config->{_}{$key};
+                  
+                  my $from = (defined($ter) ? 'tertiary' : (defined($sec) ? 'secondary' : 'primary'));
+                  $s .= qq{$key = $res from $from config<br/>\n}
               }
               return $s;
           });
@@ -176,7 +187,7 @@ Modified: Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-2010 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
