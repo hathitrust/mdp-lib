@@ -19,7 +19,7 @@ either the $primary_config_filename or $secondary_config_filename for
 development purposes.
 
 Either $secondary_config_filename or $tertiary_config_filename are
-optional.  Use undef for $secondary_config_filenameif not required and
+optional.  Use undef for $secondary_config_filename if not required and
 a $tertiary_config_filename is specified. The variations on this theme
 are apparent.
 
@@ -64,12 +64,6 @@ sub new {
 
     ASSERT(-e "$primary_config_filename",
            qq{"Could not find primary config file $primary_config_filename"});
-    ASSERT(-e "$secondary_config_filename",
-           qq{"Could not find secondary config file $secondary_config_filename"})
-        if (defined($secondary_config_filename));
-    ASSERT(-e "$tertiary_config_filename",
-           qq{"Could not find tertiary config file $tertiary_config_filename"})
-        if (defined($tertiary_config_filename));
 
     my $config;
 
@@ -82,25 +76,29 @@ sub new {
 
     my $secondary_config;
     if (defined($secondary_config_filename)) {
-        $secondary_config = Config::Tiny->read($secondary_config_filename);
-        ASSERT($secondary_config, qq{Error in secondary config file $secondary_config_filename: } . Config::Tiny::errstr);
-        $self->{'secondary_config'} = $secondary_config;
-        $self->{'secondary_config_file'} = $secondary_config_filename;
+        if (-e "$secondary_config_filename") {
+            $secondary_config = Config::Tiny->read($secondary_config_filename);
+            ASSERT($secondary_config, qq{Error in secondary config file $secondary_config_filename: } . Config::Tiny::errstr);
+            $self->{'secondary_config'} = $secondary_config;
+            $self->{'secondary_config_file'} = $secondary_config_filename;
 
-        foreach my $key (keys %{$secondary_config->{_}} ) {
-            $config->{_}{$key} = $secondary_config->{_}{$key};
+            foreach my $key (keys %{$secondary_config->{_}} ) {
+                $config->{_}{$key} = $secondary_config->{_}{$key};
+            }
         }
-   }
+    }
 
     my $tertiary_config;
     if (defined($tertiary_config_filename)) {
-        $tertiary_config = Config::Tiny->read($tertiary_config_filename);
-        ASSERT($tertiary_config, qq{Error in tertiary config file $tertiary_config_filename: } . Config::Tiny::errstr);
-        $self->{'tertiary_config'} = $tertiary_config;
-        $self->{'tertiary_config_file'} = $tertiary_config_filename;
+        if (-e "$tertiary_config_filename") {
+            $tertiary_config = Config::Tiny->read($tertiary_config_filename);
+            ASSERT($tertiary_config, qq{Error in tertiary config file $tertiary_config_filename: } . Config::Tiny::errstr);
+            $self->{'tertiary_config'} = $tertiary_config;
+            $self->{'tertiary_config_file'} = $tertiary_config_filename;
 
-        foreach my $key (keys %{$tertiary_config->{_}} ) {
-            $config->{_}{$key} = $tertiary_config->{_}{$key};
+            foreach my $key (keys %{$tertiary_config->{_}} ) {
+                $config->{_}{$key} = $tertiary_config->{_}{$key};
+            }
         }
     }
 
@@ -166,11 +164,11 @@ sub __config_debug {
 
               foreach my $key (sort keys %{$config->{_}} ) {
                   my $res = $config->{_}{$key};
-                  
+
                   my $pri = $primary_config->{_}{$key};
-                  my $sec = $secondary_config->{_}{$key};
-                  my $ter = $tertiary_config->{_}{$key};
-                  
+                  my $sec = $secondary_config->{_}{$key} if ($secondary_config);
+                  my $ter = $tertiary_config->{_}{$key} if ($tertiary_config);
+
                   my $from = (defined($ter) ? 'tertiary' : (defined($sec) ? 'secondary' : 'primary'));
                   $s .= qq{$key = $res from $from config<br/>\n}
               }
