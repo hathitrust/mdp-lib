@@ -797,6 +797,12 @@ sub resolve_fallback_path
     foreach my $path (@$fallback_path_arr_ref)
     {
         my $filename = $ENV{'SDRROOT'} . $path . '/' . $bare_filename;
+
+        if (DEBUG('tpl')) {
+            require Utils::Logger;
+            Utils::Logger::__Log_simple(qq{resolving file="$filename"});
+        }
+
         if (-e $filename)
         {
             $resolved_path = $filename;
