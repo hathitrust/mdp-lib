@@ -549,7 +549,7 @@ sub __get_Solr_post_update_url
     my $C = shift;
 
     my $engine_uri = $self->get_solr_engine_uri();
-    my $script = $C->get_object('Config')->get('solr_update_script');
+    my $script = $C->get_object('MdpConfig')->get('solr_update_script');
     my $url = $engine_uri . $script;
 
     return $url;

@@ -253,7 +253,7 @@ sub __get_Solr_select_url {
     my ($C, $query_string) = @_;
 
     my $engine_uri = $self->get_engine_uri();
-    my $script = $C->get_object('Config')->get('solr_select_script');
+    my $script = $C->get_object('MdpConfig')->get('solr_select_script');
     my $url = $engine_uri . $script . '?' . $query_string;
 
     return $url;

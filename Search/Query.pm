@@ -369,7 +369,7 @@ sub log_query {
     my $ipaddr = $ENV{'REMOTE_ADDR'};
     my $Qtime = $rs->get_query_time();
     my $num_found = $rs->get_num_found();
-    my $config = $C->get_object('Config');
+    my $config = $C->get_object('MdpConfig');
     my $Solr_url = $searcher->get_engine_uri() . '?' . $self->get_Solr_query_string($C);
     $Solr_url =~ s, ,+,g;
 
