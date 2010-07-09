@@ -766,7 +766,7 @@ sub get_uber_config_path {
         $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber.conf" 
     }
     else {
-        $path = $ENV{SDRROOT} . "/$app_name/vendor/commom-lib/lib/Config/uber.conf"
+        $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/uber.conf"
     }
       
     return $path;
