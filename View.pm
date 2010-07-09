@@ -464,7 +464,7 @@ sub _render_template
 
 
     if (DEBUG('xsltwrite')) {
-        my $config = $C->get_object('Config');
+        my $config = $C->get_object('MdpConfig');
         my $cache_dir = $config->get('cache_component_dir') . '/';
         my $user = ($ENV{'REMOTE_USER'} || 'anonymous');
         my $partial_path = $ENV{'SDRROOT'} . $cache_dir . $user;
@@ -601,7 +601,7 @@ sub build_virtual_stylesheet {
     }
 
     # Construct in-memory stylesheet
-    my $transform_template = $C->get_object('Config')->get('transform_template');
+    my $transform_template = $C->get_object('MdpConfig')->get('transform_template');
     my ($stylesheet_text_ref, $stylesheet_path) = find_file($C, $transform_template, 0);
 
     my $pio = new PI;
