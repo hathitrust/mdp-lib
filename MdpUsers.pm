@@ -151,6 +151,36 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                     'iprestrict'  => $gStaffSubnetRangesRef,
                    },
 
+     # Wisconsin CRMS
+     'krattunde@library.wisc.edu' => {
+                    'displayname' => 'Rattunde, Karen',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-11-30 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+  'lnachreiner@library.wisc.edu' => {
+                    'displayname' => 'Nachreiner, Lisa',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-11-30 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+  'rroemer@library.wisc.edu' => {
+                    'displayname' => 'Roemer, Rita',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-11-30 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+  'aseeger@library.wisc.edu' => {
+                    'displayname' => 'Seeger, Al',
+                    'supervisor'  => 'pfarber',
+                    'expires'     => '2011-11-30 23:59:59',
+                    'usertype'    => 'onetime',
+                    'iprestrict'  => $gSuperuserSubnetRangesRef,
+                               },
+
      # Indiana CRMS
      'shmichae@indiana.edu' => {
                     'displayname' => 'Michaels, Sherri',
