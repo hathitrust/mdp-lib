@@ -43,14 +43,8 @@ my $fallback_path_arr_ref = $fb->get_fallback_path($C);
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
+
+use strict;
 
 use CGI;
 
@@ -123,8 +117,9 @@ sub _initialize
     my $self = shift;
     my $C = shift;
     
-    my @base_fallback_paths = 
-        $C->get_object('Config')->get('base_fallback_paths');
+    my $use_local_paths = DEBUG('local');
+    my $key = $use_local_paths ? 'local_base_fallback_paths' : 'base_fallback_paths';
+    my @base_fallback_paths = $C->get_object('MdpConfig')->get($key);
 
     $self->{'base_fallback_paths'} = \@base_fallback_paths;
 }
