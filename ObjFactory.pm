@@ -66,8 +66,7 @@ Instantiate the class
 =cut
 
 # ---------------------------------------------------------------------
-sub create_instance
-{
+sub create_instance {
     my $self = shift;
 
     my ($C, $attr_ref) = @_;
@@ -80,54 +79,16 @@ sub create_instance
 
     # Instantiate the class
     my $instance;
-    my $class_path = ObjFactory::class_path_to($C, $class_name);
-
-    eval
-    {
-        require $class_path;
-    };
+    eval "require $class_name";
     ASSERT(!$@, qq{Error compiling package for class="$class_name": $@} );
 
-    eval
-    {
+    eval {
         $instance = $class_name->new($instance_param_hashref);
     };
     ASSERT(!$@, qq{Error instantiating class="$class_name": $@} );
 
     return $instance;
 }
-
-
-
-# ---------------------------------------------------------------------
-
-=item class_path_to
-
-Turn a class name into a full path to the Perl module that implements it.
-
-Class method.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub class_path_to
-{
-    my $C = shift;
-    my $class_name = shift;
-
-    my $path = $class_name;
-    $path =~ s,::,/,g;
-
-    my $action_handler_path = 
-        $C->get_object('Config')->get('action_handler_path');
-
-    $path = $ENV{'SDRROOT'} . $action_handler_path . '/' . $path . '.pm';
-
-    return $path;
-}
-
-
-
 
 1;
 
