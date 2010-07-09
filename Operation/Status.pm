@@ -12,8 +12,6 @@ Operation.
 
 =head1 VERSION
 
-$Id: Status.pm,v 1.1 2008/01/04 18:02:40 pfarber Exp $
-
 =head1 SYNOPSIS
 
 see MBooks::Operation:Status;
@@ -22,7 +20,12 @@ see MBooks::Operation:Status;
 
 =cut
 
-$Operation::Status::ST_OK = 0;
+use Exporter;
+use base qw(Exporter);
+
+our @EXPORT = qw( $ST_OK );
+
+$ST_OK = 0;
 
 1;
 
