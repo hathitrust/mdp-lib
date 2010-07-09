@@ -71,10 +71,12 @@ my %g_namespace_data =
                             'namespace' => 'pst', },
      'umn'              => {'regexp'    => '^umn\..+$',
                             'namespace' => 'umn', },
+     'chi'              => {'regexp'    => '^chi\..+$',
+                            'namespace' => 'chi', },
     );
 
-my $g_namespaces_regex = q{(^mdp)\.|^(miun)\.|^(miua)\.|(^wu)\.|(^inu)\.|(^uc1)\.|(^uc2)\.|(^pst)\.|(^umn)\.};
-my @g_has_MARC_metadata = ('mdp', 'wu', 'inu', 'uc1', 'uc2', 'miun', 'miua', 'pst', 'umn');
+my $g_namespaces_regex = q{(^mdp)\.|^(miun)\.|^(miua)\.|(^wu)\.|(^inu)\.|(^uc1)\.|(^uc2)\.|(^pst)\.|(^umn)\.|(^chi)\.};
+my @g_has_MARC_metadata = ('mdp', 'wu', 'inu', 'uc1', 'uc2', 'miun', 'miua', 'pst', 'umn', 'chi',);
 
 my %g_default_debug_ids =
     (
