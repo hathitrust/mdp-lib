@@ -1,0 +1,4 @@
+The syntax of the Group_*.pm files in Common indicates that they are
+convenience modules to gather together the require statements of a
+number of single handler packages (packages that handle ONE PI) into a
+single package to simplify maintenence.
