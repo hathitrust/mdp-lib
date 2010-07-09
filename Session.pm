@@ -78,7 +78,7 @@ sub start_session
     my $C = shift;
 
     my $cgi = $C->get_object('CGI');
-    my $cookie_name = $C->get_object('Config')->get('cookie_name');
+    my $cookie_name = $C->get_object('MdpConfig')->get('cookie_name');
 
     my ($sid, $previous_sid);
 
@@ -125,12 +125,13 @@ sub start_session
     $ses->set_cookie($session_cookie);
 
     #
-    # Establish the debugging environment.  No debugging is supported
-    # until the session cookie is created
-    #
+    # Establish the debugging environment.  This updates the global
+    # session variable in Utils::DUtils to retrieve the save debug
+    # messages. No trans-session debugging calls will work before this
+    # call.
     Debug::DUtils::setup_debug_environment($ses);
     #
-    # Call debugging_enabled() to emit auth debug data after
+    # Call debugging_enabled() to emit auth debug text after
     # environment is set up
     Debug::DUtils::debugging_enabled();
 
@@ -149,7 +150,7 @@ sub start_session
               return $t . qq{sid=$sid};
           });
               
-    $C->get_object('Config')->__config_debug();
+    $C->get_object('MdpConfig')->__config_debug();
     
     return $ses;
 }
@@ -273,7 +274,7 @@ sub _make_persistent
 {
     my ($C, $sid, $session_hash_ref) = @_;
 
-    my $config = $C->get_object('Config');
+    my $config = $C->get_object('MdpConfig');
     my $db = $C->get_object('Database');
 
     my $dbh = $db->get_DBH($C);
