@@ -85,7 +85,7 @@ sub setup_debug_environment {
     my $ses = shift;
 
     # To retrieve the debug message buffer
-    $g_session = $ses;
+    $g_session = $ses if ($ses);
 
     return if (! debugging_enabled());
 
@@ -211,6 +211,8 @@ sub setup_DebugScreen {
         CGI::Carp::DebugScreen->ignore_overload(0);
         CGI::Carp::DebugScreen->show_raw_error($development);
     }
+    # Support early DEBUG calls before Session is created.
+    setup_debug_environment();
 }
 
 # ---------------------------------------------------------------------
@@ -232,7 +234,7 @@ sub process_availability_file_msg {
         $msg_ref = \$msg;
     }
     else {
-        my $default_filename = $ENV{'SDRROOT'} . '/web/m/mdp/default-availability-message.txt';
+        my $default_filename = $ENV{'SDRROOT'} . '/mdp-web/default-availability-message.txt';
         $msg_ref = Utils::read_file($default_filename, 1);
     }
 
@@ -257,12 +259,12 @@ sub handle_template_file {
     my $template_ref;
 
     if (defined($ENV{'UNAVAILABLE'})) {
-        my $filename = $ENV{'SDRROOT'} . '/web/m/mdp/MBooks_unavailable.html';
+        my $filename = $ENV{'SDRROOT'} . '/mdp-web/MBooks_unavailable.html';
         $template_ref = Utils::read_file($filename, 1);
         process_availability_file_msg($template_ref, $msg);
     }
     else {
-        my $filename = $ENV{'SDRROOT'} . '/web/m/mdp/production_error.html';
+        my $filename = $ENV{'SDRROOT'} . '/mdp-web/production_error.html';
         $template_ref = Utils::read_file($filename, 1);
     }
 
@@ -468,18 +470,21 @@ sub handle_terminal_debug_msg {
 
 =item debugging_enabled
 
-Limit debug= functionality and certain protected accesses to "us" even
-in production
+Limit debug= functionality for certain classes of users.  Rules:
+
+(1) Production web: allowed when authenticated
+(2) Development command line: allowed globally
+(3) Development web: allowed for HT_DEV == uniqname
 
 =cut
 
 # ---------------------------------------------------------------------
-# Over-ride all user.cfg checking.  DO NOT GO INTO PRODUCTION WITH
-# THIS SET!
-my $___no_ACL_debugging_test = 0 || $ENV{'TERM'};
-
 sub debugging_enabled {
     my $user_type = shift;
+
+    # Over-ride all authorization checking.  DO NOT GO INTO PRODUCTION
+    # WITH THIS SET!
+    my $___no_ACL_debugging_test = ($ENV{'HT_DEV'} =~ m,[a-z]+,) || $ENV{'TERM'};
 
     return 1
       if ($___no_ACL_debugging_test);
