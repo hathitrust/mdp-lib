@@ -579,7 +579,6 @@ sub get_user_display_name {
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name = 
                     $self->get_displayName($C) 
-                        || $self->get_eduPersonPrincipalName($C) 
                             || $self->get_eduPersonScopedAffiliation($C);
             }
         }
