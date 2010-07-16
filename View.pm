@@ -200,6 +200,7 @@ sub get_template_name {
     return $self->{'template_name'};
 }
 
+
 # ---------------------------------------------------------------------
 
 =item process_template_includes
@@ -424,6 +425,31 @@ sub _get_transformed_xml {
     return $self->{'transformed_xml'};
 }
 
+# ---------------------------------------------------------------------
+
+=item __transform_paths
+
+Support for debug=local switch for web paths.  See also Vendor.pm for
+functionality to paths to Perl modules.
+
+Take a reference to output and map web paths containing
+'//common-web/' to common-web submodule or local clone og mdp-web.git.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __transform_paths {
+    my $self = shift;
+    my ($C, $ref) = @_;
+    
+    if (DEBUG('local')) {
+        $$ref =~ s,//common-web/,/mdp-web/,g;
+    }
+    else {
+        my $app_name = $C->get_object('App')->get_app_name();
+        $$ref =~ s,//common-web/,/$app_name/common-web/,g;
+    }
+}
 
 # ---------------------------------------------------------------------
 
@@ -486,6 +512,9 @@ sub _render_template
     my $transformed_xml_ref =
         Utils::XSLT::transform_driver($parsed_xml, $template_name,
                                            $stylesheet_text_ref);
+
+    # Serious magic
+    $self->__transform_paths($C, $transformed_xml_ref);
 
     $self->_set_transformed_xml($transformed_xml_ref);
 }
