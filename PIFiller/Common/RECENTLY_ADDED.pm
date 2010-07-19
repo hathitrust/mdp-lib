@@ -53,7 +53,7 @@ sub handle_RECENTLY_ADDED_PI
     foreach my $coll (@$coll_arr_ref)
     {
         $temp_cgi->param('c', $$coll{'MColl_ID'});
-        my $href = Utils::url_to($temp_cgi, undef, 'relative');
+        my $href = Utils::url_to($temp_cgi);
         
         my $item = 
             wrap_string_in_tag($$coll{'collname'}, 'Name') 

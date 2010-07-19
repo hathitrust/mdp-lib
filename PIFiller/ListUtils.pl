@@ -16,6 +16,7 @@ empty on, but maybe it has fewer possible parameters
 =cut
 
 # ---------------------------------------------------------------------
+
 sub get_sorting_href
 {
     my ($C, $sortkey) = @_;
@@ -89,7 +90,7 @@ sub PT_HREF_helper {
     if ($shib) {
         $pt_script =~ s,/cgi/,/shcgi/,;
     }
-    my $href = Utils::url_to($temp_cgi, $pt_script, 'relative');
+    my $href = Utils::url_to($temp_cgi, $pt_script);
 
     return $href;
 }
@@ -216,6 +217,7 @@ sub getSpacedCollName
 }
 
 # ---------------------------------------------------------------------
+
 =item handle_SORT_WIDGET_PI
 
 Description
