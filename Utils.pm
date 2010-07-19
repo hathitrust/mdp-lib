@@ -582,7 +582,13 @@ sub url_to
         }
     }
 
-    my $url = $temp_cgi->url(-query=>1, -absolute=>1, -rewrite=>0);
+    my $url;
+    if ($script_name) {
+        $url = $temp_cgi->url(-query=>1, -absolute=>1, -rewrite=>0);
+    }
+    else {
+        $url = $temp_cgi->url(-query=>1, -absolute=>1, -rewrite=>1);
+    }
 
     # if a scriptname was explicitly passed in, use it instead
     if ( $script_name )
@@ -752,15 +758,15 @@ Description
 # ---------------------------------------------------------------------
 sub get_uber_config_path {
     my $app_name = shift;
-    
+
     my $path;
-    if (DEBUG('local')) { 
-        $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber.conf" 
+    if (DEBUG('local')) {
+        $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber.conf"
     }
     else {
         $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/uber.conf"
     }
-      
+
     return $path;
 }
 
