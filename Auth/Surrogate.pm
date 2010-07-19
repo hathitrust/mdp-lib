@@ -8,11 +8,7 @@ Auth::Surrogate
 
 This class replaces the auth system to allow overrides of the SDRINST
 and SDRLIB environment variables in development.  If the SDR file is
-present in cgi/m/mdp/... it will override.
-
-=head1 VERSION
-
-$Id: Surrogate.pm,v 1.5 2010/01/26 17:45:16 pfarber Exp $
+present in /<<appname>>/cgi/... it will override.
 
 =head1 SYNOPSIS
 
