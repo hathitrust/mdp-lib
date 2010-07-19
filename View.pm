@@ -432,8 +432,9 @@ sub _get_transformed_xml {
 Support for debug=local switch for web paths.  See also Vendor.pm for
 functionality to paths to Perl modules.
 
-Take a reference to output and map web paths containing
-'//common-web/' to common-web submodule or local clone og mdp-web.git.
+Take a reference to the output string and map web paths containing
+'//common-web/' to common-web submodule or local clone of mdp-web.git
+depending on the value of DEBUG.
 
 =cut
 
