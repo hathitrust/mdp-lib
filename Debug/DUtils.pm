@@ -23,13 +23,6 @@ setup_debug_environment($ses);
 =cut
 
 BEGIN {
-    if ($ENV{'HT_DEV'}) {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
-BEGIN {
     use Exporter ();
     @Debug::DUtils::ISA = qw(Exporter);
     @Debug::DUtils::EXPORT = qw(
