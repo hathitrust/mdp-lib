@@ -558,7 +558,7 @@ original input
 # ---------------------------------------------------------------------
 sub url_to
 {
-    my ($cgi, $script_name, $relative) = @_;
+    my ($cgi, $script_name) = @_;
 
     my $temp_cgi = new CGI($cgi);
 
@@ -582,15 +582,7 @@ sub url_to
         }
     }
 
-    my $url;
-    if ($relative)
-    {
-        $url = $temp_cgi->url(-query=>1, -absolute=>1);
-    }
-    else
-    {
-        $url = $temp_cgi->self_url();
-    }
+    my $url = $temp_cgi->url(-query=>1, -absolute=>1, -rewrite=>0);
 
     # if a scriptname was explicitly passed in, use it instead
     if ( $script_name )
