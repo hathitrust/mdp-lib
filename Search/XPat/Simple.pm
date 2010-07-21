@@ -8,10 +8,6 @@ Search::XPat::Simple (xpat)
 
 This class is a simplified version of DLXS XPat.pm
 
-=head1 VERSION
-
-$Id: Simple.pm,v 1.5 2008/07/02 19:01:40 pfarber Exp $
-
 =head1 SYNOPSIS
 
 Coding example
@@ -22,15 +18,7 @@ Coding example
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
+use strict;
 use IPC::Open3;
 use Symbol;
 
@@ -39,9 +27,6 @@ use Utils;
 use Debug::DUtils;
 use Search::XPat::Result;
 use Search::XPat::ResultSet;
-
-
-my $g_xpat_executable = $ENV{'SDRROOT'} . '/bin/symlinks/xpatu';
 
 
 sub new
@@ -94,7 +79,7 @@ sub _initialize
         $| = 1;
         
         my $startup_command =
-            $g_xpat_executable . qq{ -D } . $self->{'dd'} . qq{ -q -s EndOfResults };
+            $PTGlobals::gXPATU . qq{ -D } . $self->{'dd'} . qq{ -q -s EndOfResults };
         
         DEBUG('xpat,all', qq{startup command: $startup_command\n});
         
