@@ -9,8 +9,8 @@ if ( -d "$Bin/../lib" ) {
     push(@my_inc, "$Bin/../lib");
 }
 
-my $debugging = CGI::param('debug') || '';
-if ($debugging =~ m,local,) {
+my $local_switch = (CGI::param('debug') =~ m,local,);
+if ($local_switch) {
     push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
 }
 
@@ -18,7 +18,15 @@ if ( -d "$Bin/../vendor" ) {
     opendir(VENDOR, "$Bin/../vendor");
     foreach my $repo ( readdir(VENDOR) ) {
         if ( -d "$Bin/../vendor/$repo/lib" ) {
-            push(@my_inc, "$Bin/../vendor/$repo/lib");
+            if ($local_switch){
+                my ($local_repo) = ($repo =~ m,(^[^-]+)-lib$,);
+                if (-d "$Bin/../../$local_repo/lib") {
+                    push(@my_inc, "$Bin/../../$local_repo/lib");
+                }
+            }
+            else {
+                push(@my_inc, "$Bin/../vendor/$repo/lib");
+            }
         }
     }
 }
