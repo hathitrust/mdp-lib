@@ -334,29 +334,15 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub mkdir_path
-{
-    my ($path, $logfile) = @_;
+sub mkdir_path {
+    my $path = shift;
 
     use File::Path;
 
-    if (! -e $path)
-    {
+    if (! -e $path) {
         DEBUG('all,pt', qq{<h4>MkdirPath: $path, umask=} . umask() . qq{</h4>\n});
         eval { File::Path::mkpath( $path ); };
-        if ( $@ )
-        {
-            if ( $logfile && open( MKDIRLOG, ">>$logfile" ) )
-            {
-                print MKDIRLOG qq{$@\n};
-                close( MKDIRLOG );
-            }
-            ASSERT(0, qq{mkpath/mkdir error: "$@" for destination="$path"});
-        }
-    }
-    else
-    {
-        DEBUG('all,pt', qq{<h4>MkdirPath: path="$path" exists</h4>\n});
+        ASSERT((! $@), qq{mkpath/mkdir error: "$@" for destination="$path"});
     }
 }
 
