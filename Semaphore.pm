@@ -1,6 +1,5 @@
 package Semaphore;
 
-
 =head1 NAME
 
 Semaphore;
@@ -10,21 +9,15 @@ Semaphore;
 This class provides semaphore file functionality allowing the
 instantiator to acquire an exclusive lock on a semaphore file.
 
-=head1 VERSION
-
-$Id: Semaphore.pm,v 1.3 2008/04/24 17:21:42 pfarber Exp $
-
 =head1 SYNOPSIS
 
 use Sem;
 my $sem = new Semaphore('/wherever/locks/thing.lock');
-if ($sem)
-{
+if ($sem) {
     # enjoy exclusive access to a resource ...
     $sem->unlock;
 }
-else
-{
+else {
   # try again later ...
   exit;
 }
@@ -35,15 +28,7 @@ else
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
+use strict;
 use Fcntl qw(:flock);
 use IO::Handle;
 
@@ -52,32 +37,38 @@ use IO::Handle;
 =item new
 
 Obtain an exclusive lock in a file in a non-blocking mode.  Failure to
-obtain the lock means some other process has the lock. Making th efile
+obtain the lock means some other process has the lock. Making the file
 handle local means that when the process exits, even it it fails to
 call unlock due to runtime error, the lock will be released.
 
 =cut
 
 # ---------------------------------------------------------------------
-sub new
-{
+sub new {
     my $class = shift;
     my $file_spec = shift || die qq{filename missing in new Semaphore};
+    
+    die qq{file=$file_spec must be a disposable semaphore file (.sem)} 
+      if ($file_spec !~ m,\.sem$,);
+    
+    # Linux locking using fcntl is advisory. We can open the file even
+    # if locked but we won't be able to get a lock.
+    open(my $fh, ">", $file_spec) || die qq{open failed on semaphore file="$file_spec": $!};
 
-    open my $fh, ">", $file_spec || die qq{open failed on semaphore file="$file_spec": $!};
-    chmod 0666, $file_spec;
-
-    if (flock($fh, LOCK_EX|LOCK_NB))
-    {
+    if (flock($fh, LOCK_EX|LOCK_NB)) {
+        chmod 0666, $file_spec;
 	$fh->autoflush(1);
         print($fh $$);
 
         my $self = {
-                    'fh' => $fh, 
+                    'fh' => $fh,
                     'file_spec' => $file_spec,
                    };
         bless $self, $class;
         return $self;
+    }
+    else {
+        close($fh);
     }
 
     return undef;
@@ -92,19 +83,18 @@ Release the lock, delete the file
 =cut
 
 # ---------------------------------------------------------------------
-sub unlock 
-{
+sub unlock {
     my $self = shift;
-    
-    close(delete $self->{'fh'}) 
-        || return 0;
+
+    my $fh = delete $self->{'fh'};
+    my $unlocked = flock($fh, LOCK_UN);
+    close($fh);
 
     # NOT atomic but if another process has aquired the lock here the
     # unlink will fail which is ok
+    unlink(delete $self->{'file_spec'});
 
-    unlink( $self->{'file_spec'} );
-            
-    return 1;
+    return $unlocked;
 }
 
 1;
