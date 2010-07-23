@@ -48,7 +48,6 @@ sub handle_RECENTLY_ADDED_PI
     
     my $temp_cgi = new CGI('');
     $temp_cgi->param('a', 'listis');
-    $temp_cgi->param('debug',$cgi->param('debug'));
     
     my $Content;
     foreach my $coll (@$coll_arr_ref)
