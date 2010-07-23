@@ -928,6 +928,7 @@ sub make_coll_href
     $temp_cgi->param('c', $coll_id);
     $temp_cgi->param('a', 'listis');
     $temp_cgi->param('sz',$cgi->param('sz'));
+    $temp_cgi->param('debug', $cgi->param('debug'));
     if (! $cgi->param('sort') =~m,rel,)
     {
         $temp_cgi->param('sort',$cgi->param('sort'));
