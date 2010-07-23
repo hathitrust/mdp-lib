@@ -1,3 +1,4 @@
+use Utils::Sort;
 
 
 # ---------------------------------------------------------------------
@@ -16,7 +17,6 @@ empty on, but maybe it has fewer possible parameters
 =cut
 
 # ---------------------------------------------------------------------
-
 sub get_sorting_href
 {
     my ($C, $sortkey) = @_;
@@ -233,12 +233,17 @@ sub handle_SORT_WIDGET_PI
     my $cgi = $C->get_object('CGI');
     my $a = $cgi->param('a');
 
-    # Whenever we sort set current page to beginning of list i.e. page 1
-    # XXX do we need to mess with pn param here?
-
-
-    my @sortkeys=('title_a','title_d','auth_a','auth_d','date_d','date_a');
-    my $label_hashref = {'title_a'=>'Title A-Z','auth_a'=>'Author A-Z','date_a'=>'Date Ascending ','rel_a'=>'Least Relevant','title_d'=>'Title Z-A','auth_d'=>'Author Z-A','date_d'=>'Date Descending','rel_d'=>'Most Relevant'};
+    my @sortkeys = ('title_a','title_d','auth_a','auth_d','date_d','date_a');
+    my $label_hashref = {
+                         'title_a' => 'Title A-Z',
+                         'auth_a'  => 'Author A-Z',
+                         'date_a'  => 'Date Ascending ',
+                         'rel_a'   => 'Least Relevant',
+                         'title_d' => 'Title Z-A',
+                         'auth_d'  => 'Author Z-A',
+                         'date_d'  => 'Date Descending',
+                         'rel_d'   => 'Most Relevant'
+                        };
 
     # set default for sort part of sortkey if there is no sort param coming in
     my $concat_sortkey = $cgi->param('sort');
@@ -276,7 +281,6 @@ sub handle_SORT_WIDGET_PI
     else
     {
         # default direction for anything but search results is ascending
-        # XXX consider changing this logic so date would be descending
         $dir='a';
     }
 
@@ -356,19 +360,18 @@ sub handle_SELECT_COLLECTION_WIDGET_PI
     my $cgi = $C->get_object('CGI');
     my $coll_id = $cgi->param('c');
 
-# XXX tbw  Hack for use by LS.
-# original code gets data from action where operation put it but LS doesnt do that
-#    my $coll_hashref =
-#        $act->get_transient_facade_member_data($C, 'list_items_owned_collection_data');
+    # XXX tbw  Hack for use by LS.
+    # original code gets data from action where operation put it but LS doesnt do that
+    #    my $coll_hashref =
+    #        $act->get_transient_facade_member_data($C, 'list_items_owned_collection_data');
     # is there a co on the ls action yes!
     my $co = $act->get_transient_facade_member_data($C, 'collection_object');
     my $owner = $co->get_user_id;
     my $CS = $act->get_transient_facade_member_data($C, 'collection_set_object');
     my $coll_hashref = $CS->get_coll_data_from_user_id($owner);
-# end hack
+    # end hack
 
     my $s = '';
-
     foreach my $row (@{$coll_hashref})
     {
          # don't list current collection
@@ -440,9 +443,9 @@ sub handle_PAGING_PI
     # spit out links for each page with the page range i.e href to
     # page2 label 11-20
     my $pagelinks ='';
-    my $start_pagelinks="None";
-    my $middle_pagelinks="None";
-    my $end_pagelinks="None";
+    my $start_pagelinks = "None";
+    my $middle_pagelinks = "None";
+    my $end_pagelinks = "None";
     my $start;
     my $end;
 
@@ -468,11 +471,11 @@ sub handle_PAGING_PI
         }
         else
         {
-            #just output last $MAX_PAGE_LINKS links
+            # just output last $MAX_PAGE_LINKS links
             $start_pagelinks="Some";
             $end_links_start = $pager->last_page - (($MAX_PAGE_LINKS)-1);
             $end_links_end = $pager->last_page;
-            #reset pager
+            # reset pager
             $pager->current_page($current_page);
 
         }
@@ -480,35 +483,7 @@ sub handle_PAGING_PI
 
     }
 
-###  This code doesn't work for case where current page > MAX links since it won't show up!
- #   {
-#        #output links then an elipses and then two links so that there are only $MAX_PAGE_LINKS links
-#        $start = 1;
-#        $end = $MAX_PAGE_LINKS - $NUM_END_LINKS;
-#        $end_links_start = $pager->last_page - ($NUM_END_LINKS -1);
-#        $end_links_end = $pager->last_page;
-#        $start_pagelinks = get_pagelinks($start,$end, $pager,$temp_cgi,$make_page_href_function,$current_page);
-#        $pager->current_page($current_page);
-#        $end_pagelinks = get_pagelinks($end_links_start,$end_links_end, $pager,$temp_cgi,$make_page_href_function,$current_page);
-
-#    }
-
-#    else
-#    {
-#        #  Handle case where current page is in last 8 pages
-#    }
-
-
-
-
-#
-        #reset pager
-
-
-#  Replace above code with code  below if we want the left hand side to start at the current page
-
-#-------
-
+    #-------
     # Make links for current page, next page, and previous page
 
     # reset pager to correct current page
@@ -522,7 +497,9 @@ sub handle_PAGING_PI
 
     if (defined ($previous_page_number))
     {
-        #set pager current page to previous_page_number so that $pager->first gives correct first record number for that page
+        # set pager current page to previous_page_number so that
+        # $pager->first gives correct first record number for that
+        # page
         $pager->current_page($previous_page_number);
         $previous_page_href = $make_page_href_function->($pager->current_page, $temp_cgi,$pager->first);
         $previous_page = wrap_string_in_tag($previous_page_href, 'Href');
@@ -600,8 +577,6 @@ sub get_pagelinks
     my $pagelinks;
 
     # sanity checks
-
-
     if ($end > $pager ->last_page)
     {
         $end =$pager->last_page;
@@ -630,7 +605,6 @@ sub make_pagelink
     my $href;
 
     my $DISPLAY= "page" ;    # set to page|records
-    #my $DISPLAY= "record" ;    # set to page|records
 
     $pager->current_page($page);
     $href = $make_page_href->($page, $temp_cgi, $pager->first);
@@ -661,7 +635,7 @@ sub make_pagelink
 }
 
 # ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
+
 =item make_item_page_href
 
 Description
@@ -682,6 +656,7 @@ sub make_item_page_href
     return $href;
 
 }
+
 # ---------------------------------------------------------------------
 
 =item make_solr_page_href
@@ -698,11 +673,10 @@ sub make_solr_page_href
     my $start_rec_number = shift;
     # create clone of input temp_cgi so we don't affect it
     my $temp_cgi = new CGI($in_cgi);
-#XXX confirm that pager counts starting at 1 .Solr starts counting at 0
 
     if (defined ($start_rec_number ))
     {
-        $start_rec_number =  $start_rec_number -1;
+        $start_rec_number =  $start_rec_number - 1;
     }
     else
     {
@@ -853,8 +827,6 @@ sub handle_OPERATION_RESULTS_PI
     $s .= wrap_string_in_tag($already_count, 'AlreadyInColl2Count');
     $s .= wrap_string_in_tag($action_type, 'CopyActionType');
 
-    #  XXX Should delete items op results have separate PI
-
     my $delete_items_hashref = $act->get_persistent_facade_member_data($C, 'delete_items_data');
     my $del_from_id = $delete_items_hashref->{'coll_id'};
     my $del_from_name = '';
@@ -867,13 +839,13 @@ sub handle_OPERATION_RESULTS_PI
     my $del_valid_ids = $delete_items_hashref->{'valid_ids'};
     my $del_valid_count = 0;
 
-
-# set view if this is from a search result!
-#XXX start with undo param being a param for action
-# where do we get it if this is a redirect list rather than the initial action?
-# i.e. delit is followed by redirect to listit or listsrch
-# Generalized undo would have to have the action or op put something in the persistent data, probably somewhere in
-# execute operation so that a redirect UI action could then retrieve it.
+    # set view if this is from a search result!  XXX start with undo
+    # param being a param for action where do we get it if this is a
+    # redirect list rather than the initial action?  i.e. delit is
+    # followed by redirect to listit or listsrch Generalized undo
+    # would have to have the action or op put something in the
+    # persistent data, probably somewhere in execute operation so that
+    # a redirect UI action could then retrieve it.
 
     my $undo_cgi = new CGI($cgi);
     $undo_cgi->param('undo','delit');
@@ -883,11 +855,12 @@ sub handle_OPERATION_RESULTS_PI
     $undo_cgi->delete('iid');
     # add back ids that were deleted from collection
     $undo_cgi->param('iid', @{$del_valid_ids});
-    # if the items were deleted from a search result set page=srchresult (otherwise copyit will go to list items instead of back to search results)
+    # if the items were deleted from a search result set
+    # page=srchresult (otherwise copyit will go to list items instead
+    # of back to search results)
     if ($cgi->param('a') eq 'listsrch')
     {
         $undo_cgi->param('page','srch');
-      #  $undo_cgi->param('page','srchresults');
     }
 
     my $undo_del_href = CGI::self_url($undo_cgi);
@@ -971,7 +944,6 @@ sub  handle_LIMIT_TO_FULL_TEXT_PI
 
     $all_temp_cgi->delete('lmt');
     my $all_href = $all_temp_cgi->self_url();
-
 
     my $s = "";
     $s .= wrap_string_in_tag($isLimitOn, 'Limit');
