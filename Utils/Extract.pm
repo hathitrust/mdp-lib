@@ -1,6 +1,5 @@
 package Utils::Extract;
 
-
 =head1 NAME
 
 Utils::Extract
@@ -9,10 +8,6 @@ Utils::Extract
 
 This package contains code to extract a file from a zip archive for
 MBooks indexing and pageturner viewing.
-
-=head1 VERSION
-
-$Id: Extract.pm,v 1.29 2010/04/07 16:33:51 pfarber Exp $
 
 =head1 SYNOPSIS
 
@@ -24,14 +19,7 @@ Coding example
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
+use strict;
 
 use Utils;
 use Identifier;
@@ -57,28 +45,46 @@ Description
 
 # ---------------------------------------------------------------------
 sub __handle_EndBlock_cleanup {
+    cleanup();
+}
+
+# ---------------------------------------------------------------------
+
+=item cleanup
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub cleanup {
     my $pid = $$;
+    my $suffix = shift;
     my $expired = 120; # seconds
 
     # regexp must match template in get_formatted_path()
-    if (opendir(DIR, '/ram')) {
+    my $tmp_root = __get_root();
+    if (opendir(DIR, $tmp_root)) {
         my @targets = grep(! /(^\.$|^\.\.$)/, readdir(DIR));
-        my @rm_pid_targets = grep(/.*?_${pid}__.*/, @targets);
+        my $pattern = qr{.*?_${pid}__.*};
+        if ( $suffix ) { $pattern = qr{.*?_${pid}__[0-9]+_${suffix}} }
+        # my @rm_pid_targets = grep(/.*?_${pattern}__.*/, @targets);
+        my @rm_pid_targets = grep(/$pattern/, @targets);
         foreach my $sd (@rm_pid_targets) {
-            system("rm -rf /ram/$sd");
+            system("rm -rf $tmp_root/$sd");
         }
 
         my $now = time();
         foreach my $sd (@targets) {
-            my ($created) = ($sd =~ m,.*?__(\d+)_.*,);
+            my ($created) = ($sd =~ m,.*?__(\d+),);
+            next unless ( $created );
             if (($now - $created) > $expired) {
-                system("rm -rf /ram/$sd");
+                system("rm -rf $tmp_root/$sd");
             }
         }
     }
     closedir(DIR);
 }
-
 
 # ---------------------------------------------------------------------
 
@@ -97,10 +103,13 @@ template: prefix_PID__TIME_suffix
 
 # ---------------------------------------------------------------------
 sub get_formatted_path {
-    my ($prefix, $suffix) = @_;
+    my ($prefix, $suffix, $delta) = @_;
+
+    $delta = 0 || $delta;
+    $suffix = qq{_$suffix} if ( $suffix );
 
     ASSERT(($prefix !~ m,_,), qq{ERROR: prefix contains '_' character});
-    my $path = $prefix . qq{_$$} . q{__} . time() . qq{_$suffix};
+    my $path = $prefix . qq{_$$} . q{__} . (time() + $delta) . $suffix;
     return $path;
 }
 
@@ -117,14 +126,22 @@ time interval so share the dir if it exists.
 # ---------------------------------------------------------------------
 sub __get_tmpdir {
     my $pairtree_form_id = shift;
+    my $suffix = shift;
+    my $delta = shift || 0;
 
-    my $input_cache_dir = get_formatted_path("/ram/$pairtree_form_id", undef);
+    my $tmp_root = __get_root();
+    my $input_cache_dir = get_formatted_path("$tmp_root/$pairtree_form_id", $suffix, $delta);
     if (! -e $input_cache_dir) {
         my $rc = mkdir($input_cache_dir);
         ASSERT($rc, qq{Failed to create dir=$input_cache_dir rc=$rc errno=$!});
     }
 
     return $input_cache_dir;
+}
+
+sub __get_root {
+    my $tmp_root = defined($ENV{'RAMDIR'}) ? $ENV{'RAMDIR'} : "/ram";
+    return $tmp_root;
 }
 
 # ---------------------------------------------------------------------
@@ -140,9 +157,10 @@ sub extract_file_to_temp_cache {
     my $id = shift;
     my $file_sys_location = shift;
     my $filename = shift;
+    my $suffix = shift;
 
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
-    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id);
+    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
     my $cwd = cwd();
 
     chdir $input_cache_dir;
@@ -174,9 +192,10 @@ sub extract_dir_to_temp_cache {
     my $id = shift;
     my $file_sys_location = shift;
     my $patterns_arr_ref = shift;
+    my $suffix = shift;
 
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
-    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id);
+    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
     my $cwd = cwd();
 
     chdir $input_cache_dir;
@@ -185,6 +204,8 @@ sub extract_dir_to_temp_cache {
 
     # -j: just filenames, not full paths, -qq: very quiet
     system("$UNZIP_PROG", "-j", "-qq", $zip_file, @$patterns_arr_ref);
+    my $system_retval = $? >> 8;
+    ASSERT(($system_retval == 0 || $system_retval == 11), qq{UNZIP : $UNZIP_PROG -j -qq $zip_file } . join(' ', @$patterns_arr_ref) . qq{ failed with code="} . ( $system_retval >> 8 ) . qq{"} . "\n" . qx{/bin/ls $input_cache_dir} );
     chdir $cwd;
 
     DEBUG('doc', qq{UNZIP: $UNZIP_PROG -j -qq $zip_file } . join(' ', @$patterns_arr_ref));
