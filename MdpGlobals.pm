@@ -37,3 +37,94 @@ $gFeedbackCGIUrl = $ENV{'HT_DEV'} ? $dev_feedback_url : $prod_feedback_url;
 # General configuration
 $adminLink  = q{mailto:dlps-help@umich.edu};
 $adminText  = q{UMDL Help};
+
+# App::MdpItem
+$gMetsFileExtension    = '.mets.xml';
+$gOcrXmlFileExtension  = '.ocr.xml';
+$gInitFileExtension    = '.init';
+
+$gDefaultOrientation  = '0';
+$gDefaultRotation     = '0';
+
+%gValidRotationValues = 
+    (
+     '0' => '0',
+     '1' => '90',
+     '2' => '180',
+     '3' => '270'
+    );
+
+# When we get XML compliant HTML for hOCR
+$ghOCREnabled          = 0;
+
+# ---------------------------------------------------------------------
+# Page Features
+# ---------------------------------------------------------------------
+%gMdpPageFeatureHash =
+    (
+     'CHAPTER_START'               => 'Section',
+     'COPYRIGHT'                   => 'Copyright',
+     'FIRST_CONTENT_CHAPTER_START' => 'Section',
+     'FRONT_COVER'                 => 'Front Cover',
+     'INDEX'                       => 'Index',
+     'REFERENCES'                  => 'Bibliography',
+     'TABLE_OF_CONTENTS'           => 'Table of Contents',
+     'TITLE'                       => 'Title Page',     
+    );
+
+%gMiunPageFeatureHash =
+    (
+     '1STPG' =>'First Page',
+#     'ACK'  =>'Acknowledgement',
+#     'ADV'  =>'Advertisement',
+     'APP'  =>'Appendix',
+     'BIB'  =>'Bibliography',
+#     'BLP'  =>'Blank Page',
+#     'CTP'  =>'Cover Title Page',
+     'CTP'  =>'Title Page',
+     'DIG'  =>'Digest',
+     'ERR'  =>'Errata',
+#     'FNT'  =>'Front Matter',
+#     'HIS'  =>'History',
+#     'IND'  =>'Comprehensive Index',
+     'IND'  =>'Index',
+     'LOI'  =>'List of Illustrations',
+     'LOT'  =>'List of Tables',
+#     'MAP'  =>'Map',
+#     'MIS'  =>'Miscellaneous',
+#     'MSS'  =>'Manuscript',
+     'NOT'  =>'Notes',
+#     'NPN'  =>'[n/a]',
+#     'ORD'  =>'Ordinances',
+     'PNI'  =>'Author/Name Index',
+     'PNT'  =>'Production Note',
+     'PRE'  =>'Preface',
+     'PRF'  =>'Preface',
+     'REF'  =>'References',
+#     'REG'  =>'Regulations',
+#     'RUL'  =>'Rules',
+     'SPI'  =>'Special Index',
+     'SUI'  =>'Subject Index',
+     'SUP'  =>'Supplement',
+#     'TAB'  =>'Table',
+     'TOC'  =>'Table of Contents',
+     'TPG'  =>'Title Page',
+#     'UNS'  =>'',
+#     'VES'  =>'Volume End Sheets',
+#     'VLI'  =>'Volume List of Illus',
+     'VLI'  =>'List of Illustrations',
+     'VOI'  =>'Volume Index',
+#     'VPG'  =>'Various Pagination',
+#     'VTP'  =>'Volume Title Page',
+     'VTP'  =>'Title Page',
+#     'VTV'  =>'Volume Title Page Verso',
+     'VTV'  =>'Title Page',
+);     
+
+%gPageFeatureHash = (
+    'miun' => \%gMiunPageFeatureHash,
+    'miua' => \%gMiunPageFeatureHash,
+    'MARC.METADATA' => \%gMdpPageFeatureHash,
+);
+
+1;
