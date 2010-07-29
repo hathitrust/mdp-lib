@@ -25,15 +25,7 @@ $C->set_object('Database', $db);
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
+use strict;
 use DBI;
 
 use Utils;
@@ -66,8 +58,10 @@ sub _initialize
     my $self = shift;
     my $config = shift;
 
-    my $db_name = $config->get('db_name');
-    my $db_user = $config->get('db_user');
+    my $db_prefix = ($ENV{SDRVIEW} eq 'sample') ? "$ENV{HT_DEV}_" : '';
+    
+    my $db_name =  $db_prefix . $config->get('db_name');
+    my $db_user = $db_prefix . $config->get('db_user');
     my $db_passwd = $config->get('db_passwd');
 
     my $db_server = $config->get('db_server');
