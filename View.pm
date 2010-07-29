@@ -492,9 +492,9 @@ sub _render_template
 
     if (DEBUG('xsltwrite')) {
         my $config = $C->get_object('MdpConfig');
-        my $cache_dir = $config->get('cache_component_dir') . '/';
-        my $user = ($ENV{'REMOTE_USER'} || 'anonymous');
-        my $partial_path = $ENV{'SDRROOT'} . $cache_dir . $user;
+        my $cache_dir = Utils::get_true_cache_dir('xsltwrite_cache_dir') . '/';
+        my $user = ($ENV{'REMOTE_USER'} || 'anonymous-' . time());
+        my $partial_path = $cache_dir . $user;
         my $xsl_filename = $partial_path . '.temp.xsl';
         my $xml_filename = $partial_path . '.temp.xml';
 

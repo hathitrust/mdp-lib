@@ -735,6 +735,28 @@ sub get_user_agent
 
 # ---------------------------------------------------------------------
 
+=item get_true_cache_dir
+
+Construct $SDRROOT/{cache|cache-full}/$key
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_true_cache_dir {
+    my $C = shift;
+    my $cache_dir_key = shift;
+
+    my $cache_dir = $ENV{SDRROOT} . $C->get_object('MdpConfig')->get($cache_dir_key');
+    my $true_cache_component = ($ENV{SDRVIEW} eq 'full') ? 'cache-full' : 'cache';
+    
+    $cache_dir =~ s,___CACHE___,$true_cache_component,;
+    
+    return $cache_dir;
+}
+
+
+# ---------------------------------------------------------------------
+
 =item get_uber_config_path
 
 Description
