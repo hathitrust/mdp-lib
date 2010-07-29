@@ -1,7 +1,5 @@
 package Context;
 
-
-
 =head1 NAME
 
 Context  (C)
@@ -14,9 +12,7 @@ by its ref() for later retrieval.
 
 It also provides a convenient location for transient session data.
 
-=head1 VERSION
-
-$Id: Context.pm,v 1.7 2008/01/04 18:03:15 pfarber Exp $
+It is a singleton.
 
 =head1 SYNOPSIS
 
@@ -38,25 +34,18 @@ $Id: Context.pm,v 1.7 2008/01/04 18:03:15 pfarber Exp $
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
+use strict;
 use Utils;
 
-sub new
-{
-    my $class = shift;
+my $oneTrueSelf;
 
-    my $self = {};
-    bless $self, $class;
-
-    return $self;
+sub new {
+    unless ( defined($oneTrueSelf) ) {
+        my $type = shift;
+        my $this = {};
+        $oneTrueSelf = bless $this, $type;
+    }
+    return $oneTrueSelf;
 }
 
 
@@ -82,6 +71,8 @@ sub dispose
             $object->dispose();
         }
     }
+    
+    $oneTrueSelf = undef;
 }
 
 
@@ -156,9 +147,10 @@ sub has_object
 
 __END__
 
-=head1 AUTHOR
+=head1 AUTHORS
 
 Phillip Farber, University of Michigan, pfarber@umich.edu
+Roger Espinoza, University of Michigan, roger@umich.edu
 
 =head1 COPYRIGHT
 
