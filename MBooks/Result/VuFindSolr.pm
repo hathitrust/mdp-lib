@@ -116,10 +116,12 @@ sub AFTER_ingest_Solr_search_response
     my $ary_metadata_hash=[];
     my $ids_in_query = $self->__get_ids();
     
-    my $ids_seen={}; #for multivolume/serials
+    my $ids_seen = {}; #for multivolume/serials
     foreach my $id (@{$ids_in_query})
     {
-        $ids_seen->{$id}=0;
+        $id =~ s,^\s+,,g;
+        $id =~ s,\s+$,,g;
+        $ids_seen->{$id} = 0;
     }
     
     my $doc_node_count = 0;
@@ -159,13 +161,13 @@ sub AFTER_ingest_Solr_search_response
         my $converted_hash;
         
         my $iteminfo_aryref = $metadata_hash->{'ht_id_display'};
-        if (scalar (@{$iteminfo_aryref}) == 1)
+        if (scalar(@{$iteminfo_aryref}) == 1)
         {
            my  ($id, $volume_info) = $self->__get_id_and_volume_info($iteminfo_aryref->[0]);
            $metadata_hash->{'volume'} = $volume_info;
            $metadata_hash->{'ht_id_display'} = $id;
            $converted_hash = $self->process_metadata($metadata_hash);
-           push (@{$ary_metadata_hash}, $converted_hash);
+           push(@{$ary_metadata_hash}, $converted_hash);
         }
         else
         {
@@ -175,7 +177,7 @@ sub AFTER_ingest_Solr_search_response
             # along with the appropriate id and volume info
             # $ids_seen contains the query ids as keys
 
-            my ($vufind_id_aryref,$volid_hashref)=$self->__extract_volume_metadata($iteminfo_aryref);
+            my ($vufind_id_aryref,$volid_hashref) = $self->__extract_volume_metadata($iteminfo_aryref);
             
             foreach my $item_id (@{$vufind_id_aryref})
             { 
@@ -198,6 +200,7 @@ sub process_metadata
 {       
     my $self = shift;
     my $metadata_hash = shift;
+
     my $cleaned_hash = $self->__clean_metadata($metadata_hash);
     my $converted_hash = $self->__convert_fieldnames($cleaned_hash);
     $converted_hash = $self->__convert_arrays_to_strings($converted_hash);
@@ -215,7 +218,7 @@ sub __convert_arrays_to_strings
     {
         # XXX title can have 2 strings where second string is 245 with initial article removed
         # we only want 1st string foobar
-        if ($key eq "display_title")
+        if ($key eq "display_title" && ref($hash->{$key}) eq 'ARRAY')
         {
             $hash->{$key}=$hash->{$key}->[0];
         }
@@ -235,7 +238,7 @@ sub __Arrayref_toString
     my $couldBeArrayRef = shift;
     if (ref($couldBeArrayRef) eq 'ARRAY')
     {
-        my $concatenated = join (" ",@{$couldBeArrayRef});
+        my $concatenated = join (" ", @{$couldBeArrayRef});
         return $concatenated;
     }
     return $couldBeArrayRef;
@@ -252,23 +255,30 @@ sub __clean_metadata
     my $self = shift;
     my $hash = shift;
     
-    my $cleanhash={};
+    my $cleanhash = {};
     
     foreach my $key (keys %{$hash})
     {
-        if ($key eq "volume")
+        if ($key eq "title")
         {
-            # we need to put it somewhere or discard it
-            #do something  maybe add it to title?
-            #   $hash->{'title'}.= " \.$hash->{$key}"
-            # remove key from hash
-            delete($hash->{$key});
+            if (defined ($hash->{'volume'}))
+            {
+                # convert title array to string and add volume             
+                if (ref($hash->{'title'}) eq 'ARRAY')
+        {
+                    $cleanhash->{'title'} = $hash->{'title'}->[0] . " $hash->{'volume'}";
         }
         else
         {
+                    $cleanhash->{'title'} .= " $hash->{'volume'}";
+                }
+            }
+        }
+        #we already processed the title and we don't want the volume in the output cleaned hash
+        if ($key ne "volume" && $key ne "title")
+        {
             $cleanhash->{$key} = $hash->{$key};
         }
-        
     }
     return $cleanhash;
 }
