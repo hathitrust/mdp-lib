@@ -38,9 +38,9 @@ sub handle_PRIV_COLL_LINK_PI
 {
     my ($C, $act, $piParamHashRef) = @_;
 
-    my $config = $C->get_object('MdpConfig');
-    my $params = $config->get('list_colls_base_params');
-    $params .= ';colltype=priv';
+    my $debug = $C->get_object('CGI')->param('debug');
+    my $params = $C->get_object('MdpConfig')->get('list_colls_base_params');
+    $params .= ";colltype=priv;debug=$debug";
     my $priv_coll_url = qq{/cgi/mb?$params};
     return $priv_coll_url;
 }

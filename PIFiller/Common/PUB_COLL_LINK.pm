@@ -38,9 +38,9 @@ sub handle_PUB_COLL_LINK_PI
 {
     my ($C, $act, $piParamHashRef) = @_;
 
-    my $config = $C->get_object('MdpConfig');
-    my $params = $config->get('list_colls_base_params');
-    $params .= ';colltype=pub';
+    my $debug = $C->get_object('CGI')->param('debug');
+    my $params = $C->get_object('MdpConfig')->get('list_colls_base_params');
+    $params .= ";colltype=pub;debug=$debug";
     my $pub_coll_url = qq{/cgi/mb?$params};
 
     
