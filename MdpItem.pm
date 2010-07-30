@@ -158,7 +158,7 @@ sub GetMdpItem
     if ( $cache_mdpItem ) {
         DEBUG('time', qq{<h3>Start mdp item uncache</h3>} . Utils::display_stats());
         
-        my $cache_dir = Utils::get_true_cache_dir('mdpitem_cache_dir');
+        my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
         $cache = Utils::Cache::Storable->new($cache_dir);
         $mdpItem = $cache->Get($id, $cache_key);
         DEBUG('time', qq{<h3>Finish mdp item uncache</h3>} . Utils::display_stats());
