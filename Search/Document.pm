@@ -11,13 +11,9 @@ This class returns a document object structured corectly for
 submission to the a given Indexer.  The Indexer types are currently
 XPAT and Solr implemented as subclasses.
 
-=head1 VERSION
-
-$Id: Document.pm,v 1.23 2010/03/11 18:02:38 pfarber Exp $
-
 =head1 SYNOPSIS
 
-see Search::Document::XPAT and Search::Document::Solr;
+see PT::Document::XPAT and MBooks::Document::Solr;
 
 =head1 METHODS
 
@@ -25,6 +21,7 @@ see Search::Document::XPAT and Search::Document::Solr;
 
 =cut
 
+use strict;
 
 # Perl
 use File::Path;
@@ -37,15 +34,6 @@ use Utils;
 use Debug::DUtils;
 use Identifier;
 use Utils::Extract;
-
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
 
 
 sub new
