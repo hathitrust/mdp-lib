@@ -1339,12 +1339,14 @@ sub adjust_feature_seq
 # RETURNS      :
 # GLOBALS      :
 # SIDE-EFFECTS :
-# NOTES        : If the item has page metadata suppress the sequences
+# NOTES        :
+#                If the item has page metadata suppress the sequences
 #                labeled with CHECKOUT_PAGE.  If the item lacks page
-#                metadata suppress the next to last page sequence.
-#                Eventually, the next to last page suppression will be
-#                eliminated in favor of CHECKOUT_PAGE when all books
-#                have page metadata.
+#                metadata DO NOTHING.  Previously we suppressed the
+#                next to last page sequence.  Eventually, the next to
+#                last page suppression will be handled when
+#                CHECKOUT_PAGE page metadata is available for all
+#                books.  This per jwilkin. Mon Aug 16 13:52:26 2010 
 # ----------------------------------------------------------------------
 sub SupressCheckoutSeqs
 {
@@ -1397,21 +1399,6 @@ sub SupressCheckoutSeqs
                 $seq++;
             }
         }
-    }
-    else
-    {
-        my $lastSequence =
-            Utils::max_of_list( keys %{$$pageInfoHashRef{'sequence' }});
-
-        my $penultimatePageSequence = $lastSequence - 1;
-
-        $$pageInfoHashRef{'sequence'}{ $penultimatePageSequence } =
-            $$pageInfoHashRef{'sequence'}{ $lastSequence };
-        delete( $$pageInfoHashRef{'sequence'}{ $lastSequence } );
-
-        $$seq2PageNumberHashRef{$penultimatePageSequence} =
-            $$seq2PageNumberHashRef{ $lastSequence};
-        delete($$seq2PageNumberHashRef{$lastSequence});
     }
 }
 
