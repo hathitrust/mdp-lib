@@ -41,6 +41,16 @@ obtain the lock means some other process has the lock. Making the file
 handle local means that when the process exits, even it it fails to
 call unlock due to runtime error, the lock will be released.
 
+We have seen an error under NFS where the open statement fails with
+$!="Stale NFS file handle at /sdr1/lib/App/Semaphore.pm line 56."
+Best guess is a race condition where process B has deleted the file
+when open, running from process A, tries to access the filehandle,
+leading to this error. That is, open is not atomic across NFS nodes.
+The solution is to ignore the open error and return undef, allowing
+the client to make another attempt.  There is evidence this approach
+will "work" because, in an older version of this code, a bug caused
+the die on open failure to be ignored and everything appeared to work.
+
 =cut
 
 # ---------------------------------------------------------------------
@@ -53,22 +63,22 @@ sub new {
     
     # Linux locking using fcntl is advisory. We can open the file even
     # if locked but we won't be able to get a lock.
-    open(my $fh, ">", $file_spec) || die qq{open failed on semaphore file="$file_spec": $!};
-
-    if (flock($fh, LOCK_EX|LOCK_NB)) {
-        chmod 0666, $file_spec;
-	$fh->autoflush(1);
-        print($fh $$);
-
-        my $self = {
-                    'fh' => $fh,
-                    'file_spec' => $file_spec,
-                   };
-        bless $self, $class;
-        return $self;
-    }
-    else {
-        close($fh);
+    if (open(my $fh, ">", $file_spec)) {
+        if (flock($fh, LOCK_EX|LOCK_NB)) {
+            chmod 0666, $file_spec;
+            $fh->autoflush(1);
+            print($fh $$);
+            
+            my $self = {
+                        'fh' => $fh,
+                        'file_spec' => $file_spec,
+                       };
+            bless $self, $class;
+            return $self;
+        }
+        else {
+            close($fh);
+        }
     }
 
     return undef;
