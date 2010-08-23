@@ -194,6 +194,9 @@ sub extract_dir_to_temp_cache {
     my $patterns_arr_ref = shift;
     my $suffix = shift;
 
+    use constant NO_ERRORS => 0;
+    use constant NO_ERRORS_NO_MATCHING_FILES => 11;
+    
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
     my $cwd = cwd();
@@ -205,7 +208,11 @@ sub extract_dir_to_temp_cache {
     # -j: just filenames, not full paths, -qq: very quiet
     system("$UNZIP_PROG", "-j", "-qq", $zip_file, @$patterns_arr_ref);
     my $system_retval = $? >> 8;
-    ASSERT(($system_retval == 0 || $system_retval == 11), qq{UNZIP : $UNZIP_PROG -j -qq $zip_file } . join(' ', @$patterns_arr_ref) . qq{ failed with code="} . ( $system_retval >> 8 ) . qq{"} . "\n" . qx{/bin/ls $input_cache_dir} );
+    ASSERT(($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES), 
+           qq{UNZIP : $UNZIP_PROG -j -qq $zip_file } 
+           . join(' ', @$patterns_arr_ref) 
+           . qq{ failed with code="$system_retval\n"} 
+           . qx{/bin/ls $input_cache_dir} );
     chdir $cwd;
 
     DEBUG('doc', qq{UNZIP: $UNZIP_PROG -j -qq $zip_file } . join(' ', @$patterns_arr_ref));
