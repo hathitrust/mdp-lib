@@ -149,8 +149,8 @@ $HT_AFFILIATE           = 5;
              $ORDINARY_USER         => 'allow_by_geo_ipaddr',
              $SSD_USER              => 'allow',
              $LIBRARY_IPADDR_USER   => 'allow',
-             $UM_AFFILIATE          => 'allow_by_geo_ipaddr',
-             $HT_AFFILIATE          => 'allow_by_geo_ipaddr',
+             $UM_AFFILIATE          => 'allow',
+             $HT_AFFILIATE          => 'allow',
             },
     );
 
