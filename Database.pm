@@ -60,7 +60,7 @@ sub _initialize
 
     my $db_prefix = ($ENV{SDRVIEW} eq 'sample') ? "$ENV{HT_DEV}_" : '';
     
-    my $db_name =  $db_prefix . $config->get('db_name');
+    my $db_name =  $config->get('db_name');
     my $db_user = $db_prefix . $config->get('db_user');
     my $db_passwd = $config->get('db_passwd');
 
