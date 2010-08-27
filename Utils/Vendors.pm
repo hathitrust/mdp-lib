@@ -9,7 +9,7 @@ if ( -d "$Bin/../lib" ) {
     push(@my_inc, "$Bin/../lib");
 }
 
-my $local_switch = (CGI::param('debug') =~ m,local,);
+my $local_switch = CGI::param('debug') && (CGI::param('debug') =~ m,local,);
 if ($local_switch) {
     push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
 }
