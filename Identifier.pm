@@ -77,10 +77,12 @@ my %g_namespace_data =
                             'namespace' => 'nnc1', }, 
      'nnc2'             => {'regexp'    => '^nnc2\..+$',
                             'namespace' => 'nnc2', },
+     'nyp'              => {'regexp'    => '^nyp\..+$',
+                            'namespace' => 'nyp', },
     );
 
-my $g_namespaces_regex = q{(^mdp)\.|^(miun)\.|^(miua)\.|(^wu)\.|(^inu)\.|(^uc1)\.|(^uc2)\.|(^pst)\.|(^umn)\.|(^chi)\.|(^nnc1)\.|(^nnc2)\.};
-my @g_has_MARC_metadata = ('mdp', 'wu', 'inu', 'uc1', 'uc2', 'miun', 'miua', 'pst', 'umn', 'chi', 'nnc1', 'nnc2');
+my $g_namespaces_regex = q{(^mdp)\.|^(miun)\.|^(miua)\.|(^wu)\.|(^inu)\.|(^uc1)\.|(^uc2)\.|(^pst)\.|(^umn)\.|(^chi)\.|(^nnc1)\.|(^nnc2)\.|(^nyp)\.};
+my @g_has_MARC_metadata = ('mdp', 'wu', 'inu', 'uc1', 'uc2', 'miun', 'miua', 'pst', 'umn', 'chi', 'nnc1', 'nnc2', 'nyp');
 
 my %g_default_debug_ids =
     (
