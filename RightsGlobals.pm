@@ -144,7 +144,8 @@ $HT_AFFILIATE           = 5;
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
             },
-     # available if IP is in the "U.S."
+     # available if IP is in the "U.S." As of Mon Aug 23 15:13:41
+     # 2010, per JPW, authenticated users can see pdus outside U.S.
      '9' => { 
              $ORDINARY_USER         => 'allow_by_geo_ipaddr',
              $SSD_USER              => 'allow',
