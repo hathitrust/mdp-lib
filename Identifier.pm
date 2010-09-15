@@ -79,6 +79,10 @@ my %g_namespace_data =
                             'namespace' => 'nnc2', },
      'nyp'              => {'regexp'    => '^nyp\..+$',
                             'namespace' => 'nyp', },
+     'yale'             => {'regexp'    => '^yale\..+$',
+                            'namespace' => 'yale', },
+     'njp'              => {'regexp'    => '^njp\..+$',
+                            'namespace' => 'njp', },
     );
 
 my $g_namespaces_regex = q{(^mdp)\.|^(miun)\.|^(miua)\.|(^wu)\.|(^inu)\.|(^uc1)\.|(^uc2)\.|(^pst)\.|(^umn)\.|(^chi)\.|(^nnc1)\.|(^nnc2)\.|(^nyp)\.};
