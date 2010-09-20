@@ -303,7 +303,7 @@ sub __get_query_response {
                     $sesion_id = $C->get_object('Session')->get_session_id();
                 }
                 my $lg = qq{$ENV{REMOTE_ADDR} $sesion_id $$ } . Utils::Time::iso_Time('time') . qq{ $d};
-                #my $app_name = $C->get_object('App')->get_app_name($C);
+                my $app_name = $C->has_object('App') ? $C->get_object('App')->get_app_name($C) : 'ls';
                 Utils::Logger::__Log_string($C, $lg,
                                                  'query_error_logfile', '___QUERY___', 'ls');
             }

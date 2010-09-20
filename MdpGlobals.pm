@@ -28,11 +28,7 @@ my $cgi_path_component = ($ENV{'AUTH_TYPE'} eq 'shibboleth') ? '/shcgi' : '/cgi'
 my $protocol  = defined($ENV{'AUTH_TYPE'}) ? 'https://' : 'http://';
 my $host = $ENV{'HTTP_HOST'};
 
-my $dev_feedback_url = $protocol . $host . $cgi_path_component . q{/f/feedback/feedback};
-# Prod feedback cgi path or host may need to change when shib is in production
-my $prod_feedback_url = q{http://quod.lib.umich.edu/cgi/f/feedback/feedback};
-
-$gFeedbackCGIUrl = $ENV{'HT_DEV'} ? $dev_feedback_url : $prod_feedback_url;
+$gFeedbackCGIUrl = $protocol . $host . $cgi_path_component . q{/feedback};
 
 # General configuration
 $adminLink  = q{mailto:dlps-help@umich.edu};
