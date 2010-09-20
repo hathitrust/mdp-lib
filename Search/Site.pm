@@ -73,10 +73,11 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub get_site_names
-{
-    my $config = shift;
-
+sub get_site_names {
+    if ($ENV{HT_DEV}) {
+        return $DEFAULT_SITE;
+    }
+    
     # Unique
     my %saw;
     @saw{values(%ipaddr_2_site_names)} = ();
