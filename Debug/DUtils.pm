@@ -479,11 +479,13 @@ sub debugging_enabled {
     # WITH THIS SET!
     my $___no_ACL_debugging_test = ($ENV{'HT_DEV'} =~ m,[a-z]+,) || $ENV{'TERM'};
 
-    return 1
-      if ($___no_ACL_debugging_test);
+    my $authorized = Auth::ACL::a_Authorized($user_type);
+    if ($___no_ACL_debugging_test) {
+        return 1;
+    }
     # POSSIBLY NOTREACHED
 
-    return Auth::ACL::a_Authorized($user_type);
+    return $authorized;
 }
 
 
