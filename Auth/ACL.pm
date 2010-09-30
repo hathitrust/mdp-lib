@@ -75,7 +75,17 @@ sub a_Authorized {
     }
 
     DEBUG('auth,all', qq{<h2>AUTH ACL: authorized="$authorized", IP="$ipaddr", user="$user" usertype="$usertype expires=$expiration_date"</h2>});
-
+    DEBUG('acl',
+          sub {
+              my $s;
+              my $ref = \%MdpUsers::gAccessControlList;
+              foreach my $user (sort keys %$ref) {
+                  $s .= qq{<h2 style="text-align:left">ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype} ip=<br/>}
+                    . join('<br/>', @{ $ref->{$user}{iprestrict} }) . qq{</h2>};
+              }
+              return $s;
+          });
+    
     return $authorized;
 }
 
