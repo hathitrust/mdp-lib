@@ -87,8 +87,6 @@ my %g_namespace_data =
                             'namespace' => 'uiuo', },
     );
 
-my @g_has_MARC_metadata = ('mdp', 'wu', 'inu', 'uc1', 'uc2', 'miun', 'miua', 'pst', 'umn', 'chi', 'nnc1', 'nnc2', 'nyp', 'yale', 'njp', 'uiuo', );
-
 my %g_default_debug_ids =
     (
      # Internal library id results from a bug in a screen-scraper script
@@ -270,26 +268,6 @@ sub get_pairtree_id_wo_namespace {
     chomp($id);
     
     return s2ppchars($id);
-}
-
-
-# ---------------------------------------------------------------------
-
-=item PUBLIC: has_MARC_metadata
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub has_MARC_metadata
-{
-    my $id = shift;
-
-    # Maybe initialize Identifier if id has not been validated yet.
-    __check_validation($id);
-
-    return grep(/^$g_NAMESPACE$/, @g_has_MARC_metadata);
 }
 
 # ---------------------------------------------------------------------
