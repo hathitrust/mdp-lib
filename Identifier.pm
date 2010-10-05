@@ -55,11 +55,11 @@ my %g_namespace_data =
                             'namespace' => 'mdp', },
      'mdp_flint'        => {'regexp'    => '^mdp\.49015\d{9}$',
                             'namespace' => 'mdp', },
-     'miu_notis'        => {'regexp'    => '^miun\.[a-z]{3}[0-9]{4}\..{4}\..{3}',
+     'miu_notis'        => {'regexp'    => '^miun\..+$',
                             'namespace' => 'miun', },
      'miu_aleph'        => {'regexp'    => '^miua\..+',
                             'namespace' => 'miua', },
-     'wu'               => {'regexp'    => '^wu\.89\d{9}$',
+     'wu'               => {'regexp'    => '^wu\..+$',
                             'namespace' => 'wu', },
      'inu'              => {'regexp'    => '^inu\.\d+$',
                             'namespace' => 'inu', },
@@ -79,10 +79,13 @@ my %g_namespace_data =
                             'namespace' => 'nnc2', },
      'nyp'              => {'regexp'    => '^nyp\..+$',
                             'namespace' => 'nyp', },
+     'yale'             => {'regexp'    => '^yale\..+$',
+                            'namespace' => 'yale', },
+     'njp'              => {'regexp'    => '^njp\..+$',
+                            'namespace' => 'njp', },
+     'uiuo'             => {'regexp'    => '^uiuo\..+$',
+                            'namespace' => 'uiuo', },
     );
-
-my $g_namespaces_regex = q{(^mdp)\.|^(miun)\.|^(miua)\.|(^wu)\.|(^inu)\.|(^uc1)\.|(^uc2)\.|(^pst)\.|(^umn)\.|(^chi)\.|(^nnc1)\.|(^nnc2)\.|(^nyp)\.};
-my @g_has_MARC_metadata = ('mdp', 'wu', 'inu', 'uc1', 'uc2', 'miun', 'miua', 'pst', 'umn', 'chi', 'nnc1', 'nnc2', 'nyp');
 
 my %g_default_debug_ids =
     (
@@ -265,26 +268,6 @@ sub get_pairtree_id_wo_namespace {
     chomp($id);
     
     return s2ppchars($id);
-}
-
-
-# ---------------------------------------------------------------------
-
-=item PUBLIC: has_MARC_metadata
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub has_MARC_metadata
-{
-    my $id = shift;
-
-    # Maybe initialize Identifier if id has not been validated yet.
-    __check_validation($id);
-
-    return grep(/^$g_NAMESPACE$/, @g_has_MARC_metadata);
 }
 
 # ---------------------------------------------------------------------

@@ -821,15 +821,9 @@ sub GetStoredFileType
 sub GetFullTitle
 {
     my $self = shift;
+
     my $title;
-
     my $id = $self->GetId();
-
-    if (! Identifier::has_MARC_metadata( $id ))
-    {
-        # For now we only do volume data for MARC for MDP
-        return $title;
-    }
     
     my $marcMetadataRef = $self->Get( 'marcmetadata' );
     my ($varfield) = ($$marcMetadataRef =~ m,<varfield id="245"[^>]*>(.*?)</varfield>,s);
@@ -857,12 +851,6 @@ sub GetAuthor
     my @values = ();
 
     my $id = $self->GetId();
-
-    if (! Identifier::has_MARC_metadata( $id ))
-    {
-        # For now we only do volume data for MARC for MDP
-        return "";
-    }
     
     my $marcMetadataRef = $self->Get( 'marcmetadata' );
     my $parser = XML::LibXML->new();
@@ -927,14 +915,7 @@ sub GetVolumeData
     my $self = shift;
 
     my %volHash;
-
     my $id = $self->GetId();
-
-    if (! Identifier::has_MARC_metadata( $id ))
-    {
-        # For now we only do volume data for MARC for MDP
-        return \%volHash;
-    }
 
     # Parse and cache the marc metadata for volume ids and title
     # string fragments and this infor specifically for the current id
@@ -1085,7 +1066,7 @@ sub build_feature_map
             handle_MIUN_features($pgftr, $order,
                                  \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE );
         }
-        elsif (Identifier::has_MARC_metadata($self->GetId()))
+        else
         {
             handle_MDP_features($pgftr, $order,
                                 \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE);
@@ -1444,8 +1425,9 @@ sub GetFeatureHash
     if (defined($MdpGlobals::gPageFeatureHash{$namespace})) {
         $featureHashRef = $MdpGlobals::gPageFeatureHash{$namespace};
     } 
-    elsif (Identifier::has_MARC_metadata($id))
-    {   $featureHashRef = $MdpGlobals::gPageFeatureHash{'MARC.METADATA'};   }
+    else {   
+        $featureHashRef = $MdpGlobals::gPageFeatureHash{'MARC.METADATA'};   
+    }
 
     return $featureHashRef;
 }

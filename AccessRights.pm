@@ -332,7 +332,7 @@ sub get_full_PDF_access_status {
     $self->_validate_id($id);
 
     my $status = 'deny';
-    my $pdpdus = $self->public_domain($C, $id);
+    my $pdpdus = $self->public_domain_world($C, $id);
 
     # Unaffiliated users can get non-Google pd/pdus and IA volumes
     if ($pdpdus) {
@@ -357,21 +357,21 @@ sub get_full_PDF_access_status {
 
 # ---------------------------------------------------------------------
 
-=item PUBLIC: public_domain
+=item PUBLIC: public_domain_world
 
-Description: is this id PD/PDUS?
+Description: is this id PD/PDUS/World?
 
 =cut
 
 # ---------------------------------------------------------------------
-sub public_domain {
+sub public_domain_world {
     my $self = shift;
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
     my $attribute = $self->get_rights_attribute($C, $id);
 
-    if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_attribute_values)) {
+    if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
             return (_resolve_access_by_GeoIP() eq 'allow');
         }
