@@ -71,7 +71,7 @@ sub cleanup {
         # my @rm_pid_targets = grep(/.*?_${pattern}__.*/, @targets);
         my @rm_pid_targets = grep(/$pattern/, @targets);
         foreach my $sd (@rm_pid_targets) {
-            system("rm -rf $tmp_root/$sd");
+            system("rm", "-rf", "$tmp_root/$sd");
         }
 
         my $now = time();
@@ -79,7 +79,7 @@ sub cleanup {
             my ($created) = ($sd =~ m,.*?__(\d+),);
             next unless ( $created );
             if (($now - $created) > $expired) {
-                system("rm -rf $tmp_root/$sd");
+                system("rm", "-rf", "$tmp_root/$sd");
             }
         }
     }
