@@ -61,16 +61,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                    ],
  },
 
-   # One time
-   'a2greg@gmail.com'
-   => {
-       'displayname' => 'Greg',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2010-06-08 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-
    # Michigan CRMS - Anne Karle-Zenith
    'jaheim'
    => {
@@ -162,7 +152,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
        'iprestrict'  => [
                          '^160\.94\.15\.154$',
                          '^160\.94\.15\.188$',
@@ -175,7 +164,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
        'iprestrict'  => [
                          '^160\.94\.15\.131$',
                         ],
@@ -186,8 +174,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^160\.94\.224\.200$',
                         ],
       },
@@ -197,22 +184,19 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^160\.94\.224\.166$',
                         ],
       },
 
    # Wisconsin CRMS
    'krattunde@library.wisc.edu'
-
    => {
        'displayname' => 'Rattunde, Karen',
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^128\.104\.61\.15$',
                         ],
       },
@@ -222,8 +206,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^128\.104\.61\.101$',
                         ],
       },
@@ -233,8 +216,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^128\.104\.61\.41$',
                         ],
       },
@@ -244,8 +226,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^128\.104\.61\.100$',
                         ],
       },
@@ -258,20 +239,18 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-05-25 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
+                         '^129\.79\.35\.85$',
                          '^129\.79\.35\.89$',
                         ],
       },
-
    'jmcclamr@indiana.edu'
    => {
        'displayname' => 'McClamroch, Jo',
        'supervisor'  => 'pfarber',
        'expires'     => '2011-05-25 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^129\.79\.35\.88$',
                         ],
 
@@ -282,21 +261,8 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-05-25 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^129\.79\.35\.86$',
-                        ],
-
-      },
-   'hansone@indiana.edu'
-   => {
-       'displayname' => 'Hanson, Elizabeth',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-05-25 23:59:59',
-       'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
-                         '^129\.79\.35\.85$',
                         ],
 
       },
@@ -306,8 +272,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => '2011-05-25 23:59:59',
        'usertype'    => 'onetime',
-#       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      'iprestrict'  => [
+       'iprestrict'  => [
                          '^129\.79\.35\.87$',
                         ],
 
