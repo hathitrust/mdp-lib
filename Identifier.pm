@@ -85,6 +85,8 @@ my %g_namespace_data =
                             'namespace' => 'njp', },
      'uiuo'             => {'regexp'    => '^uiuo\..+$',
                             'namespace' => 'uiuo', },
+     'coo'              => {'regexp'    => '^coo\..+$',
+                            'namespace' => 'coo', },
     );
 
 my %g_default_debug_ids =
