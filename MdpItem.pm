@@ -853,6 +853,11 @@ sub GetAuthor
     my $id = $self->GetId();
     
     my $marcMetadataRef = $self->Get( 'marcmetadata' );
+    
+    unless ( $$marcMetadataRef ) {
+        return "";
+    }
+    
     my $parser = XML::LibXML->new();
     my $tree = $parser->parse_string($$marcMetadataRef);
     my $root = $tree->getDocumentElement();

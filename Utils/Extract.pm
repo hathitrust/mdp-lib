@@ -211,8 +211,7 @@ sub extract_dir_to_temp_cache {
     ASSERT(($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES), 
            qq{UNZIP : $UNZIP_PROG -j -qq $zip_file } 
            . join(' ', @$patterns_arr_ref) 
-           . qq{ failed with code="$system_retval\n"} 
-           . qx{/bin/ls $input_cache_dir} );
+           . qq{ failed with code="$system_retval\n"} );
     chdir $cwd;
 
     DEBUG('doc', qq{UNZIP: $UNZIP_PROG -j -qq $zip_file } . join(' ', @$patterns_arr_ref));
