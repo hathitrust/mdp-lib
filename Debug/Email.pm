@@ -56,7 +56,7 @@ sub send_debug_email
     return if (! $g_email_enabled );
 
     my $hostname = Utils::get_hostname();
-    ($hostname) = ($hostname =~ m,^(\w+)\..*,);
+    ($hostname) = ($hostname =~ m,^(.*?)\..*$,);
 
     my $email_subject = qq{[MAFR] MBooks assertion failure ($hostname)};
     my $email_body = Carp::longmess(qq{ASSERTION FAILURE: $msg});
