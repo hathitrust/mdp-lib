@@ -236,6 +236,20 @@ sub process_availability_file_msg {
     }
 }
 
+# ---------------------------------------------------------------------
+
+=item ___determine_app
+
+A bit of a hack to figure out the app that has the current webspace to
+fix up paths to css and graphics in static HTML files.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___determine_app {
+    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,^/(.*?)/,);
+    return $appname;
+}
 
 # ---------------------------------------------------------------------
 
@@ -260,6 +274,9 @@ sub handle_template_file {
         my $filename = $ENV{'SDRROOT'} . '/mdp-web/production_error.html';
         $template_ref = Utils::read_file($filename, 1);
     }
+
+    my $appname = ___determine_app();
+    $$template_ref =~ s,\./,/$appname/common-web/,g;
 
     CGI::Carp::DebugScreen->set_error_template($$template_ref)
         if ($$template_ref);
