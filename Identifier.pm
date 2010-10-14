@@ -8,21 +8,17 @@ Identifier (id)
 =head1 DESCRIPTION
 
 This class provides identifier and namespace handling for MDP
-identifiers (IDs).  
-
-=head1 VERSION
-
-$Id: Identifier.pm,v 1.46 2010/04/30 20:20:26 pfarber Exp $
+identifiers (IDs).
 
 =head1 SYNOPSIS
 
  if (Identifier::validate_mbooks_id($cgi))
  {
-    do stuff;
+    do_stuff;
  }
  else
  {
-    crap out;
+    crap_out;
  }
 
 =head1 METHODS
@@ -31,63 +27,11 @@ $Id: Identifier.pm,v 1.46 2010/04/30 20:20:26 pfarber Exp $
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
+use strict;
 
 use Utils;
 use Debug::DUtils;
 use File::Pairtree;
-
-# ----------------------------------------------------------
-# Package variables
-# ----------------------------------------------------------
-
-# At some point all IDs must have namespace prefixes (we hope)
-my %g_namespace_data =
-    (
-     'mdp'              => {'regexp'    => '^mdp\.39015\d{9}$',
-                            'namespace' => 'mdp', },
-     'mdp_flint'        => {'regexp'    => '^mdp\.49015\d{9}$',
-                            'namespace' => 'mdp', },
-     'miu_notis'        => {'regexp'    => '^miun\..+$',
-                            'namespace' => 'miun', },
-     'miu_aleph'        => {'regexp'    => '^miua\..+',
-                            'namespace' => 'miua', },
-     'wu'               => {'regexp'    => '^wu\..+$',
-                            'namespace' => 'wu', },
-     'inu'              => {'regexp'    => '^inu\.\d+$',
-                            'namespace' => 'inu', },
-     'uc1'              => {'regexp'    => '^uc1\..+$',
-                            'namespace' => 'uc1', },
-     'uc2'              => {'regexp'    => '^uc2\..+$',
-                            'namespace' => 'uc2', },
-     'pst'              => {'regexp'    => '^pst\..+$',
-                            'namespace' => 'pst', },
-     'umn'              => {'regexp'    => '^umn\..+$',
-                            'namespace' => 'umn', },
-     'chi'              => {'regexp'    => '^chi\..+$',
-                            'namespace' => 'chi', },
-     'nnc1'             => {'regexp'    => '^nnc1\..+$',
-                            'namespace' => 'nnc1', }, 
-     'nnc2'             => {'regexp'    => '^nnc2\..+$',
-                            'namespace' => 'nnc2', },
-     'nyp'              => {'regexp'    => '^nyp\..+$',
-                            'namespace' => 'nyp', },
-     'yale'             => {'regexp'    => '^yale\..+$',
-                            'namespace' => 'yale', },
-     'njp'              => {'regexp'    => '^njp\..+$',
-                            'namespace' => 'njp', },
-     'uiuo'             => {'regexp'    => '^uiuo\..+$',
-                            'namespace' => 'uiuo', },
-     'coo'              => {'regexp'    => '^coo\..+$',
-                            'namespace' => 'coo', },
-    );
 
 my %g_default_debug_ids =
     (
@@ -138,63 +82,35 @@ my %g_default_debug_ids =
     );
 
 
-# ----------------------------------------------------------
-# Protected Class member data
-# ----------------------------------------------------------
-my $g_THE_ID = '';
-my $g_THE_ID_TYPE = '';
-my $g_NAMESPACE = '';
-
 # ---------------------------------------------------------------------
 
 =item PUBLIC: validate_mbooks_id
 
-Ensures that a putative ID adheres to the MDP identifier scheme. At
-least as much as it is possibe to make this determination.  NOTIS IDs
-are loose.
-
-This needs to be called early in **EVERY** program to ensure that IDs
-within programs are fully qualified with namespaces.
-
-Later, if they leave the program each special case should be handled
-as a function of destination.
-
-Also alters the QUERY_STRING enviroment validate to be consistent with
-the value in the CGI object.
+Set debug ID and alters the QUERY_STRING enviroment validate to be
+consistent with the value in the CGI object.
 
 =cut
 
 # ---------------------------------------------------------------------
-sub validate_mbooks_id
-{
+sub validate_mbooks_id {
     my $arg = shift;
 
     my $candidate_id;
-    if (ref($arg) eq 'CGI')
-    {
+    if (ref($arg) eq 'CGI') {
         $candidate_id = $arg->param('id');
     }
-    else
-    {
+    else {
         $candidate_id = $arg;
     }
-    silent_ASSERT(defined($candidate_id), qq{id parameter not supplied});
-    
+
     # Set a known well-formed id on the cgi for debugging
     my $id = __set_debug_id($candidate_id);
 
-    # Has this cgi already been validated?
-    return $id if ($id eq $g_THE_ID);
-
-    # Record the type of the incoming id if it matches the known types
-    return 0 if (! __set_id_types($id));
-
-    # Set id on the cgi and QUERY_STRING based on type
+    # Set id on the cgi and QUERY_STRING
     __set_id_globally($id, $arg);
-
+    
     return $id;
 }
-
 
 
 # ---------------------------------------------------------------------
@@ -207,16 +123,13 @@ that does not understand it (yet).
 =cut
 
 # ---------------------------------------------------------------------
-sub get_id_wo_namespace
-{
+sub get_id_wo_namespace {
     my $id = shift;
 
-   # Maybe initialize Identifier if id has not been validated yet.
     __check_validation($id);
-    
-    $id  =~ s,^$g_NAMESPACE\.,,;
-    chomp($id);
-    
+    my $namespace = the_namespace($id);
+    $id  =~ s,^$namespace\.,,;
+
     return $id;
 }
 
@@ -240,13 +153,11 @@ making the exist indexes in the cache inaccessible.
 sub get_pairtree_id_with_namespace {
     my $id = shift;
 
-   # Maybe initialize Identifier if id has not been validated yet.
     __check_validation($id);
-    
-    $id  =~ s,^$g_NAMESPACE\.,,;
-    chomp($id);
-    
-    return qq{$g_NAMESPACE.} . s2ppchars($id);
+    my $namespace = the_namespace($id);
+    $id =~ s,^$namespace\.,,;
+
+    return qq{$namespace.} . s2ppchars($id);
 }
 
 # ---------------------------------------------------------------------
@@ -263,12 +174,10 @@ a filename component.
 sub get_pairtree_id_wo_namespace {
     my $id = shift;
 
-   # Maybe initialize Identifier if id has not been validated yet.
     __check_validation($id);
-    
-    $id  =~ s,^$g_NAMESPACE\.,,;
-    chomp($id);
-    
+    my $namespace = the_namespace($id);
+    $id =~ s,^$namespace\.,,;
+
     return s2ppchars($id);
 }
 
@@ -281,14 +190,13 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub the_namespace
-{
+sub the_namespace {
     my $id = shift;
 
-    # Maybe initialize Identifier if id has not been validated yet.
     __check_validation($id);
-    
-    return $g_NAMESPACE;
+    my ($namespace) = ($id =~ m,^(.+?)\..+$,);
+
+    return $namespace;
 }
 
 # ---------------------------------------------------------------------
@@ -296,22 +204,21 @@ sub the_namespace
 =item PUBLIC: get_item_location
 
 Return full path to the dir that contains this id's files.  Provides
-mapping for the mdp, miun and miua namespaces 
+mapping for the mdp, miun and miua namespaces
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_item_location
-{
+sub get_item_location {
     my $id = shift;
 
-    # Maybe initialize Identifier if id has not been validated yet.
+    chomp($id);
     __check_validation($id);
 
     my $dataroot = Utils::resolve_data_root();
     my $path = $dataroot . qq{/obj/} . id_to_mdp_path($id);
     chomp($path);
-    
+
     return $path;
 }
 
@@ -328,15 +235,13 @@ Changed to use File::Pairtree Wed Apr 22 13:23:39 2009
 =cut
 
 # ---------------------------------------------------------------------
-sub id_to_mdp_path
-{
+sub id_to_mdp_path {
     my $id = shift;
 
     __check_validation($id);
-
     my $namespace = the_namespace($id);
     my $root = $namespace . q{/pairtree_root};
-    
+
     # Initial pairtree module
     $File::Pairtree::root = $root;
 
@@ -356,15 +261,9 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub __check_validation
-{
+sub __check_validation {
     my $id = shift;
-    
-    # Maybe initialize Identifier if id has not been validated yet.
-    if (! (($id eq $g_THE_ID) && $g_THE_ID_TYPE && $g_NAMESPACE))
-    {
-        ASSERT(validate_mbooks_id($id), qq{Invalid id="$id"});
-    }
+    ASSERT(validate_mbooks_id($id), qq{Invalid id="$id"});
 }
 
 # ---------------------------------------------------------------------
@@ -376,8 +275,7 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub __set_debug_id
-{
+sub __set_debug_id {
     my $id = shift;
 
     # Set up '1', '2', ... as easy IDs to remember
@@ -391,35 +289,6 @@ sub __set_debug_id
 
 # ---------------------------------------------------------------------
 
-=item PRIVATE: __set_id_types
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __set_id_types
-{
-    my $id = shift;
-
-    foreach my $prefix_type (keys %g_namespace_data)
-    {
-        my $RE = $g_namespace_data{$prefix_type}{'regexp'};
-        my $comp_RE = qr/$RE/; # compile the prefix pattern regexp
-        if ($id =~ m,$comp_RE,i)
-        {
-            $g_THE_ID_TYPE = $prefix_type;
-            $g_NAMESPACE = $g_namespace_data{$prefix_type}{'namespace'};
-            return 1;
-        }
-
-    }
-    return 0;
-}
-
-
-# ---------------------------------------------------------------------
-
 =item PRIVATE: __set_id_globally
 
 Description
@@ -427,22 +296,14 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub __set_id_globally
-{
+sub __set_id_globally {
     my $id = shift;
     my $arg = shift;
 
     my $QUERY_STRING;
-    if (ref($arg) eq 'CGI')
-    {
+    if (ref($arg) eq 'CGI') {
         $QUERY_STRING = $arg->query_string();
-        $QUERY_STRING =~ s,id=$id[;&]?,,g;
-    }
-
-    $g_THE_ID = $id;
-
-    if (ref($arg) eq 'CGI')
-    {
+        $QUERY_STRING =~ s,id=.+?[\;\&]?,,g;
         $arg->param('id', $id);
         $QUERY_STRING = qq{id=$id;} . $QUERY_STRING;
         $ENV{'QUERY_STRING'} = $QUERY_STRING;
