@@ -36,8 +36,6 @@ currently no logout from Shibboleth.
 =cut
 
 # ---------------------------------------------------------------------
-my $WAYF_ENABLED_IN_PRODUCTION = 1;
-
 sub handle_LOGIN_LINK_PI
     : PI_handler(LOGIN_LINK) {
     my ($C, $act, $piParamHashRef) = @_;
@@ -48,6 +46,8 @@ sub handle_LOGIN_LINK_PI
     my $href;
 
     if ($auth->is_logged_in($C)) {
+        # LOGIN_LINK is "" if auth_sys_is_SHIBBOLETH.  User must close
+        # browser to logout.
         if ($auth->auth_sys_is_COSIGN($C)) {
             my $cgi = $C->get_object('CGI');
             my $redirect_to = CGI::self_url($cgi);
@@ -56,14 +56,8 @@ sub handle_LOGIN_LINK_PI
         }
     }
     else {
-        # Development test.  Remove when Shib goes live
-        if ($ENV{'HT_DEV'} || $WAYF_ENABLED_IN_PRODUCTION) {
-            my $return_to_url = CGI::self_url($cgi);
-            $href = $auth->get_WAYF_login_href($C, $return_to_url);
-        }
-        else {
-            $href = $auth->get_COSIGN_login_href($cgi);
-        }
+        my $return_to_url = CGI::self_url($cgi);
+        $href = $auth->get_WAYF_login_href($C, $return_to_url);
     }
     
     return $href;
