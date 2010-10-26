@@ -204,8 +204,7 @@ sub get_WAYF_login_href {
     $return_to_url = CGI::escape($return_to_url);
     $return_to_url = Utils::url_over_SSL_to($return_to_url);
 
-    my $wayf_key = $ENV{'HT_DEV'} ? 'dev_WAYF_url' : 'WAYF_url';
-    my $WAYF_url = $C->get_object('MdpConfig')->get($wayf_key);
+    my $WAYF_url = $C->get_object('MdpConfig')->get('WAYF_url');
 
     $WAYF_url =~ s,___HOST___,$ENV{'HTTP_HOST'},;
     $WAYF_url .= qq{?target=$return_to_url};

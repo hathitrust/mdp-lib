@@ -41,12 +41,18 @@ sub handle_PRIV_COLL_LINK_PI
     my $debug = $C->get_object('CGI')->param('debug');
     my $params = $C->get_object('MdpConfig')->get('list_colls_base_params');
     $params .= ";colltype=priv;debug=$debug";
-    my $priv_coll_url = qq{/cgi/mb?$params};
+
+    my $priv_coll_url;
+    my $auth = $C->get_object('Auth');
+    if ($auth->auth_sys_is_SHIBBOLETH($C)) {
+        $priv_coll_url = qq{/shcgi/mb?$params};
+    }
+    else {
+        $priv_coll_url = qq{/cgi/mb?$params};
+    }
+
     return $priv_coll_url;
 }
-
-
-
 
 1;
 

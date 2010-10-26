@@ -33,6 +33,7 @@ Handler for PUB_COLL_LINK
 
 =cut
 
+# ---------------------------------------------------------------------
 sub handle_PUB_COLL_LINK_PI
     : PI_handler(PUB_COLL_LINK)
 {
@@ -41,14 +42,18 @@ sub handle_PUB_COLL_LINK_PI
     my $debug = $C->get_object('CGI')->param('debug');
     my $params = $C->get_object('MdpConfig')->get('list_colls_base_params');
     $params .= ";colltype=pub;debug=$debug";
-    my $pub_coll_url = qq{/cgi/mb?$params};
 
-    
+    my $pub_coll_url;
+    my $auth = $C->get_object('Auth');
+    if ($auth->auth_sys_is_SHIBBOLETH($C)) {
+        $pub_coll_url = qq{/shcgi/mb?$params};
+    }
+    else {
+        $pub_coll_url = qq{/cgi/mb?$params};
+    }
+
     return $pub_coll_url;
 }
-
-
-
 
 1;
 
