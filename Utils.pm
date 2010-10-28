@@ -883,7 +883,7 @@ sub read_file
         }
     }
 
-    ASSERT($ok, qq{could not open file="$filename"})
+    silent_ASSERT($ok, qq{could not open file="$filename"})
         unless ($optional);
 
     close (PAGE);
