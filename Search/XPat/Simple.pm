@@ -78,13 +78,14 @@ sub _initialize
         select STDOUT;
         $| = 1;
         
-        my $startup_command =
-            $PTGlobals::gXPATU . qq{ -D } . $self->{'dd'} . qq{ -q -s EndOfResults };
+        my @startup_command =
+            ($PTGlobals::gXPATU, "-D", "$dd", "-q", "-s", "EndOfResults");
+        my $startup_command = join(' ', @startup_command);
         
         DEBUG('xpat,all', qq{startup command: $startup_command\n});
         
         # use IPC::Open3 to fork off XPat process
-        my $pid = open3($wtr, $rdr, $err, $startup_command);
+        my $pid = open3($wtr, $rdr, $err, @startup_command);
     };
     if ($@)
     {
