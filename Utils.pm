@@ -86,7 +86,7 @@ sub ASSERT_core
 
     ASSERT_fail();
 
-    my $development = $ENV{'HT_DEV'};
+    my $development = $ENV{'HT_DEV'} || ($ENV{HTTP_HOST} eq 'test.babel.hathitrust.org');
     if ( $send_email )
     {
         if (Debug::DUtils::under_server() && (! $development || $force))
