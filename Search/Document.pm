@@ -28,6 +28,8 @@ use File::Path;
 use Encode;
 use Time::HiRes;
 use File::Pairtree;
+use IPC::Run;
+use Cwd;
 
 # Local
 use Utils;
@@ -259,6 +261,31 @@ sub __extract_ocr_to_path {
 }
 
 
+# ---------------------------------------------------------------------
+
+=item __concat_files
+
+Protect filename containg $BARCODE anw who knows what else from shell
+interpolation
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __concat_files {
+    my $dir = shift;
+    my $files_arr_ref = shift;
+    my $catfile_path = shift;
+    
+    my $cwd = cwd();
+    chdir($dir);
+    my @cat_cmds;
+    push @cat_cmds, "cat", @$files_arr_ref;
+    IPC::Run::run \@cat_cmds, ">", "$catfile_path";
+    my $rc = $?;
+    chdir($cwd);
+    
+    return ($rc > 0) ? 0 : 1;
+}
 
 # ---------------------------------------------------------------------
 
@@ -299,23 +326,29 @@ sub get_ocr_data {
     }
     # POSSIBLY NOTREACHED
 
-    # ----- Create concatenate file -----
+    # ----- Create concatenated file -----
     my $pairtree_item_id = Identifier::get_pairtree_id_wo_namespace($item_id);
     my $concat_filename = 
         Utils::Extract::get_formatted_path("/ram/OCR-$pairtree_item_id", ".txt");
     $ck = Time::HiRes::time();
-    system("cat $temp_dir/*.txt > $concat_filename");
+    if (! __concat_files($temp_dir, \@ocr_filespecs, $concat_filename)) {
+        return (undef, 0);
+    }
+    # POSSIBLY NOTREACHED
     $cke = Time::HiRes::time() - $ck;
     DEBUG('doc', qq{OCR: concat file=$concat_filename created in sec=$cke});
 
-    my $ocr_text_ref = Utils::read_file($concat_filename);
+    my $ocr_text_ref = Utils::read_file($concat_filename, 1);
+    if (! $ocr_text_ref) {
+        return (undef, 0);
+    }
+    # POSSIBLY NOTREACHED
     $ck = Time::HiRes::time();
     $self->clean_xml($ocr_text_ref);
     $cke = Time::HiRes::time() - $ck;
     DEBUG('doc', qq{OCR: xml cleaned in sec=$cke});
 
-    if (DEBUG('docfulldebug'))
-    {
+    if (DEBUG('docfulldebug')) {
         my $clean_concat_filename = $concat_filename . '-clean';
         Utils::write_data_to_file($ocr_text_ref, $clean_concat_filename);
         DEBUG('docfulldebug', qq{OCR: CLEANED concat file=$clean_concat_filename});
