@@ -32,21 +32,22 @@ my $CRON_JOBS_DISABLED = 0;
 # Fast way to enable cron jobs if files have been touched
 my $GlobalSwitch_ignore_STOP_files = 0;
 
+my %file2app_map =
+  (
+   'STOPCB'   => 'cbi',
+   'STOPSLIP' => 'slip',
+  );
+
 sub Exit_If_cron_jobs_disabled {
-    my $script = shift;
-
-    my $SITE_ADDR = `hostname -i`;
-
-    # clamato
-    return
-        if ($SITE_ADDR =~ m,141\.211\.175\.37,s);
+    my $file = shift;
 
     exit 0
-        if (cron_jobs_disabled($script));
+        if (cron_jobs_disabled($file2app_map{$file}, $file));
 }
 
 sub cron_jobs_disabled {    
-    my $script = shift;
+    my $app = shift;
+    my $file = shift;
     
     # If the STOP files are ignored, cron jobs are enabled
     return 0
@@ -55,11 +56,7 @@ sub cron_jobs_disabled {
     return (
             $CRON_JOBS_DISABLED
             ||
-            (
-             (-e "/sdr1/etc/l/ls/$script")
-             ||
-             (-e "/l1/etc/l/ls/$script")
-            )
+            (-e "$ENV{SDRROOT}/$app/etc/$file")
            );
 }
 
