@@ -118,6 +118,25 @@ sub _initialize {
  8  nobody access    available to nobody; blocked for all users
  9  pdus   copyright public domain only when viewed in the US
 
+ Creative Commons
+
+ id name       type      dscr
+ 10 ccby       copyright attribute work in manner specified by author
+ 11 ccby-nd    copyright ccby + no derivatives upon distribution
+ 12 ccby-nc-nd copyright ccby-nd + only non-commercial use only     
+ 13 ccby-nc    copyright ccby +  only non-commercial use only     
+ 15 ccby-nc-sa copyright ccby-nc + ccby-sa     
+ 15 ccby-sa    copyright ccby + same license upon redistribution
+
+ Creative Commons Links
+
+ 10 ccby       http://www.hathitrust.org/documents/notice_cc_by.txt
+ 11 ccby-nd    http://www.hathitrust.org/documents/notice_cc-by-nd.txt
+ 12 ccby-nc-nd http://www.hathitrust.org/documents/notice_cc_by-nc-nd.txt
+ 13 ccby-nc    http://www.hathitrust.org/documents/notice_cc_by-nc.txt
+ 15 ccby-nc-sa http://www.hathitrust.org/documents/notice_cc_by-nc-sa.txt
+ 15 ccby-sa    http://www.hathitrust.org/documents/notice_cc-by-sa.txt
+
 =cut
 
 # ---------------------------------------------------------------------
