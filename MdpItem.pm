@@ -705,6 +705,7 @@ sub SetRequestedPageSequence {
         }
     }
 
+    $finalSequenceNumber = $self->GetValidSequence($finalSequenceNumber);
     $self->{ 'requestedpagesequence' } = $finalSequenceNumber;
 }
 
