@@ -72,6 +72,26 @@ sub handle_SESSION_ID_PI
     return $sid;
 }
 
+# ---------------------------------------------------------------------
+
+=item handle_HAS_OCR_PI :  PI_handler(HAS_OCR)
+
+Some object lack OCR entirely -- not even empty OCR files
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_HAS_OCR_PI
+    : PI_handler(HAS_OCR)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+    
+    my $mdp_item = $C->get_object('MdpItem');    
+    my $has_ocr = $mdp_item->Get('has_ocr') ? 'YES':'NO';
+    
+    return $has_ocr;
+    
+}
 
 # ---------------------------------------------------------------------
 
