@@ -1134,6 +1134,9 @@ sub SetPageInfo
              '@USE="ocr"][1]/*[name()="METS:file"]';
     my $textFileGrp = $root->findnodes($xpath);
     $self->Set('has_ocr', scalar(@$textFileGrp));
+    if (DEBUG('noocr')) {
+        $self->Set('has_ocr', 0);
+    }
 
     # structMap contains the page and feature metadata
     my $structMap;
