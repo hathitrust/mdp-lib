@@ -485,6 +485,7 @@ sub set_transient
 {
     my $self = shift;
     my ($key, $item) = @_;
+    $self->{'transient_data'} = {} unless ( ref($self->{'transient_data'}) );
     my $session_ref = $self->{'transient_data'};
     ${$session_ref}{$key} = $item;
 }
