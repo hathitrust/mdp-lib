@@ -1128,7 +1128,7 @@ sub SetPageInfo
     # Image fileGrp
     my $imageFileGrp;
     ## my $xpath = '//*[name()="METS:mets"][1]/*[name()="METS:fileSec"][1]/*[name()="METS:fileGrp" and @USE="image"][1]/*[name()="METS:file"]';
-    my $xpath = q{//METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
+    my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
     ASSERT( $imageFileGrp = $root->findnodes($xpath) ,
             qq{Problem finding fileGrp USE="image" element in METS file: }
             . $self->Get( 'metsxmlfilename' ) );
@@ -1136,7 +1136,7 @@ sub SetPageInfo
     # OCR fileGrp - some objects lack this group
     # $xpath = '//*[name()="METS:mets"][1]/*[name()="METS:fileSec"][1]/*[name()="METS:fileGrp" and ' .
     #          '@USE="ocr"][1]/*[name()="METS:file"]';
-    $xpath = q{//METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
+    $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
     my $textFileGrp = $root->findnodes($xpath);
     $self->Set('has_ocr', scalar(@$textFileGrp));
     if (DEBUG('noocr')) {
@@ -1146,7 +1146,7 @@ sub SetPageInfo
     # structMap contains the page and feature metadata
     my $structMap;
     # $xpath = '//*[name()="METS:mets"][1]/*[name()="METS:structMap"][1]//*[name()="METS:div" and @ORDER]';
-    $xpath = q{//METS:mets/METS:structMap//METS:div[@ORDER]};
+    $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
     ASSERT( $structMap = $root->findnodes($xpath),
             qq{Problem finding structMap elements in METS file: }
             . $self->Get( 'metsxmlfilename' ) );
@@ -1195,7 +1195,7 @@ sub SetPageInfo
                 $unpaddedPageSequence =~ s,^0+,,;
                 
                 ## eval { $where = $node->findvalue('./*[name()="METS:FLocat"][1]/@xlink:href');};
-                eval { $where = $node->findvalue('./METS:FLocat[1]/@xlink:href');};
+                eval { $where = $node->findvalue('METS:FLocat[1]/@xlink:href');};
                 $where = '' if $@;
                 if ( $where =~ m,^(.*?\.(.*?))$,ios )
                 {
