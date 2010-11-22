@@ -79,6 +79,10 @@ my %g_default_debug_ids =
      '10' => {
              'id'  => 'mdp.39015051323379',
              },
+     # Islamic MSS, all OCR is zero length
+     '11' => {
+             'id'  => 'mdp.39015079124874',
+             },
     );
 
 
