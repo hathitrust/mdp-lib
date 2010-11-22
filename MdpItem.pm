@@ -1178,6 +1178,8 @@ sub SetPageInfo
     # It is faster to iterate here rather than xpath the OCR file grp
     # for a matching SEQ in the above iteration.
     if ($self->Get('has_ocr')) {
+        # Test for all zero-length OCR files.
+        my $totalFileSize = 0;
         foreach my $node ($textFileGrp->get_nodelist)
         {
             # Each of these nodes is <METS:file>
@@ -1193,10 +1195,13 @@ sub SetPageInfo
                 {
                     my $ocrFile = $1;
                     $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfile' } = $ocrFile;
-                    $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfilesize' } = $node->getAttribute('SIZE');
+                    my $fileSize = $node->getAttribute('SIZE');
+                    $totalFileSize += $fileSize;
+                    $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfilesize' } = $fileSize;
                 }
             }
         }
+        $self->Set('has_ocr', 0) if ($totalFileSize == 0);
     }
 
     # get locations of OPTIONAL coordOCR-ed files
@@ -1625,12 +1630,13 @@ sub DumpPageInfoToHtml
         my $seq = $seqsArray[$i];
         my $imgfile  = $pageInfoHash{'sequence'}{ $seq }{'imagefile'} || 'NOTDEFINED';
         my $ocrfile  = $pageInfoHash{'sequence'}{ $seq }{'ocrfile'} || 'NOTDEFINED';
+        my $ocrfilesize  = $pageInfoHash{'sequence'}{ $seq }{'ocrfilesize'};
         my $fileType = $pageInfoHash{'sequence'}{ $seq }{'filetype'};
         my $pagenum = $pageInfoHash{'sequence'}{ $seq }{'pagenumber'};
         my $featuresArrRef = $pageInfoHash{'sequence'}{ $seq }{'pagefeatures'};
         my $features = join( ',', @$featuresArrRef );
 
-        $s .= qq{<tr><td>seq="$seqsArray[$i]"</td><td>pg="$pagenum"</td><td>imgfile="$imgfile"</td><td>ocrfile="$ocrfile"</td><td>img fileType="$fileType"</td><td>features="$features"</td></tr>\n};
+        $s .= qq{<tr><td>seq="$seqsArray[$i]"</td><td>ocrsz="$ocrfilesize"</td><td>pg="$pagenum"</td><td>imgfile="$imgfile"</td><td>ocrfile="$ocrfile"</td><td>img fileType="$fileType"</td><td>features="$features"</td></tr>\n};
     }
     $s .= qq{</table>\n};
 
