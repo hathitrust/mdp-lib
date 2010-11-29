@@ -276,6 +276,7 @@ sub __concat_files {
     my $files_arr_ref = shift;
     my $catfile_path = shift;
     
+    my $ck = Time::HiRes::time();
     my $cwd = cwd();
     chdir($dir);
     my @cat_cmds;
@@ -283,76 +284,24 @@ sub __concat_files {
     IPC::Run::run \@cat_cmds, ">", "$catfile_path";
     my $rc = $?;
     chdir($cwd);
+    my $cke = Time::HiRes::time() - $ck;
+    DEBUG('doc', qq{OCR: concat file=$catfile_path created in sec=$cke});
     
     return ($rc > 0) ? 0 : 1;
 }
 
 # ---------------------------------------------------------------------
 
-=item PUBLIC: get_ocr_data
+=item __cleanup_ocr_process
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-my $g_ocr_file_regexp = qq{[0-9]+\.txt};
-
-sub get_ocr_data {
-    my $self = shift;
-    my ($C, $item_id) = @_;
-
-    my ($ck, $cke);
-    my $start = Time::HiRes::time();
-
-    # ----- Extract OCR -----
-    $ck = Time::HiRes::time();
-    my $temp_dir = $self->__extract_ocr_to_path($item_id);
-    $cke = Time::HiRes::time() - $ck;
-    DEBUG('doc', qq{OCR: zipfile extracted to dir="$temp_dir" in sec=$cke});
-
-    if (! opendir(DIR, $temp_dir)) {
-        DEBUG('doc', qq{OCR: failed to open dir="$temp_dir", item_id="$item_id"});
-        return (undef, 0);
-    }
-    # POSSIBLY NOTREACHED
-
-    # ----- Test OCR files exist -----
-    my @ocr_filespecs = grep(/$g_ocr_file_regexp/os, readdir(DIR));
-    closedir(DIR);
-    if (scalar(@ocr_filespecs) == 0) {
-        DEBUG('doc', qq{OCR: no files in $temp_dir match regexp="$g_ocr_file_regexp", item_id="$item_id"});
-        return (undef, 0);
-    }
-    # POSSIBLY NOTREACHED
-
-    # ----- Create concatenated file -----
-    my $pairtree_item_id = Identifier::get_pairtree_id_wo_namespace($item_id);
-    my $concat_filename = 
-        Utils::Extract::get_formatted_path("/ram/OCR-$pairtree_item_id", ".txt");
-    $ck = Time::HiRes::time();
-    if (! __concat_files($temp_dir, \@ocr_filespecs, $concat_filename)) {
-        return (undef, 0);
-    }
-    # POSSIBLY NOTREACHED
-    $cke = Time::HiRes::time() - $ck;
-    DEBUG('doc', qq{OCR: concat file=$concat_filename created in sec=$cke});
-
-    my $ocr_text_ref = Utils::read_file($concat_filename, 1);
-    if (! $ocr_text_ref) {
-        return (undef, 0);
-    }
-    # POSSIBLY NOTREACHED
-    $ck = Time::HiRes::time();
-    $self->clean_xml($ocr_text_ref);
-    $cke = Time::HiRes::time() - $ck;
-    DEBUG('doc', qq{OCR: xml cleaned in sec=$cke});
-
-    if (DEBUG('docfulldebug')) {
-        my $clean_concat_filename = $concat_filename . '-clean';
-        Utils::write_data_to_file($ocr_text_ref, $clean_concat_filename);
-        DEBUG('docfulldebug', qq{OCR: CLEANED concat file=$clean_concat_filename});
-    }
+sub __cleanup_ocr_process {
+    my $concat_filename = shift;
+    my $temp_dir = shift;
 
     unlink($concat_filename)
         unless (DEBUG('docfulldebug'));
@@ -362,7 +311,7 @@ sub get_ocr_data {
     # consume all available space
     my $err = [];
     File::Path::remove_tree($temp_dir, {error => \$err})
-            unless (DEBUG('docfulldebug'));
+        unless (DEBUG('docfulldebug'));
 
     if (scalar(@$err)) {
         for my $diagnostic (@$err) {
@@ -375,6 +324,161 @@ sub get_ocr_data {
             }
         }
     }
+}
+
+# ---------------------------------------------------------------------
+
+=item __maybe_preserve_doc
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __maybe_preserve_doc {
+    my $ocr_text_ref = shift;
+    my $concat_filename = shift;
+    
+    if (DEBUG('docfulldebug')) {
+        my $text;
+        if (length($$ocr_text_ref) == 0) {
+            $text = '__EMPTYOCR__';
+            $ocr_text_ref = \$text;
+        }
+        my $clean_concat_filename = $concat_filename . '-clean';
+        Utils::write_data_to_file($ocr_text_ref, $clean_concat_filename);
+        DEBUG('docfulldebug', qq{OCR: CLEANED concat file=$clean_concat_filename});
+    }
+}
+
+# ---------------------------------------------------------------------
+
+=item __clean_xml
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __clean_xml {
+    my $self = shift;
+    my $ocr_text_ref = shift;
+    
+    my $ck = Time::HiRes::time();
+    $self->clean_xml($ocr_text_ref);
+    my $cke = Time::HiRes::time() - $ck;
+    DEBUG('doc', qq{OCR: xml cleaned in sec=$cke});
+
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_ocr
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_ocr {
+    my $self = shift;
+    my $item_id = shift;
+    
+    my $ck = Time::HiRes::time();
+    my $temp_dir ;
+    eval {
+        $temp_dir = $self->__extract_ocr_to_path($item_id);
+    };
+    if ($@) {
+        return undef;
+    }
+    my $cke = Time::HiRes::time() - $ck;
+    DEBUG('doc', qq{OCR: zipfile extracted to dir="$temp_dir" in sec=$cke});
+
+    return $temp_dir;
+}
+
+# ---------------------------------------------------------------------
+
+=item __ocr_existence_test
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __ocr_existence_test {
+    my $dir_handle = shift;
+    my $temp_dir = shift;
+    my $item_id = shift;
+
+    my $ocr_exists = 1;
+    my $g_ocr_file_regexp = qq{[0-9]+\.txt};
+    my @ocr_filespecs = grep(/$g_ocr_file_regexp/os, readdir($dir_handle));
+    if (scalar(@ocr_filespecs) == 0) {
+        DEBUG('doc', qq{OCR: no files in $temp_dir match regexp="$g_ocr_file_regexp", item_id="$item_id"});
+        $ocr_exists = 0;
+    }
+
+    return ($ocr_exists, \@ocr_filespecs);
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: get_ocr_data
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_ocr_data {
+    my $self = shift;
+    my ($C, $item_id) = @_;
+
+    my $start = Time::HiRes::time();
+
+    # ----- Extract OCR -----
+    my $temp_dir = __get_ocr($self, $item_id);
+    my $DIR;
+    if (! opendir($DIR, $temp_dir)) {
+        DEBUG('doc', qq{OCR: failed to open dir="$temp_dir", item_id="$item_id"});
+        return (undef, 0);
+    }
+    # POSSIBLY NOTREACHED
+
+    # ----- Test OCR files exist ----- there exist objects without OCR files
+    my ($ocr_exists, $ocr_filespecs_ref) = __ocr_existence_test($DIR, $temp_dir, $item_id);
+    closedir($DIR);
+
+    my $ocr_text_ref;
+    my $pairtree_item_id = Identifier::get_pairtree_id_wo_namespace($item_id);
+    my $concat_filename = Utils::Extract::get_formatted_path("/ram/OCR-$pairtree_item_id", ".txt");
+
+    if ($ocr_exists) {
+        # ----- Create concatenated file -----
+        if (! __concat_files($temp_dir, $ocr_filespecs_ref, $concat_filename)) {
+            return (undef, 0);
+        }
+        # POSSIBLY NOTREACHED
+
+        $ocr_text_ref = Utils::read_file($concat_filename, 1);
+        if (! $ocr_text_ref) {
+            return (undef, 0);
+        }
+        # POSSIBLY NOTREACHED
+
+        __clean_xml($self, $ocr_text_ref);    
+    }
+    else {
+        system("touch", $concat_filename);
+        my $text = '';
+        $ocr_text_ref = \$text;
+    }
+
+    __maybe_preserve_doc($ocr_text_ref, $concat_filename);
+
+    __cleanup_ocr_process($concat_filename, $temp_dir);
 
     my $elapsed = Time::HiRes::time() - $start;
     DEBUG('doc', qq{OCR: total elapsed sec=$elapsed});
