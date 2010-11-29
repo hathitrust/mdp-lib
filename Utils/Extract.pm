@@ -26,7 +26,7 @@ use Identifier;
 use Debug::DUtils;
 
 # Perl
-use Cwd;
+use IPC::Run;
 
 END {
     __handle_EndBlock_cleanup();
@@ -160,22 +160,25 @@ sub extract_file_to_temp_cache {
     my $suffix = shift;
 
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
-    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
-    my $cwd = cwd();
-
-    chdir $input_cache_dir;
-
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
+    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
 
+    my @yes;
+    my @unzip;
+    # Pipe yes to unzip so it won't hang on a user prompt when ramdisk is full
+    push @yes, "yes", "n";
     # -j: just filenames, not full paths, -qq: very quiet
-    system("$UNZIP_PROG", "-j", "-qq", $zip_file, "$stripped_pairtree_id/$filename");
-    chdir $cwd;
+    push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, "$stripped_pairtree_id/$filename";
 
-    DEBUG('doc', qq{UNZIP: $UNZIP_PROG -j -qq $zip_file $stripped_pairtree_id/$filename});
+    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>&1";
+
+    my $cmd = qq{$UNZIP_PROG -j -qq -d $input_cache_dir $zip_file "$stripped_pairtree_id/$filename"};
+    DEBUG('doc', qq{UNZIP: $cmd});
+
     return
-        (-e qq{$input_cache_dir/$filename})
-            ? qq{$input_cache_dir/$filename}
-                : undef;
+      (-e qq{$input_cache_dir/$filename})
+        ? qq{$input_cache_dir/$filename}
+          : undef;
 }
 
 
@@ -198,23 +201,24 @@ sub extract_dir_to_temp_cache {
     use constant NO_ERRORS_NO_MATCHING_FILES => 11;
     
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
-    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
-    my $cwd = cwd();
-
-    chdir $input_cache_dir;
-
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
+    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
 
+    my @yes;
+    my @unzip;
+    # Pipe yes to unzip so it won't hang on a user prompt when ramdisk is full
+    push @yes, "yes", "n";
     # -j: just filenames, not full paths, -qq: very quiet
-    system("$UNZIP_PROG", "-j", "-qq", $zip_file, @$patterns_arr_ref);
-    my $system_retval = $? >> 8;
-    ASSERT(($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES), 
-           qq{UNZIP : $UNZIP_PROG -j -qq $zip_file } 
-           . join(' ', @$patterns_arr_ref) 
-           . qq{ failed with code="$system_retval\n"} );
-    chdir $cwd;
+    push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, @$patterns_arr_ref;
 
-    DEBUG('doc', qq{UNZIP: $UNZIP_PROG -j -qq $zip_file } . join(' ', @$patterns_arr_ref));
+    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>&1";
+    my $system_retval = $? >> 8;
+
+    my $cmd = qq{$UNZIP_PROG -j -qq -d $input_cache_dir $zip_file } . join(' ', @$patterns_arr_ref);
+    ASSERT(($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES), 
+           qq{UNZIP: $cmd failed with code="$system_retval\n"} );
+
+    DEBUG('doc', qq{UNZIP: $cmd});
 
     return $input_cache_dir;
 }
