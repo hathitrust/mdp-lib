@@ -457,7 +457,7 @@ sub get_PI_filler
     my $self = shift;
 
     my $pif = $self->{'pif'};
-    ASSERT($pif, qq{PIFiller not set by subclass});
+    silent_ASSERT($pif, qq{PIFiller not set by subclass});
 
     return $pif;
 }

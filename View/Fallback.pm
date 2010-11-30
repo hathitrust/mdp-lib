@@ -84,9 +84,9 @@ my %g_coll_id_map =
 # Map permanent collection name to web directory path
 my %g_collection_map = 
     (
-     'aadl:moaa_resources' => '/web/m/moaa-cb1',
-     'aadl:moaa'           => '/web/m/moaa-cb2',
-     'umpress:UM_Press'    => '/web/u/umpress',
+     'aadl:moaa_resources' => '/mb/web/m/moaa-cb1',
+     'aadl:moaa'           => '/mb/web/m/moaa-cb2',
+     'umpress:UM_Press'    => '/mb/web/u/umpress',
      'umhistmath'          => '',
     );
 

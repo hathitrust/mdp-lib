@@ -86,7 +86,7 @@ sub ASSERT_core
 
     ASSERT_fail();
 
-    my $development = $ENV{'HT_DEV'};
+    my $development = $ENV{'HT_DEV'} || ($ENV{HTTP_HOST} eq 'test.babel.hathitrust.org');
     if ( $send_email )
     {
         if (Debug::DUtils::under_server() && (! $development || $force))
@@ -867,7 +867,7 @@ sub read_file
     if ($ok)
     {
         $text = join('', <PAGE>);
-        my $is_utf8 = length($text) == 0 || Encode::is_utf8($text, 1);
+        my $is_utf8 = (length($text) == 0) || Encode::is_utf8($text, 1);
 
         if (! $is_utf8)
         {
@@ -883,7 +883,7 @@ sub read_file
         }
     }
 
-    ASSERT($ok, qq{could not open file="$filename"})
+    silent_ASSERT($ok, qq{could not open file="$filename"})
         unless ($optional);
 
     close (PAGE);

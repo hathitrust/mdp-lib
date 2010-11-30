@@ -114,7 +114,7 @@ sub get_action_name
     my $C = shift;
 
     my $action_name = $self->{'action_name'};
-    ASSERT($action_name, qq{Action name not set});
+    silent_ASSERT($action_name, qq{Action name not set});
 
     return $action_name;
 }

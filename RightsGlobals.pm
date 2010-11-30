@@ -153,12 +153,60 @@ $HT_AFFILIATE           = 5;
              $UM_AFFILIATE          => 'allow',
              $HT_AFFILIATE          => 'allow',
             },
+     # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
+     '10' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+             },
+     # available to everyone in the world http://creativecommons.org/licenses/by-nd/3.0/
+     '11' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+             },  
+     # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/3.0/
+     '12' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+             },  
+     # available to everyone in the world http://creativecommons.org/licenses/by-nc/3.0/
+     '13' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+             },  
+     # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/3.0/
+     '14' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+             },  
+     # available to everyone in the world http://creativecommons.org/licenses/by-sa/3.0/
+     '15' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+             },
     );
 
 # ---------------------------------------------------------------------
 # "Public domain"
 # ---------------------------------------------------------------------
-@g_public_domain_world_attribute_values = (1, 7, 9);
+@g_public_domain_world_attribute_values = (1, 7, 9, 10, 11, 12, 13, 14, 15);
 $g_public_domain_US_attribute_value = 9;
 
 # ---------------------------------------------------------------------

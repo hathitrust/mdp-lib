@@ -379,21 +379,6 @@ sub GetContentHandler
     return $self->{ 'contenthandler' };
 }
 
-sub SetConcatenate
-{
-    my $self = shift;
-    my $concatenate = shift;
-
-    $self->{ 'concatenatepdf' } = $concatenate;
-
-}
-
-sub GetConcatenate
-{
-        my $self = shift;
-        return $self->{ 'concatenatepdf' };
-}
-
 sub GetContainsJp2Jpg
 {
         my $self = shift;
@@ -573,8 +558,6 @@ sub SetCurrentRequestInfo
     $self->SetRequestedSize( $size );
 
     $self->SetRequestedPageSequence( $seq, $num, $user);
-    $self->SetConcatenate(0);
-
     my $requestedSequence = $self->GetRequestedPageSequence();
 
     # The idea here is that only the "rotate clockwise" and "rotate
@@ -653,81 +636,76 @@ sub GetValidSequence
 #                in multi-section works we depend ultimately on the
 #                sequence number to deliver the right physical page.
 # ----------------------------------------------------------------------
-sub SetRequestedPageSequence
-{
+sub SetRequestedPageSequence {
     my $self = shift;
     my ( $pageSequence, $pageNumber, $userEntered, $chunk ) = @_;
 
     my $finalSequenceNumber;
     $pageSequence = $self->GetValidSequence( $pageSequence );
 
-    if ( $self->HasPageNumbers() )
-    {
+    if ( $self->HasPageNumbers() ) {
         # If page number is supplied map it to a sequence number but
         # only if user entered.  Otherwise we treat it as a display
         # only value.
-        if ( $pageNumber )
-        {
-            if ( $userEntered )
-            {
+        if ( $pageNumber ) {
+            if ( $userEntered ) {
                 my $page2SeqNumberHashRef = $self->GetPage2SequenceMap();
                 my $trialSequenceNumber = $$page2SeqNumberHashRef{$pageNumber};
-                if ( $trialSequenceNumber )
-                {
-                    # seq known to be valid
+                if ( $trialSequenceNumber ) {
+                    # seq known to be valid by mapping
                     $finalSequenceNumber = $trialSequenceNumber;
                 }
-                else
-                {
-                    # seq validity enforced by caller
-                    $finalSequenceNumber = $pageSequence;
+                else {
+                    # User-entered page number for which we don't have
+                    # a mapping to a sequence number: treat page
+                    # number as the sequence number IF NUMERIC. Else it
+                    # was alphanumeric or strictly alpha: stay where
+                    # we are.
+                    if ($pageNumber =~ m,^\d+$,) {
+                        $finalSequenceNumber = $pageNumber;
+                    }
+                    else {
+                        $finalSequenceNumber = $pageSequence;
+                    }
                 }
             }
-            else
-            {
+            else {
                 $finalSequenceNumber = $pageSequence;
             }
         }
-        else
-        {
+        else {
             # If no page number is supplied use the page sequence
             # (validity enforced by caller)
             $finalSequenceNumber = $pageSequence;
         }
     }
-    else
-    {
+    else {
         # Item does not have page number metadata. The page number,
         # if supplied, should be treated as a sequence number if
         # entered by the user and valid.  Otherwise use $pageSequence.
         # Enforce validity on pageNumber.  $pageSequence enforced
         # above.
-        if ( $pageNumber )
-        {
-            if ( $userEntered )
-            {
+        if ( $pageNumber ) {
+            if ( $userEntered ) {
                 my $testPageNumber = $self->GetValidSequence( $pageNumber );
-                if ( $testPageNumber eq $pageNumber )
-                {
+                if ( $testPageNumber eq $pageNumber ) {
                     # Page number is valid as a sequence number
                     $finalSequenceNumber = $pageNumber;
                 }
-                else
-                {
+                else {
                     $finalSequenceNumber = $pageSequence;
                 }
             }
-            else
-            {
+            else {
                 $finalSequenceNumber = $pageSequence;
             }
         }
-        else
-        {
+        else {
             $finalSequenceNumber = $pageSequence;
         }
     }
 
+    $finalSequenceNumber = $self->GetValidSequence($finalSequenceNumber);
     $self->{ 'requestedpagesequence' } = $finalSequenceNumber;
 }
 
@@ -1151,13 +1129,14 @@ sub SetPageInfo
             qq{Problem finding fileGrp USE="image" element in METS file: }
             . $self->Get( 'metsxmlfilename' ) );
 
-    # OCR fileGrp
-    my $textFileGrp;
+    # OCR fileGrp - some objects lack this group
     $xpath = '//*[name()="METS:mets"][1]/*[name()="METS:fileSec"][1]/*[name()="METS:fileGrp" and ' .
              '@USE="ocr"][1]/*[name()="METS:file"]';
-    ASSERT( $textFileGrp = $root->findnodes($xpath),
-            qq{Problem finding fileGrp USE="ocr" element in METS file: }
-            . $self->Get( 'metsxmlfilename' ) );
+    my $textFileGrp = $root->findnodes($xpath);
+    $self->Set('has_ocr', scalar(@$textFileGrp));
+    if (DEBUG('noocr')) {
+        $self->Set('has_ocr', 0);
+    }
 
     # structMap contains the page and feature metadata
     my $structMap;
@@ -1198,25 +1177,33 @@ sub SetPageInfo
     }
     # It is faster to iterate here rather than xpath the OCR file grp
     # for a matching SEQ in the above iteration.
-    foreach my $node ($textFileGrp->get_nodelist)
-    {
-      # Each of these nodes is <METS:file>
-      my $pageSequence = $node->getAttribute('SEQ');
-      if ($pageSequence)
-      {
-        my $unpaddedPageSequence = $pageSequence;
-        $unpaddedPageSequence =~ s,^0+,,;
-
-        eval { $where = $node->findvalue('./*[name()="METS:FLocat"][1]/@xlink:href');};
-        $where = '' if $@;
-        if ( $where =~ m,^(.*?\.(.*?))$,ios )
+    if ($self->Get('has_ocr')) {
+        # Test for all zero-length OCR files.
+        my $totalFileSize = 0;
+        foreach my $node ($textFileGrp->get_nodelist)
         {
-          my $ocrFile = $1;
-          $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfile' } = $ocrFile;
-          $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfilesize' } = $node->getAttribute('SIZE');
+            # Each of these nodes is <METS:file>
+            my $pageSequence = $node->getAttribute('SEQ');
+            if ($pageSequence)
+            {
+                my $unpaddedPageSequence = $pageSequence;
+                $unpaddedPageSequence =~ s,^0+,,;
+                
+                eval { $where = $node->findvalue('./*[name()="METS:FLocat"][1]/@xlink:href');};
+                $where = '' if $@;
+                if ( $where =~ m,^(.*?\.(.*?))$,ios )
+                {
+                    my $ocrFile = $1;
+                    $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfile' } = $ocrFile;
+                    my $fileSize = $node->getAttribute('SIZE');
+                    $totalFileSize += $fileSize;
+                    $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfilesize' } = $fileSize;
+                }
+            }
         }
-      }
+        $self->Set('has_ocr', 0) if ($totalFileSize == 0);
     }
+
     # get locations of OPTIONAL coordOCR-ed files
     # FIXME: this has not been tested because $PTGlobals::ghOCREnabled is always 0.
     if ( $MdpGlobals::ghOCREnabled )
@@ -1643,12 +1630,13 @@ sub DumpPageInfoToHtml
         my $seq = $seqsArray[$i];
         my $imgfile  = $pageInfoHash{'sequence'}{ $seq }{'imagefile'} || 'NOTDEFINED';
         my $ocrfile  = $pageInfoHash{'sequence'}{ $seq }{'ocrfile'} || 'NOTDEFINED';
+        my $ocrfilesize  = $pageInfoHash{'sequence'}{ $seq }{'ocrfilesize'};
         my $fileType = $pageInfoHash{'sequence'}{ $seq }{'filetype'};
         my $pagenum = $pageInfoHash{'sequence'}{ $seq }{'pagenumber'};
         my $featuresArrRef = $pageInfoHash{'sequence'}{ $seq }{'pagefeatures'};
         my $features = join( ',', @$featuresArrRef );
 
-        $s .= qq{<tr><td>seq="$seqsArray[$i]"</td><td>pg="$pagenum"</td><td>imgfile="$imgfile"</td><td>ocrfile="$ocrfile"</td><td>img fileType="$fileType"</td><td>features="$features"</td></tr>\n};
+        $s .= qq{<tr><td>seq="$seqsArray[$i]"</td><td>ocrsz="$ocrfilesize"</td><td>pg="$pagenum"</td><td>imgfile="$imgfile"</td><td>ocrfile="$ocrfile"</td><td>img fileType="$fileType"</td><td>features="$features"</td></tr>\n};
     }
     $s .= qq{</table>\n};
 
