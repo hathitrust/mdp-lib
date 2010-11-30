@@ -165,8 +165,8 @@ sub extract_file_to_temp_cache {
 
     my @yes;
     my @unzip;
-    # Pipe yes to unzip so it won't hang on a user prompt when ramdisk is full
-    push @yes, "yes", "n";
+    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
+    push @yes, "echo", "n";
     # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, "$stripped_pairtree_id/$filename";
 
@@ -206,8 +206,8 @@ sub extract_dir_to_temp_cache {
 
     my @yes;
     my @unzip;
-    # Pipe yes to unzip so it won't hang on a user prompt when ramdisk is full
-    push @yes, "yes", "n";
+    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
+    push @yes, "echo", "n";
     # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, @$patterns_arr_ref;
 
