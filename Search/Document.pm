@@ -340,12 +340,8 @@ sub __maybe_preserve_doc {
     my $concat_filename = shift;
     
     if (DEBUG('docfulldebug')) {
-        my $text;
-        if (length($$ocr_text_ref) == 0) {
-            $text = '__EMPTYOCR__';
-            $ocr_text_ref = \$text;
-        }
         my $clean_concat_filename = $concat_filename . '-clean';
+        $clean_concat_filename =~ s,^/ram/,/tmp/,;
         Utils::write_data_to_file($ocr_text_ref, $clean_concat_filename);
         DEBUG('docfulldebug', qq{OCR: CLEANED concat file=$clean_concat_filename});
     }
@@ -468,12 +464,17 @@ sub get_ocr_data {
         }
         # POSSIBLY NOTREACHED
 
+        if ($$ocr_text_ref eq '') {
+            my $empty_ocr_sentinel = $C->get_object('MdpConfig')->get('ix_index_empty_string');
+            $ocr_text_ref = \$empty_ocr_sentinel;
+        }
+
         __clean_xml($self, $ocr_text_ref);    
     }
     else {
         system("touch", $concat_filename);
-        my $text = '';
-        $ocr_text_ref = \$text;
+        my $empty_ocr_sentinel = $C->get_object('MdpConfig')->get('ix_index_empty_string');
+        $ocr_text_ref = \$empty_ocr_sentinel;
     }
 
     __maybe_preserve_doc($ocr_text_ref, $concat_filename);
