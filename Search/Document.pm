@@ -422,7 +422,7 @@ sub __ocr_existence_test {
     my $item_id = shift;
 
     my $ocr_exists = 1;
-    my $g_ocr_file_regexp = qq{^.+?\.txt$};
+    my $g_ocr_file_regexp = q{^.+?\.txt$};
     my @ocr_filespecs = grep(/$g_ocr_file_regexp/os, readdir($dir_handle));
     if (scalar(@ocr_filespecs) == 0) {
         DEBUG('doc', qq{OCR: no files in $temp_dir match regexp="$g_ocr_file_regexp", item_id="$item_id"});
