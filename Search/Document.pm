@@ -236,7 +236,7 @@ Description
 
 # ---------------------------------------------------------------------
 # Shell file pattern, NOT a perl regexp
-my $file_pattern_arr_ref = ['*[0-9].txt'];
+my $file_pattern_arr_ref = ['*.txt'];
 
 sub __extract_ocr_to_path {
     my $self = shift;
@@ -422,7 +422,7 @@ sub __ocr_existence_test {
     my $item_id = shift;
 
     my $ocr_exists = 1;
-    my $g_ocr_file_regexp = qq{[0-9]+\.txt};
+    my $g_ocr_file_regexp = qq{^.+?\.txt$};
     my @ocr_filespecs = grep(/$g_ocr_file_regexp/os, readdir($dir_handle));
     if (scalar(@ocr_filespecs) == 0) {
         DEBUG('doc', qq{OCR: no files in $temp_dir match regexp="$g_ocr_file_regexp", item_id="$item_id"});
