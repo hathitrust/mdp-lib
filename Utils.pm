@@ -867,7 +867,7 @@ sub read_file
     if ($ok)
     {
         $text = join('', <PAGE>);
-        my $is_utf8 = length($text) == 0 || Encode::is_utf8($text, 1);
+        my $is_utf8 = (length($text) == 0) || Encode::is_utf8($text, 1);
 
         if (! $is_utf8)
         {

@@ -1558,6 +1558,10 @@ sub GetFilePathMaybeExtract
     my $filePath;
 
     my $fileName = $self->GetFileNameBySequence($sequence, $which);
+    return (undef, undef) 
+      if (! $fileName);
+    # POSSIBLY NOTREACHED
+
     my $fileSystemLocation = $self->Get( 'filesystemlocation' );
 
     if ($self->ItemIsZipped())
