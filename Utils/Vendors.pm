@@ -12,6 +12,7 @@ if ( -d "$Bin/../lib" ) {
 my $local_switch = CGI::param('debug') && (CGI::param('debug') =~ m,local,);
 if ($local_switch) {
     push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
+    $ENV{DEBUG} .= ',local,';
 }
 
 if ( -d "$Bin/../vendor" ) {
