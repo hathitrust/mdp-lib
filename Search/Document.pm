@@ -237,6 +237,7 @@ Description
 # ---------------------------------------------------------------------
 # Shell file pattern, NOT a perl regexp
 my $file_pattern_arr_ref = ['*.txt'];
+my $exclude_pattern_arr_ref = ['*/notes.txt', '*/pagedata.txt' ];
 
 sub __extract_ocr_to_path {
     my $self = shift;
@@ -253,7 +254,8 @@ sub __extract_ocr_to_path {
                 (
                  $id,
                  $file_sys_location,
-                 $file_pattern_arr_ref
+                 $file_pattern_arr_ref,
+                 $exclude_pattern_arr_ref,
                 );
         chomp($concat_ocr_file_dir);
     }

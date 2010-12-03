@@ -195,14 +195,14 @@ sub extract_dir_to_temp_cache {
     my $id = shift;
     my $file_sys_location = shift;
     my $patterns_arr_ref = shift;
-    my $suffix = shift;
+    my $exclude_patterns_arr_ref = shift;
 
     use constant NO_ERRORS => 0;
     use constant NO_ERRORS_NO_MATCHING_FILES => 11;
     
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
-    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
+    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id);
 
     my @yes;
     my @unzip;
@@ -211,10 +211,14 @@ sub extract_dir_to_temp_cache {
     # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, @$patterns_arr_ref;
 
+    if (defined($exclude_patterns_arr_ref)) {
+        push @unzip, "-x", @$exclude_patterns_arr_ref;
+    }
+
     IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>&1";
     my $system_retval = $? >> 8;
 
-    my $cmd = qq{$UNZIP_PROG -j -qq -d $input_cache_dir $zip_file } . join(' ', @$patterns_arr_ref);
+    my $cmd = join(' ', @unzip);
     ASSERT(($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES), 
            qq{UNZIP: $cmd failed with code="$system_retval\n"} );
 

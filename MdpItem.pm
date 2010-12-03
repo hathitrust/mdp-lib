@@ -1508,8 +1508,7 @@ sub GetDirPathMaybeExtract
 {
     my $self = shift;
     my $pattern_arr_ref = shift;
-    my $which = shift;
-    my $suffix = shift;
+    my $exclude_pattern_arr_ref = shift;
 
     my $fileDir;
 
@@ -1523,7 +1522,7 @@ sub GetDirPathMaybeExtract
                  $self->GetId(),
                  $fileSystemLocation,
                  $pattern_arr_ref,
-                 $suffix
+                 $exclude_pattern_arr_ref,
                 );
     }
     else
