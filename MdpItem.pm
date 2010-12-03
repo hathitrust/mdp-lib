@@ -1227,87 +1227,19 @@ sub SetPageInfo {
     my $tree = $parser->parse_string($$metsXmlRef);
     my $root = $tree->getDocumentElement();
 
-    # Image fileGrp
-    my $imageFileGrp;
-    my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
-    ASSERT( $imageFileGrp = $root->findnodes($xpath) ,
-            qq{Problem finding fileGrp USE="image" element in METS file: }
-            . $self->Get( 'metsxmlfilename' ) );
+    my %fileGrpHash = ();
 
-    # OCR fileGrp - some objects lack this group
-    $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
-    my $textFileGrp = $root->findnodes($xpath);
-    $self->Set('has_ocr', scalar(@$textFileGrp));
-    if (DEBUG('noocr')) {
-        $self->Set('has_ocr', 0);
-    }
-
-    # structMap contains the page and feature metadata
-    my $structMap;
-    $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
-    ASSERT( $structMap = $root->findnodes($xpath),
-            qq{Problem finding structMap elements in METS file: }
-            . $self->Get( 'metsxmlfilename' ) );
-    my ($seq2PageFeatureHashRef, $seq2PageNumberHashRef, $featureRecordRef) =
-        $self->build_feature_map($structMap);
-
-    my $where;
-    foreach my $node ($imageFileGrp->get_nodelist)
-    {
-      # Each of these nodes is <METS:file>
-      my $pageSequence = $node->getAttribute('SEQ');
-      if ($pageSequence)
-      {
-        my $unpaddedPageSequence = $pageSequence;
-        $unpaddedPageSequence =~ s,^0+,,;
-
-        $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'pagenumber' } =
-                $$seq2PageNumberHashRef{$unpaddedPageSequence};
-
-        $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'pagefeatures' } =
-                $$seq2PageFeatureHashRef{$unpaddedPageSequence};
-
-        ## eval { $where = $node->findvalue('./*[name()="METS:FLocat"][1]/@xlink:href'); };
-        eval { $where = $node->findvalue('./METS:FLocat[1]/@xlink:href'); };
-        $where = '' if $@;
-        if ( $where =~ m,^(.*?\.(.*?))$,ios )
-        {
-          my $imageFile = $1;
-          my $fileType = $2;
-          $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'imagefile' } = $imageFile;
-          $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'filetype' } = $fileType;
-          $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'imagefilesize' } = $node->getAttribute('SIZE');
-        }
-      }
-    }
-    # It is faster to iterate here rather than xpath the OCR file grp
-    # for a matching SEQ in the above iteration.
-    if ($self->Get('has_ocr')) {
-        # Test for all zero-length OCR files.
-        my $totalFileSize = 0;
-        foreach my $node ($textFileGrp->get_nodelist)
-        {
-            # Each of these nodes is <METS:file>
-            my $pageSequence = $node->getAttribute('SEQ');
-            if ($pageSequence)
-            {
-                my $unpaddedPageSequence = $pageSequence;
-                $unpaddedPageSequence =~ s,^0+,,;
-                
-                eval { $where = $node->findvalue('METS:FLocat[1]/@xlink:href');};
-                $where = '' if $@;
-                if ( $where =~ m,^(.*?\.(.*?))$,ios )
-                {
-                    my $ocrFile = $1;
-                    $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfile' } = $ocrFile;
-                    my $fileSize = $node->getAttribute('SIZE');
-                    $totalFileSize += $fileSize;
-                    $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'ocrfilesize' } = $fileSize;
-                }
-            }
-        }
-        $self->Set('has_ocr', 0) if ($totalFileSize == 0);
-    }
+    $self->BuildFileGrpHash
+      (
+       $root,
+       \%fileGrpHash
+      );
+    
+    my $hasPF_FIRST_CONTENT = 0;
+    my $hasPF_TOC = 0;
+    my $hasPF_TITLE = 0;
+    my $hasPNs = 0;
+    my $hasPFs = 0;
 
     my %pageInfoHash = ();
     my %seq2PageNumberHash = ();
@@ -1580,8 +1512,7 @@ sub GetDirPathMaybeExtract
 {
     my $self = shift;
     my $pattern_arr_ref = shift;
-    my $which = shift;
-    my $suffix = shift;
+    my $exclude_pattern_arr_ref = shift;
 
     my $fileDir;
 
@@ -1595,7 +1526,7 @@ sub GetDirPathMaybeExtract
                  $self->GetId(),
                  $fileSystemLocation,
                  $pattern_arr_ref,
-                 $suffix
+                 $exclude_pattern_arr_ref,
                 );
     }
     else
