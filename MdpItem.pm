@@ -1019,68 +1019,6 @@ sub handle_MDP_features
 
 # ---------------------------------------------------------------------
 
-=item build_feature_map
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub build_feature_map
-{
-    my $self = shift;
-    my $structMap = shift;
-
-    my %seq2PageFeatureHash;
-    my %seq2PageNumberHash;
-
-    my $hasPF_FIRST_CONTENT = 0;
-    my $hasPF_TOC = 0;
-    my $hasPF_TITLE = 0;
-    my $hasPNs = 0;
-    my $hasPFs = 0;
-
-    foreach my $metsDiv ($structMap->get_nodelist)
-    {
-        my $order = $metsDiv->getAttribute('ORDER');
-        my $pgnum = $metsDiv->getAttribute('ORDERLABEL');
-        $pgnum =~ s,^0+,,;
-        my $pgftr = $metsDiv->getAttribute('LABEL');
-        # miun, miua have different feature tags than everything else
-        my $namespace = $self->Get('namespace');
-        if  (($namespace eq 'miun') || ($namespace eq 'miua'))
-        {
-            handle_MIUN_features($pgftr, $order,
-                                 \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE );
-        }
-        else
-        {
-            handle_MDP_features($pgftr, $order,
-                                \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE);
-        }
-
-        my @pageFeatures = split( /,\s*/, $pgftr );
-        $seq2PageFeatureHash{$order} = \@pageFeatures;
-        $seq2PageNumberHash{$order} = $pgnum;
-        $hasPNs++ if ( $pgnum );
-        $hasPFs ||= ( scalar(@pageFeatures) > 0 );
-    }
-
-    my %featureRecord =
-        (
-         'hasPF_TOC'           => $hasPF_TOC,
-         'hasPF_TITLE'         => $hasPF_TITLE,
-         'hasPF_FIRST_CONTENT' => $hasPF_FIRST_CONTENT,
-        );
-
-    $self->SetHasPageNumbers( $hasPNs );
-    $self->SetHasPageFeatures( $hasPFs );
-
-    return (\%seq2PageFeatureHash, \%seq2PageNumberHash, \%featureRecord);
-}
-
-# ---------------------------------------------------------------------
-
 =item DeleteExtraneousMETSElements
 
 Description
@@ -1104,22 +1042,186 @@ sub DeleteExtraneousMETSElements {
     }
 }
 
-# ----------------------------------------------------------------------
-# NAME         :
-# PURPOSE      :
-# CALLS        :
-# INPUT        :
-# RETURNS      :
-# GLOBALS      :
-# SIDE-EFFECTS :
-# NOTES        :
-# ----------------------------------------------------------------------
-sub SetPageInfo
-{
+# ---------------------------------------------------------------------
+
+=item BuildFileGrpHash
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub BuildFileGrpHash {
+    my $self = shift;
+    my $root = shift;
+    my $fileGrpHashRef = shift;
+    
+    # Image fileGrp
+    my $imageFileGrp;
+    my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
+    ASSERT($imageFileGrp = $root->findnodes($xpath),
+           q{Error: finding METS:fileGrp[@USE="image"] in: } . $self->Get('metsxmlfilename'));
+
+    foreach my $node ($imageFileGrp->get_nodelist) {
+        my $id = $node->getAttribute('ID');
+        my $filesize = $node->getAttribute('SIZE');
+        my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+        my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+
+        $fileGrpHashRef->{$id}{filename} = $filename;
+        $fileGrpHashRef->{$id}{filetype} = $filetype;
+        $fileGrpHashRef->{$id}{filesize} = $filesize;
+        $fileGrpHashRef->{$id}{filegrp} = 'imagefile';
+    }
+
+    # OCR fileGrp - some objects lack this group
+    $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
+    my $textFileGrp = $root->findnodes($xpath);
+    $self->Set('has_ocr', scalar(@$textFileGrp));
+    if (DEBUG('noocr')) {
+        $self->Set('has_ocr', 0);
+    }
+
+    if ($self->Get('has_ocr')) {
+        # Test for all zero-length OCR files.
+        my $totalFileSize = 0;
+        foreach my $node ($textFileGrp->get_nodelist) {
+            my $id = $node->getAttribute('ID');
+            my $filesize = $node->getAttribute('SIZE');
+            my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+            my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+            
+            $fileGrpHashRef->{$id}{filename} = $filename;
+            $fileGrpHashRef->{$id}{filetype} = $filetype;
+            $fileGrpHashRef->{$id}{filesize} = $filesize;
+            $fileGrpHashRef->{$id}{filegrp} = 'ocrfile';
+            $totalFileSize += $filesize;
+        }
+        $self->Set('has_ocr', 0) if ($totalFileSize == 0);
+    }
+}
+
+# ---------------------------------------------------------------------
+
+=item ParseStructMap
+
+structMap contains page numbers and feature metadata + reading order:
+use the file group hash to populate %pageInfoHash based on the order
+in the structMap
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ParseStructMap {
+    my $self = shift;
+    my $root = shift;
+    my $fileGrpHashRef = shift;
+    my $pageInfoHashRef = shift;
+    my $seq2PageNumberHashRef = shift;
+    my $featureRecordRef = shift;
+    
+    my $structMap;
+    my $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
+    ASSERT($structMap = $root->findnodes($xpath),
+           q{Error: finding METS:structMap in: } . $self->Get('metsxmlfilename'));
+    
+    my $hasPF_FIRST_CONTENT = 0;
+    my $hasPF_TOC = 0;
+    my $hasPF_TITLE = 0;
+    my $hasPNs = 0;
+    my $hasPFs = 0;
+
+    foreach my $metsDiv ($structMap->get_nodelist) {
+        my $order = $metsDiv->getAttribute('ORDER');
+        
+        my @metsFptrChildren = $metsDiv->getChildrenByTagName('METS:fptr');
+        foreach my $child (@metsFptrChildren) {
+            my $fileid = $child->getAttribute('FILEID');
+            my $filegrp  = $fileGrpHashRef->{$fileid}{'filegrp'};
+            my $filename = $fileGrpHashRef->{$fileid}{'filename'};
+            my $filetype = $fileGrpHashRef->{$fileid}{'filetype'};
+            my $filesize = $fileGrpHashRef->{$fileid}{'filesize'};
+
+            $pageInfoHashRef->{sequence}{$order}{$filegrp} = $filename;
+            $pageInfoHashRef->{sequence}{$order}{filetype} = $filetype if ($filegrp eq 'imagefile');
+            $pageInfoHashRef->{sequence}{$order}{$filegrp . 'size'} = $filesize;
+        }
+
+        # page numbers
+        my $pgnum = $metsDiv->getAttribute('ORDERLABEL');
+        $pageInfoHashRef->{sequence}{$order}{pagenumber} = $pgnum;
+        $hasPNs++ if (defined($pgnum));
+        $seq2PageNumberHashRef->{$order} = $pgnum;
+
+        # page features
+        my $pgftr = $metsDiv->getAttribute('LABEL');
+        my @pageFeatures = split(/,\s*/, $pgftr);
+        $pageInfoHashRef->{sequence}{$order}{pagefeatures} = \@pageFeatures;
+        $hasPFs ||= (scalar(@pageFeatures) > 0);
+
+        my $namespace = $self->Get('namespace');
+        if (($namespace eq 'miun') || ($namespace eq 'miua')) {
+            handle_MIUN_features($pgftr, $order,
+                                 \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE );
+        }
+        else {
+            handle_MDP_features($pgftr, $order,
+                                \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE);
+        }
+    }
+
+    %$featureRecordRef = (
+                          'hasPF_TOC'           => $hasPF_TOC,
+                          'hasPF_TITLE'         => $hasPF_TITLE,
+                          'hasPF_FIRST_CONTENT' => $hasPF_FIRST_CONTENT,
+                         );
+
+    $self->SetHasPageNumbers($hasPNs);    
+    $self->SetHasPageFeatures($hasPFs);
+}
+
+# ---------------------------------------------------------------------
+
+=item BuildPage2SequenceMap
+
+Many sequence numbers can map to the same (undef) page number.
+Further, there can be more than one of a given page number so we
+choose to use the the first occurrence of the page number when mapping
+to sequence.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub BuildPage2SequenceMap {
+    my $self = shift;
+    my $seq2PageNumberHashRef = shift;
+    my $pageInfoHashRef = shift;
+
+    my %page2SeqNumberHash = ();
+    
+    foreach my $seq ( sort {$a <=> $b} keys %$seq2PageNumberHashRef ) {
+        my $pageNumber = $seq2PageNumberHashRef->{$seq};
+        if ($pageNumber && (! $page2SeqNumberHash{$pageNumber} )) {
+            $page2SeqNumberHash{$pageNumber} = $seq;
+        }
+    }
+    $pageInfoHashRef->{page2sequencemap} = \%page2SeqNumberHash;
+}
+
+# ---------------------------------------------------------------------
+
+=item SetPageInfo
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub SetPageInfo {
     my $self = shift;
 
-    DEBUG('time', qq{<h3>MdpItem::SetPageInfo(START) START</h3>} . Utils::display_stats());
-    my %pageInfoHash = ();
+    DEBUG('time', qq{<h3>MdpItem::SetPageInfo(START)</h3>} . Utils::display_stats());
+
     my $metsXmlRef = $self->Get( 'metsxml' );
     my $parser = XML::LibXML->new();
     my $tree = $parser->parse_string($$metsXmlRef);
@@ -1207,73 +1309,43 @@ sub SetPageInfo
         $self->Set('has_ocr', 0) if ($totalFileSize == 0);
     }
 
-    # get locations of OPTIONAL coordOCR-ed files
-    # FIXME: this has not been tested because $PTGlobals::ghOCREnabled is always 0.
-    if ( $MdpGlobals::ghOCREnabled )
-    {
-      $xpath = '//*[name()="METS:mets"][1]/*[name()="METS:fileSec"][1]/*[name()="METS:fileGrp" and ' .
-               '@USE="coordOCR"][1]/*[name()="METS:file"]';
-      my $coordOCRFileGrp = $root->findnodes($xpath);
-      if ($coordOCRFileGrp)
-      {
-        $self->SetHasCoordOCR();
-        foreach my $node ($coordOCRFileGrp->get_nodelist)
-        {
-          # Each of these nodes is <METS:file>
-          my $pageSequence = $node->getAttribute('SEQ');
-          if ($pageSequence)
-          {
-            my $unpaddedPageSequence = $pageSequence;
-            $unpaddedPageSequence =~ s,^0+,,;
+    my %pageInfoHash = ();
+    my %seq2PageNumberHash = ();
+    my %featureRecord = ();
 
-            eval { $where = $node->findvalue('./*[name()="METS:FLocat"][1]/@xlink:href');};
-            $where = '' if $@;
-            if ( $where =~ m,^(.*?\.(.*?))$,ios )
-            {
-              my $coordOcrFile = $1;
-              $pageInfoHash{ 'sequence' }{ $unpaddedPageSequence }{ 'coordocrfile' } = $coordOcrFile;
-            }
-          }
-        }
-      }
-    }
+    $self->ParseStructMap
+      (
+       $root,
+       \%fileGrpHash,
+       \%pageInfoHash,
+       \%seq2PageNumberHash,
+       \%featureRecord,
+      );
 
-    my $firstSequence = Utils::min_of_list( keys ( %{ $pageInfoHash{ 'sequence' } } ) );
-    $self->SetFirstPageSequence( $firstSequence );
+    my $firstSequence = Utils::min_of_list(keys ( %{ $pageInfoHash{sequence} } ));
+    $self->SetFirstPageSequence($firstSequence);
 
-    $self->SupressCheckoutSeqs( \%pageInfoHash, $seq2PageNumberHashRef, $featureRecordRef );
+    $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
 
-    my $lastSequence = Utils::max_of_list( keys ( %{ $pageInfoHash{ 'sequence' } } ) );
-    $self->SetLastPageSequence( $lastSequence );
+    my $lastSequence = Utils::max_of_list(keys ( %{ $pageInfoHash{sequence} } ));
+    $self->SetLastPageSequence($lastSequence);
 
     # Note: MUST FOLLOW SUPPRESSION CALL ABOVE.
-    $self->SetHasTOCFeature( $$featureRecordRef{'hasPF_TOC'} );
-    $self->SetHasTitleFeature( $$featureRecordRef{'hasPF_TITLE'} );
-    $self->SetHasFirstContentFeature( $$featureRecordRef{'hasPF_FIRST_CONTENT'} );
+    $self->SetHasTOCFeature($featureRecord{hasPF_TOC});
+    $self->SetHasTitleFeature($featureRecord{hasPF_TITLE});
+    $self->SetHasFirstContentFeature($featureRecord{hasPF_FIRST_CONTENT});
 
-    # Note: MUST FOLLOW SUPPRESSION CALL ABOVE.  We can't simply
-    # reverse the %seq2PageNumberHash because the many sequence
-    # numbers can map to the same (undef) page number because we don't
-    # have a page number for every physical page due to limitations in
-    # the OCR detector.  Further, there can be more than one of a
-    # given page number so we're forced to choose to use the the first
-    # occurrence of the page number when mapping to sequence number.
-    my %page2SequenceMap;
-    foreach my $seq ( sort {$a <=> $b} keys %$seq2PageNumberHashRef )
-    {
-        my $pageNumber = $$seq2PageNumberHashRef{$seq};
-        if ( $pageNumber && (! $page2SequenceMap{$pageNumber} ))
-        {
-            $page2SequenceMap{$pageNumber} = $seq;
-        }
-    }
-    $pageInfoHash{ 'page2sequencemap' } = \%page2SequenceMap;
-
-    $self->{ 'pageinfo' } = \%pageInfoHash;
+    # Note: MUST FOLLOW SUPPRESSION CALL ABOVE.
+    $self->BuildPage2SequenceMap
+      (
+       \%seq2PageNumberHash,
+       \%pageInfoHash,
+      );
+    
+    $self->{pageinfo} = \%pageInfoHash;
     
     DEBUG('time', qq{<h3>MdpItem::SetPageInfo(END)</h3>} . Utils::display_stats());
 }
-
 
 # ---------------------------------------------------------------------
 

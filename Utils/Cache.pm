@@ -74,23 +74,24 @@ sub Set
     my ( $id, $key, $value, $force ) = @_;
     my $keyFileName = $self->BuildKeyFileName($id, $key);
 
+    # serialize data to a temporary file as a cheap way of 
+    # avoiding file collisions.
     my $tmpfilename = $self->GenerateTemporaryFilename($id, $key);
     $self->serialize($value, $tmpfilename);
     
     my $save_cache = ! $self->file_exists_n_newer($id, $keyFileName);
 
     if ( $save_cache || $force ) {
-        # $outputFileName is still empty, so rename
         for( my $try = 0; $try < 3; $try++ ) {
-            # last if (move($tmpfilename, $keyFileName));
             my $retval = move($tmpfilename, $keyFileName);
             DEBUG('pt,mdpitem,cache', qq{<h3>Cache->Set: move $retval :: $try</h3>});
             last if ( $retval );
-            
         }
     }
     
     if ( -f $tmpfilename ) {
+        # $tmpfilename couldn't be moved so we punt and return this filename
+        # to the caller.
         DEBUG('pt,mdpitem,cache', qq{<h3>Set: using $tmpfilename</h3>});
         $keyFileName = $tmpfilename;
     }
@@ -226,10 +227,8 @@ sub file_exists_n_newer {
         my $der_mtime = (stat($derivative))[9];
 
         # ensure that $derivative is no older than $delta seconds
-        # DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: } . time() . qq{ - $der_mtime > $max_cache_age</h3>});
         if ( $max_cache_age > 0 && ( time() - $der_mtime > $max_cache_age ) ) {
             DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: } . time() . qq{ - $der_mtime > $max_cache_age</h3>});
-            $$self{overwrite}{$id} = time();
             return 0;
         }
 
@@ -242,8 +241,6 @@ sub file_exists_n_newer {
 
         if ($der_mtime > $zip_mtime) {
             $exists_n_newer = 1;
-        } else {
-            $$self{overwrite}{$id} = time();
         }
 
         DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: der_mtime [$der_mtime] zip_mtime [$zip_mtime] = $exists_n_newer</h3>});
