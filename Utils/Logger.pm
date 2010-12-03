@@ -128,13 +128,14 @@ sub __Log_simple
     exit 0 if (! $logging_enabled);
 
     my $date = Utils::Time::iso_Time('date');
+    my $time = Utils::Time::iso_Time('time');
     my $logfile = qq{MDP-generic-$date.log};
 
     my $logfile_path = '/tmp/' . $logfile;
     if (open(LOG, ">>$logfile_path"))
     {
         LOG->autoflush(1);
-        print LOG qq{$s\n};
+        print LOG qq{$time: $s\n};
         close(LOG);
     }
 }
