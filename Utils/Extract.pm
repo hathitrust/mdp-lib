@@ -22,6 +22,7 @@ Coding example
 use strict;
 
 use Utils;
+use Utils::Logger;
 use Identifier;
 use Debug::DUtils;
 
@@ -199,6 +200,8 @@ sub extract_dir_to_temp_cache {
 
     use constant NO_ERRORS => 0;
     use constant NO_ERRORS_NO_MATCHING_FILES => 11;
+
+    my $error_file = "/tmp/extract-error-$$";
     
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
@@ -215,12 +218,17 @@ sub extract_dir_to_temp_cache {
         push @unzip, "-x", @$exclude_patterns_arr_ref;
     }
 
-    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>&1";
+    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
     my $system_retval = $? >> 8;
 
     my $cmd = join(' ', @unzip);
-    ASSERT(($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES), 
-           qq{UNZIP: $cmd failed with code="$system_retval\n"} );
+    my $ok = ($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES);
+    if (! $ok) {
+        my $t_ref = read_file($error_file, 1);
+        my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref"};
+        Utils::Logger::__Log_simple($msg);
+        ASSERT(0, $msg);
+    }
 
     DEBUG('doc', qq{UNZIP: $cmd});
 
