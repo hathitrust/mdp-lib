@@ -199,6 +199,7 @@ sub extract_dir_to_temp_cache {
     my $exclude_patterns_arr_ref = shift;
 
     use constant NO_ERRORS => 0;
+    use constant NO_ERRORS_CAUTION_WARNING => 1;
     use constant NO_ERRORS_NO_MATCHING_FILES => 11;
 
     my $error_file = "/tmp/extract-error-$$";
@@ -222,7 +223,14 @@ sub extract_dir_to_temp_cache {
     my $system_retval = $? >> 8;
 
     my $cmd = join(' ', @unzip);
-    my $ok = ($system_retval == NO_ERRORS || $system_retval == NO_ERRORS_NO_MATCHING_FILES);
+    my $ok = 
+      (
+       $system_retval == NO_ERRORS 
+       || 
+       $system_retval == NO_ERRORS_CAUTION_WARNING 
+       || 
+       $system_retval == NO_ERRORS_NO_MATCHING_FILES
+      );
     if (! $ok) {
         my $t_ref = read_file($error_file, 1);
         my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref"};
