@@ -33,6 +33,7 @@ use Cwd;
 
 # Local
 use Utils;
+use Utils::Logger;
 use Debug::DUtils;
 use Identifier;
 use Utils::Extract;
@@ -235,7 +236,8 @@ Description
 
 # ---------------------------------------------------------------------
 # Shell file pattern, NOT a perl regexp
-my $file_pattern_arr_ref = ['*[0-9].txt'];
+my $file_pattern_arr_ref = ['*.txt'];
+my $exclude_pattern_arr_ref = ['*/notes.txt', '*/pagedata.txt' ];
 
 sub __extract_ocr_to_path {
     my $self = shift;
@@ -252,7 +254,8 @@ sub __extract_ocr_to_path {
                 (
                  $id,
                  $file_sys_location,
-                 $file_pattern_arr_ref
+                 $file_pattern_arr_ref,
+                 $exclude_pattern_arr_ref,
                 );
         chomp($concat_ocr_file_dir);
     }
@@ -282,12 +285,20 @@ sub __concat_files {
     my @cat_cmds;
     push @cat_cmds, "cat", @$files_arr_ref;
     IPC::Run::run \@cat_cmds, ">", "$catfile_path";
-    my $rc = $?;
+    my $rc = $? >> 8;
     chdir($cwd);
     my $cke = Time::HiRes::time() - $ck;
+    
+    if ($rc > 0) {
+        my $files = join(' ', @$files_arr_ref);
+        my $s = qq{__concat_files failed: rc=$rc dir=$dir files=$files path=$catfile_path};
+        Utils::Logger::__Log_simple($s);
+        DEBUG('doc', $s);
+    }
+
     DEBUG('doc', qq{OCR: concat file=$catfile_path created in sec=$cke});
     
-    return ($rc > 0) ? 0 : 1;
+    return $rc;
 }
 
 # ---------------------------------------------------------------------
@@ -386,6 +397,10 @@ sub __get_ocr {
         $temp_dir = $self->__extract_ocr_to_path($item_id);
     };
     if ($@) {
+        my $s = qq{__extract_ocr_to_path failed: id=$item_id error:$@};
+        Utils::Logger::__Log_simple($s);
+        DEBUG('doc', $s);
+
         return undef;
     }
     my $cke = Time::HiRes::time() - $ck;
@@ -409,7 +424,7 @@ sub __ocr_existence_test {
     my $item_id = shift;
 
     my $ocr_exists = 1;
-    my $g_ocr_file_regexp = qq{[0-9]+\.txt};
+    my $g_ocr_file_regexp = q{^.+?\.txt$};
     my @ocr_filespecs = grep(/$g_ocr_file_regexp/os, readdir($dir_handle));
     if (scalar(@ocr_filespecs) == 0) {
         DEBUG('doc', qq{OCR: no files in $temp_dir match regexp="$g_ocr_file_regexp", item_id="$item_id"});
@@ -438,7 +453,10 @@ sub get_ocr_data {
     my $temp_dir = __get_ocr($self, $item_id);
     my $DIR;
     if (! opendir($DIR, $temp_dir)) {
-        DEBUG('doc', qq{OCR: failed to open dir="$temp_dir", item_id="$item_id"});
+        my $s = qq{OCR: failed to open dir="$temp_dir", item_id="$item_id"};
+        Utils::Logger::__Log_simple($s);        
+        DEBUG('doc', $s);
+
         return (undef, 0);
     }
     # POSSIBLY NOTREACHED
@@ -453,13 +471,18 @@ sub get_ocr_data {
 
     if ($ocr_exists) {
         # ----- Create concatenated file -----
-        if (! __concat_files($temp_dir, $ocr_filespecs_ref, $concat_filename)) {
+        my $rc = __concat_files($temp_dir, $ocr_filespecs_ref, $concat_filename);
+        if ($rc > 0) {
             return (undef, 0);
         }
         # POSSIBLY NOTREACHED
 
         $ocr_text_ref = Utils::read_file($concat_filename, 1);
         if (! $ocr_text_ref) {
+            my $s = qq{Utils::read_file failed: concat_file=$concat_filename};
+            Utils::Logger::__Log_simple($s);
+            DEBUG('doc', $s);
+
             return (undef, 0);
         }
         # POSSIBLY NOTREACHED
