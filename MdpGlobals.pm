@@ -58,21 +58,33 @@ $ghOCREnabled          = 0;
 # ---------------------------------------------------------------------
 %gMdpPageFeatureHash =
     (
+     'ADVERTISEMENTS'              => 'Advertisements',
+     'APPENDIX'                    => 'Appendix',
+#     'BACK_COVER'                  => 'Back Cover',
      'CHAPTER_START'               => 'Section',
      'COPYRIGHT'                   => 'Copyright',
      'FIRST_CONTENT_CHAPTER_START' => 'Section',
      'FRONT_COVER'                 => 'Front Cover',
+#     'FOLDOUT'                     => 'Foldout',
      'INDEX'                       => 'Index',
+#     'IMAGE_ON_PAGE'               => 'Image',
+     'LIST_OF_ILLUSTRATIONS'       => 'List of Illustrations',
+     'LIST_OF_MAPS'                => 'List of Maps',
+     'MAP'                         => 'Map',
+     'NOTES'                       => 'Notes',
+     'PREFACE'                     => 'Preface',
      'REFERENCES'                  => 'Bibliography',
      'TABLE_OF_CONTENTS'           => 'Table of Contents',
      'TITLE'                       => 'Title Page',     
     );
 
+
+
 %gMiunPageFeatureHash =
     (
      '1STPG' =>'First Page',
 #     'ACK'  =>'Acknowledgement',
-#     'ADV'  =>'Advertisement',
+     'ADV'  =>'Advertisement',
      'APP'  =>'Appendix',
      'BIB'  =>'Bibliography',
 #     'BLP'  =>'Blank Page',
@@ -86,7 +98,7 @@ $ghOCREnabled          = 0;
      'IND'  =>'Index',
      'LOI'  =>'List of Illustrations',
      'LOT'  =>'List of Tables',
-#     'MAP'  =>'Map',
+     'MAP'  =>'Map',
 #     'MIS'  =>'Miscellaneous',
 #     'MSS'  =>'Manuscript',
      'NOT'  =>'Notes',
