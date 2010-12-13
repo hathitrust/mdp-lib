@@ -930,15 +930,14 @@ sub GetVolumeData
 
 # ---------------------------------------------------------------------
 
-=item AddToFeatureTable
+=item add_to_feature_table
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub AddToFeatureTable {
-    my $self = shift;
+sub add_to_feature_table {
     my ($seq, $pgnum, $featureTagArrRef, $seqFeaturesArrRef, $featureHashRef, $featureTableHashRef, $table_ct_ref) = @_;
     
     foreach my $seqFeature (@$seqFeaturesArrRef) {
@@ -1130,11 +1129,11 @@ sub ParseStructMap {
         my $order_has_PFs = (scalar(@pageFeatures) > 0);
         $hasPFs ||= $order_has_PFs;
 
-        $self->AddToFeatureTable($order, $pgnum, \@featureTags, \@pageFeatures, $featureHashRef,
-                                 \%featureTable, \$featureTableCt)
+        add_to_feature_table($order, $pgnum, \@featureTags, \@pageFeatures, $featureHashRef,
+                             \%featureTable, \$featureTableCt)
           if ($order_has_PFs);
 
-        handle_feature_record($pgftr, $namespace, $order, $featureRecordRef);
+        handle_feature_record($pgftr, $order, $namespace, $featureRecordRef);
     }
 
     $self->SetHasPageNumbers($hasPNs);    
