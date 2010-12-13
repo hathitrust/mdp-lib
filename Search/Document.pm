@@ -436,6 +436,34 @@ sub __ocr_existence_test {
 
 # ---------------------------------------------------------------------
 
+=item __apply_algorithms
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __apply_algorithms {
+    my $C = shift;
+    my $self = shift;
+    my $ocr_text_ref = shift;
+
+    my $garbage_ocr_class = $C->get_object('MdpConfig')->get('garbage_ocr_class');
+    if ($garbage_ocr_class) {
+        my $of = new ObjFactory;
+        my %of_attrs = (
+                        'class_name' => $garbage_ocr_class,
+                        'parameters' => {
+                                         'C'  => $C,
+                                        },
+                       );
+        my $goc = $of->create_instance($C, \%of_attrs);
+        $goc->remove_garbage_ocr($C, $ocr_text_ref);
+    }
+}
+
+# ---------------------------------------------------------------------
+
 =item PUBLIC: get_ocr_data
 
 Description
@@ -492,7 +520,9 @@ sub get_ocr_data {
             $ocr_text_ref = \$empty_ocr_sentinel;
         }
 
-        __clean_xml($self, $ocr_text_ref);    
+        __clean_xml($self, $ocr_text_ref);
+
+        __apply_algorithms($C, $self, $ocr_text_ref);
     }
     else {
         system("touch", $concat_filename);
