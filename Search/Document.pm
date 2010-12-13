@@ -37,6 +37,7 @@ use Utils::Logger;
 use Debug::DUtils;
 use Identifier;
 use Utils::Extract;
+use ObjFactory;
 
 
 sub new
