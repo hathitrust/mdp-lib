@@ -458,6 +458,8 @@ sub __apply_algorithms {
                                         },
                        );
         my $goc = $of->create_instance($C, \%of_attrs);
+
+        DEBUG('doc', qq{OCR: apply Garbage_1 algorithm});
         $goc->remove_garbage_ocr($C, $ocr_text_ref);
     }
 }
