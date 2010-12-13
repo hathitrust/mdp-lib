@@ -71,6 +71,7 @@ $ghOCREnabled          = 0;
      'LIST_OF_ILLUSTRATIONS'       => 'List of Illustrations',
      'LIST_OF_MAPS'                => 'List of Maps',
      'MAP'                         => 'Map',
+     'MULTIWORK_BOUNDARY'          => 'Part',
      'NOTES'                       => 'Notes',
      'PREFACE'                     => 'Preface',
      'REFERENCES'                  => 'Bibliography',

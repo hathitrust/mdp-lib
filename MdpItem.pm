@@ -289,11 +289,6 @@ sub _initialize
     $self->Set( 'metadatafailure', $metadata_failed );
 
     $self->SetPageInfo();
-
-    if ( $self->HasPageFeatures() )
-    {
-        $self->BuildFeatureTable();
-    }
 }
 
 
@@ -485,6 +480,19 @@ sub HasTOCFeature
 {
     my $self = shift;
     return $self->{ 'hastocfeature' };
+}
+
+sub SetHasMULTIFeature
+{
+    my $self = shift;
+    my $seqOfMULTI = shift;
+    $self->{ 'hasmultifeature' } = $seqOfMULTI;
+}
+
+sub HasMULTIFeature
+{
+    my $self = shift;
+    return $self->{ 'hasmultifeature' };
 }
 
 # ---------------------------------------------------------------------
@@ -920,97 +928,64 @@ sub GetVolumeData
     return  \%volHash;
 }
 
-# ----------------------------------------------------------------------
-# NAME         :
-# PURPOSE      :
-# CALLS        :
-# INPUT        :
-# RETURNS      :
-# GLOBALS      :
-# SIDE-EFFECTS :
-# NOTES        :
-# ----------------------------------------------------------------------
-sub BuildFeatureTable
-{
+# ---------------------------------------------------------------------
+
+=item AddToFeatureTable
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub AddToFeatureTable {
     my $self = shift;
-
-    my %featureTable;
-
-    my $featureHashRef = $self->GetFeatureHash();
-    my @featureTags = keys( %$featureHashRef );
-
-    my $pageInfoHashRef = $self->Get( 'pageinfo' );
-
-    my @seqsArray = keys( % {$$pageInfoHashRef{'sequence'}} );
-    @seqsArray = sort { $a <=> $b } ( @seqsArray );
-    my $j = 0;
-    for ( my $i=0; $i < scalar( @seqsArray ); $i++ )
-    {
-        my $seq = $seqsArray[$i];
-
-        my $featuresArrRef = $$pageInfoHashRef{'sequence'}{ $seq }{'pagefeatures'};
-        foreach my $featureTag ( @featureTags )
-        {
-            if ( grep( /$featureTag/, @$featuresArrRef ) )
-            {
-                $featureTable{$j}{'tag'} = $featureTag;
-                $featureTable{$j}{'label'} = $$featureHashRef{$featureTag};
-                $featureTable{$j}{'pg'} = $$pageInfoHashRef{'sequence'}{ $seq }{'pagenumber'};
-                $featureTable{$j}{'seq'} = $seq;
-                $j++;
-                last;
-            }
+    my ($seq, $pgnum, $featureTagArrRef, $seqFeaturesArrRef, $featureHashRef, $featureTableHashRef, $table_ct_ref) = @_;
+    
+    foreach my $seqFeature (@$seqFeaturesArrRef) {
+        if (grep(/^$seqFeature$/, @$featureTagArrRef)) {
+            $$featureTableHashRef{$$table_ct_ref}{'tag'} = $seqFeature;
+            $$featureTableHashRef{$$table_ct_ref}{'label'} = $$featureHashRef{$seqFeature};
+            $$featureTableHashRef{$$table_ct_ref}{'pg'} = $pgnum;
+            # Advance seq one image beyond boundary
+            $$featureTableHashRef{$$table_ct_ref}{'seq'} = ($seqFeature =~ m,^MULTI,o) ? $seq + 1 : $seq ;
+            $$table_ct_ref++;
+            last;
         }
     }
-
-    $self->Set( 'featuretable', \%featureTable );
 }
 
 
 # ---------------------------------------------------------------------
 
-=item handle_MIUN_features
+=item handle_feature_record
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub handle_MIUN_features
-{
-    my ($pgftr, $order, $hasPF_FCref, $hasPF_TOCref, $hasPF_TITLEref) = @_;
-
-    $$hasPF_FCref = $order
-        if (! $$hasPF_FCref && ( $pgftr =~ m,1STPG,o ));
-
-    $$hasPF_TITLEref = $order
-        if (! $$hasPF_TITLEref && ( $pgftr =~ m,TPG|CTP|VTP|VTV,o ));
-
-    $$hasPF_TOCref = $order
-        if (! $$hasPF_TOCref && ( $pgftr =~ m,TOC,o ));
-}
-
-# ---------------------------------------------------------------------
-
-=item handle_MDP_features
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub handle_MDP_features
-{
-    my ($pgftr, $order, $hasPF_FCref, $hasPF_TOCref, $hasPF_TITLEref) = @_;
-
-    $$hasPF_FCref = $order
-        if (! $$hasPF_FCref && ( $pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o ));
-
-    $$hasPF_TITLEref = $order
-        if (! $$hasPF_TITLEref && ( $pgftr =~ m,TITLE,o ));
-
-    $$hasPF_TOCref = $order
-        if (! $$hasPF_TOCref && ( $pgftr =~ m,TABLE_OF_CONTENTS,o ));
+sub handle_feature_record {
+    my ($pgftr, $order, $namespace, $featureRecordRef) = @_;
+    
+    if (($namespace eq 'miun') || ($namespace eq 'miua')) {
+        $featureRecordRef->{hasPF_FIRST_CONTENT}  = $order
+          if (! $featureRecordRef->{hasPF_FIRST_CONTENT}  && ($pgftr =~ m,1STPG,o));
+        $featureRecordRef->{hasPF_TITLE} = $order
+          if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TPG|CTP|VTP|VTV,o));        
+        $featureRecordRef->{hasPF_TOC} = $order
+          if (! $featureRecordRef->{hasPF_TOC} && ($pgftr =~ m,TOC,o));
+    }
+    else {
+        $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
+          if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
+        $featureRecordRef->{hasPF_TITLE} = $order
+          if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TITLE,o));
+        $featureRecordRef->{hasPF_TOC} = $order
+          if (! $featureRecordRef->{hasPF_TOC} && ($pgftr =~ m,TABLE_OF_CONTENTS,o));
+        # Advance seq one image beyond boundary
+        $featureRecordRef->{hasPF_MULTI} = $order + 1
+          if (! $featureRecordRef->{hasPF_MULTI} && ($pgftr =~ m,MULTIWORK_BOUNDARY,o));
+    }
 }
 
 # ---------------------------------------------------------------------
@@ -1110,22 +1085,21 @@ in the structMap
 # ---------------------------------------------------------------------
 sub ParseStructMap {
     my $self = shift;
-    my $root = shift;
-    my $fileGrpHashRef = shift;
-    my $pageInfoHashRef = shift;
-    my $seq2PageNumberHashRef = shift;
-    my $featureRecordRef = shift;
+    my ($root, $fileGrpHashRef, $pageInfoHashRef, $seq2PageNumberHashRef, $featureRecordRef) = @_;
     
     my $structMap;
     my $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
     ASSERT($structMap = $root->findnodes($xpath),
            q{Error: finding METS:structMap in: } . $self->Get('metsxmlfilename'));
     
-    my $hasPF_FIRST_CONTENT = 0;
-    my $hasPF_TOC = 0;
-    my $hasPF_TITLE = 0;
     my $hasPNs = 0;
     my $hasPFs = 0;
+
+    my %featureTable;
+    my $featureTableCt = 0;
+    my $featureHashRef = $self->GetFeatureHash();
+    my @featureTags = keys( %$featureHashRef );
+    my $namespace = $self->Get('namespace');
 
     foreach my $metsDiv ($structMap->get_nodelist) {
         my $order = $metsDiv->getAttribute('ORDER');
@@ -1153,27 +1127,20 @@ sub ParseStructMap {
         my $pgftr = $metsDiv->getAttribute('LABEL');
         my @pageFeatures = split(/,\s*/, $pgftr);
         $pageInfoHashRef->{sequence}{$order}{pagefeatures} = \@pageFeatures;
-        $hasPFs ||= (scalar(@pageFeatures) > 0);
+        my $order_has_PFs = (scalar(@pageFeatures) > 0);
+        $hasPFs ||= $order_has_PFs;
 
-        my $namespace = $self->Get('namespace');
-        if (($namespace eq 'miun') || ($namespace eq 'miua')) {
-            handle_MIUN_features($pgftr, $order,
-                                 \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE );
-        }
-        else {
-            handle_MDP_features($pgftr, $order,
-                                \$hasPF_FIRST_CONTENT, \$hasPF_TOC, \$hasPF_TITLE);
-        }
+        $self->AddToFeatureTable($order, $pgnum, \@featureTags, \@pageFeatures, $featureHashRef,
+                                 \%featureTable, \$featureTableCt)
+          if ($order_has_PFs);
+
+        handle_feature_record($pgftr, $namespace, $order, $featureRecordRef);
     }
-
-    %$featureRecordRef = (
-                          'hasPF_TOC'           => $hasPF_TOC,
-                          'hasPF_TITLE'         => $hasPF_TITLE,
-                          'hasPF_FIRST_CONTENT' => $hasPF_FIRST_CONTENT,
-                         );
 
     $self->SetHasPageNumbers($hasPNs);    
     $self->SetHasPageFeatures($hasPFs);
+
+    $self->Set('featuretable', \%featureTable);
 }
 
 # ---------------------------------------------------------------------
@@ -1231,12 +1198,6 @@ sub SetPageInfo {
        \%fileGrpHash
       );
     
-    my $hasPF_FIRST_CONTENT = 0;
-    my $hasPF_TOC = 0;
-    my $hasPF_TITLE = 0;
-    my $hasPNs = 0;
-    my $hasPFs = 0;
-
     my %pageInfoHash = ();
     my %seq2PageNumberHash = ();
     my %featureRecord = ();
@@ -1262,6 +1223,7 @@ sub SetPageInfo {
     $self->SetHasTOCFeature($featureRecord{hasPF_TOC});
     $self->SetHasTitleFeature($featureRecord{hasPF_TITLE});
     $self->SetHasFirstContentFeature($featureRecord{hasPF_FIRST_CONTENT});
+    $self->SetHasMULTIFeature($featureRecord{hasPF_MULTI});
 
     # Note: MUST FOLLOW SUPPRESSION CALL ABOVE.
     $self->BuildPage2SequenceMap
@@ -1352,6 +1314,8 @@ sub SupressCheckoutSeqs
                     adjust_feature_seq($seq, $$featureRecordRef{'hasPF_TITLE'});
                 $$featureRecordRef{'hasPF_FIRST_CONTENT'} =
                     adjust_feature_seq($seq, $$featureRecordRef{'hasPF_FIRST_CONTENT'});
+                $$featureRecordRef{'hasPF_MULTI'} =
+                    adjust_feature_seq($seq, $$featureRecordRef{'hasPF_MULTI'});
             }
         }
 
