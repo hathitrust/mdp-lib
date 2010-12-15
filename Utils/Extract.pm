@@ -203,6 +203,7 @@ sub extract_dir_to_temp_cache {
     use constant NO_ERRORS_NO_MATCHING_FILES => 11;
 
     my $error_file = "/tmp/extract-error";
+    `chmod 666 $error_file`;
     
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};

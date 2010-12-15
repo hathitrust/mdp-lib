@@ -354,6 +354,7 @@ sub __maybe_preserve_doc {
     if (DEBUG('docfulldebug')) {
         my $clean_concat_filename = $concat_filename . '-clean';
         $clean_concat_filename =~ s,^/ram/,/tmp/,;
+        `chmod 666 $clean_concat_filename`;
         Utils::write_data_to_file($ocr_text_ref, $clean_concat_filename);
         DEBUG('docfulldebug', qq{OCR: CLEANED concat file=$clean_concat_filename});
     }
