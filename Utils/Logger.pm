@@ -134,7 +134,7 @@ sub __Log_simple
     my $logfile_path = '/tmp/' . $logfile;
     if (open(LOG, ">>$logfile_path"))
     {
-        `chmod 0666 $logfile`;
+        chmod(0666, $logfile) if (-o $logfile);
         LOG->autoflush(1);
         print LOG qq{$time: $s\n};
         close(LOG);

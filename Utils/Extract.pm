@@ -220,7 +220,7 @@ sub extract_dir_to_temp_cache {
     }
 
     IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
-    `chmod 0666 $error_file` if (-e $error_file);
+    chmod(0666, $error_file) if (-o $error_file);
     my $system_retval = $? >> 8;
 
     my $cmd = join(' ', @unzip);
