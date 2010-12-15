@@ -356,7 +356,7 @@ sub PeekNextFeature
     my $self = shift;
 
     my $featureTableRef = $self->Get( 'featuretable' );
-    return \$$featureTableRef{ ($self->{'featuretableindex'}) + 1 };
+    return \$$featureTableRef{ ($self->{'featuretableindex'}) };
 }
 
 sub GetPageFeatures
