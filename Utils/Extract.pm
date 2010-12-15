@@ -203,7 +203,6 @@ sub extract_dir_to_temp_cache {
     use constant NO_ERRORS_NO_MATCHING_FILES => 11;
 
     my $error_file = "/tmp/extract-error";
-    `chmod 666 $error_file`;
     
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
@@ -221,6 +220,7 @@ sub extract_dir_to_temp_cache {
     }
 
     IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
+    `chmod 0666 $error_file` if (-e $error_file);
     my $system_retval = $? >> 8;
 
     my $cmd = join(' ', @unzip);

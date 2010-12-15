@@ -130,11 +130,11 @@ sub __Log_simple
     my $date = Utils::Time::iso_Time('date');
     my $time = Utils::Time::iso_Time('time');
     my $logfile = qq{MDP-generic-$date.log};
-    `chmod 666 $logfile`;
     
     my $logfile_path = '/tmp/' . $logfile;
     if (open(LOG, ">>$logfile_path"))
     {
+        `chmod 0666 $logfile`;
         LOG->autoflush(1);
         print LOG qq{$time: $s\n};
         close(LOG);
