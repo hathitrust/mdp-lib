@@ -326,10 +326,14 @@ sub __debug_Log {
     }
 
     my $logdir = Utils::get_tmp_logdir();
-    my $debug_log_file = "$logdir/mdpdebugging.log";
+    my $date = Utils::Time::iso_Time('date');
+    my $time = Utils::Time::iso_Time('time');
+    my $logfile = qq{mdpdebugging-$date.log};
+
+    my $debug_log_file = "$logdir/$logfile";
     open(DBG, ">>$debug_log_file");
     my $m = ((ref($msg) eq 'CODE') ? &$msg : $msg);
-    print DBG qq{$m\n};
+    print DBG qq{$time: $m\n};
     close (DBG);
     chmod(0666, $debug_log_file) if (-o $debug_log_file);
 }
