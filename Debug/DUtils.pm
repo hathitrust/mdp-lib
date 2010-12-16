@@ -325,12 +325,13 @@ sub __debug_Log {
         return if (! $debug_logging)
     }
 
-    my $debug_log_file = '/tmp/mdpdebugging.log';
+    my $logdir = Utils::get_tmp_logdir();
+    my $debug_log_file = "$logdir/mdpdebugging.log";
     open(DBG, ">>$debug_log_file");
-    chmod 0666, $debug_log_file;
     my $m = ((ref($msg) eq 'CODE') ? &$msg : $msg);
     print DBG qq{$m\n};
     close (DBG);
+    chmod(0666, $debug_log_file) if (-o $debug_log_file);
 }
 
 # ---------------------------------------------------------------------

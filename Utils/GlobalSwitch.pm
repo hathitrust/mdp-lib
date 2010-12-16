@@ -24,6 +24,7 @@ Coding example
 =over 8
 
 =cut
+umask 0000;
 
 use strict;
 

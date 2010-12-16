@@ -327,6 +327,23 @@ sub max_of_list
 
 # ---------------------------------------------------------------------
 
+=item get_tmp_logdir
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_tmp_logdir {
+    my $logdir = $ENV{SDRROOT} . '/logs/tmp'; 
+    Utils::mkdir_path($logdir);
+    chmod(0777, $logdir) if (-o $logdir);
+    
+    return $logdir;
+}
+
+# ---------------------------------------------------------------------
+
 =item mkdir_path
 
 Description
