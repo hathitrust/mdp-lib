@@ -327,7 +327,7 @@ sub __debug_Log {
 
     my $debug_log_file = '/tmp/mdpdebugging.log';
     open(DBG, ">>$debug_log_file");
-    chmod 0666, $debug_log_file;
+    chmod(0666, $debug_log_file) if (-o $debug_log_file);
     my $m = ((ref($msg) eq 'CODE') ? &$msg : $msg);
     print DBG qq{$m\n};
     close (DBG);

@@ -37,6 +37,7 @@ use Utils::Logger;
 use Debug::DUtils;
 use Identifier;
 use Utils::Extract;
+use ObjFactory;
 
 
 sub new
@@ -237,6 +238,7 @@ Description
 # ---------------------------------------------------------------------
 # Shell file pattern, NOT a perl regexp
 my $file_pattern_arr_ref = ['*.txt'];
+my $exclude_pattern_arr_ref = ['*/notes.txt', '*/pagedata.txt' ];
 
 sub __extract_ocr_to_path {
     my $self = shift;
@@ -253,7 +255,8 @@ sub __extract_ocr_to_path {
                 (
                  $id,
                  $file_sys_location,
-                 $file_pattern_arr_ref
+                 $file_pattern_arr_ref,
+                 $exclude_pattern_arr_ref,
                 );
         chomp($concat_ocr_file_dir);
     }
@@ -352,6 +355,7 @@ sub __maybe_preserve_doc {
         my $clean_concat_filename = $concat_filename . '-clean';
         $clean_concat_filename =~ s,^/ram/,/tmp/,;
         Utils::write_data_to_file($ocr_text_ref, $clean_concat_filename);
+        chmod(0666, $clean_concat_filename) if (-o $clean_concat_filename);
         DEBUG('docfulldebug', qq{OCR: CLEANED concat file=$clean_concat_filename});
     }
 }
@@ -434,6 +438,36 @@ sub __ocr_existence_test {
 
 # ---------------------------------------------------------------------
 
+=item __apply_algorithms
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __apply_algorithms {
+    my $C = shift;
+    my $self = shift;
+    my $ocr_text_ref = shift;
+
+    my $garbage_ocr_class = $C->get_object('MdpConfig')->get('garbage_ocr_class');
+    if ($garbage_ocr_class) {
+        my $of = new ObjFactory;
+        my %of_attrs = (
+                        'class_name' => $garbage_ocr_class,
+                        'parameters' => {
+                                         'C'  => $C,
+                                        },
+                       );
+        my $goc = $of->create_instance($C, \%of_attrs);
+
+        DEBUG('doc', qq{OCR: apply Garbage_1 algorithm});
+        $goc->remove_garbage_ocr($C, $ocr_text_ref);
+    }
+}
+
+# ---------------------------------------------------------------------
+
 =item PUBLIC: get_ocr_data
 
 Description
@@ -490,7 +524,9 @@ sub get_ocr_data {
             $ocr_text_ref = \$empty_ocr_sentinel;
         }
 
-        __clean_xml($self, $ocr_text_ref);    
+        __clean_xml($self, $ocr_text_ref);
+
+        __apply_algorithms($C, $self, $ocr_text_ref);
     }
     else {
         system("touch", $concat_filename);
