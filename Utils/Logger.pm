@@ -62,8 +62,7 @@ Description
 # ---------------------------------------------------------------------
 use constant MAX_TRIES => 10;
 
-sub __Log_string
-{
+sub __Log_string {
     my $C = shift;
     my $s = shift;
     my $logfile_key = shift;
@@ -75,8 +74,7 @@ sub __Log_string
     my $config = $C->get_object('MdpConfig');
 
     my $logdir = __get_logdir_root() . $config->get('logdir');
-    if (defined($optional_dir_key) && defined($optional_dir_pattern))
-    {
+    if (defined($optional_dir_key) && defined($optional_dir_pattern)) {
         $logdir =~ s,$optional_dir_pattern,$optional_dir_key,;
     }
 
@@ -95,18 +93,17 @@ sub __Log_string
     # --- BEGIN CRITICAL SECTION ---
     my $sem;
     my $tries = 0;
-    while (! ($sem = new Semaphore($lock_file)))
-    {
+    while (! ($sem = new Semaphore($lock_file))) {
         $tries++;
         return if ($tries > MAX_TRIES);
         sleep 1;
     }
 
-    if (open(LOG, ">>$logfile_path"))
-    {
+    if (open(LOG, ">>$logfile_path")) {
         LOG->autoflush(1);
         print LOG qq{$s\n};
         close(LOG);
+        chmod(0666, $logfile_path) if (-o $logfile_path);
     }
 
     $sem->unlock();
@@ -122,22 +119,20 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub __Log_simple
-{
+sub __Log_simple {
     my $s = shift;
     exit 0 if (! $logging_enabled);
 
     my $date = Utils::Time::iso_Time('date');
     my $time = Utils::Time::iso_Time('time');
     my $logfile = qq{MDP-generic-$date.log};
-    
-    my $logfile_path = '/tmp/' . $logfile;
-    if (open(LOG, ">>$logfile_path"))
-    {
-        chmod(0666, $logfile) if (-o $logfile);
+
+    my $logfile_path = Utils::get_tmp_logdir() . "/$logfile";
+    if (open(LOG, ">>$logfile_path")) {
         LOG->autoflush(1);
         print LOG qq{$time: $s\n};
         close(LOG);
+        chmod(0666, $logfile_path) if (-o $logfile_path);
     }
 }
 
