@@ -626,7 +626,7 @@ sub GetValidSequence
     my $self = shift;
     my $seq = shift;
 
-    $seq = 0 if ( $seq !~ m,^[1-9]\d*$, );
+    $seq = 0 if ( $seq !~ m,^[1-9][0-9]*$, );
 
     my $firstPage = $self->GetFirstPageSequence();
     my $lastPage = $self->GetLastPageSequence();
@@ -677,7 +677,7 @@ sub SetRequestedPageSequence {
                     # number as the sequence number IF NUMERIC. Else it
                     # was alphanumeric or strictly alpha: stay where
                     # we are.
-                    if ($pageNumber =~ m,^\d+$,) {
+                    if ($pageNumber =~ m,^[1-9][0-9]*$,) {
                         $finalSequenceNumber = $pageNumber;
                     }
                     else {
