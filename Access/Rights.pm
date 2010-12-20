@@ -1,8 +1,8 @@
-package AccessRights;
+package Access::Rights;
 
 =head1 NAME
 
-AccessRights (ar);
+Access::Rights (ar);
 
 =head1 DESCRIPTION
 
@@ -18,7 +18,7 @@ this user which rights attribute values equate to 'fulltext'.
 
 Do NOT call any of the PRIVATE: methods directly.
 
-$ar = new AccessRights($C, [$id]);
+$ar = new Access::Rights($C, [$id]);
 
 The $id can be undef if the no method requiring an id parameter is
 called.
@@ -52,7 +52,7 @@ maintain state for 'ssd' users, e.g. SSD students.
 
 For the next class method, the Context object may be empty.
 
-$attr_list_ref = AccessRights::get_fulltext_attr_list($C)
+$attr_list_ref = Access::Rights::get_fulltext_attr_list($C)
 
 Returns those rights attributes for this user in this location that
 equate to fulltext access.
@@ -423,7 +423,7 @@ sub _validate_id {
     my $self = shift;
     my $id = shift;
     ASSERT((defined($id) && ($id eq $self->{'id'})),
-           qq{Id="$id: not valid for this instance of AccessRights object});
+           qq{Id="$id: not valid for this instance of Access::Rights object});
 }
 
 # ----------------------------------------------------------------------
