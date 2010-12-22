@@ -178,16 +178,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^160\.94\.15\.131$',
                         ],
       },
-   'swans152@umn.edu'
-   => {
-       'displayname' => 'Swanson, Edward',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^160\.94\.224\.200$',
-                        ],
-      },
    's-zuri@umn.edu'
    => {
        'displayname' => 'Zuriff, Sue',
