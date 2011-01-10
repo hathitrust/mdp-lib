@@ -279,7 +279,7 @@ sub _initialize
         $self->Set('zipfile', $zipfile);
     }
 
-    my $source_attribute = $C->get_object('AccessRights')->get_source_attribute($C, $id);
+    my $source_attribute = $C->get_object('Access::Rights')->get_source_attribute($C, $id);
     $self->Set( 'source_attribute', $source_attribute );
 
     $self->Set( 'marcmetadata', $metadataRef );

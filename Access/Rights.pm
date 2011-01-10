@@ -1,8 +1,8 @@
-package AccessRights;
+package Access::Rights;
 
 =head1 NAME
 
-AccessRights (ar);
+Access::Rights (ar);
 
 =head1 DESCRIPTION
 
@@ -18,7 +18,7 @@ this user which rights attribute values equate to 'fulltext'.
 
 Do NOT call any of the PRIVATE: methods directly.
 
-$ar = new AccessRights($C, [$id]);
+$ar = new Access::Rights($C, [$id]);
 
 The $id can be undef if the no method requiring an id parameter is
 called.
@@ -52,7 +52,7 @@ maintain state for 'ssd' users, e.g. SSD students.
 
 For the next class method, the Context object may be empty.
 
-$attr_list_ref = AccessRights::get_fulltext_attr_list($C)
+$attr_list_ref = Access::Rights::get_fulltext_attr_list($C)
 
 Returns those rights attributes for this user in this location that
 equate to fulltext access.
@@ -106,36 +106,7 @@ sub _initialize {
 
 =item PUBLIC: get_rights_attribute
 
- ATTRIBUTES
- id name   type      dscr
- 1  pd     copyright public domain
- 2  ic     copyright in-copyright
- 3  opb    copyright out-of-print and brittle (implies in-copyright)
- 4  orph   copyright copyright-orphaned (implies in-copyright)
- 5  und    copyright undetermined copyright status
- 6  umall  access    available to UM affiliates and walk-in patrons (all campuses)
- 7  world  access    available to everyone in the world
- 8  nobody access    available to nobody; blocked for all users
- 9  pdus   copyright public domain only when viewed in the US
-
- Creative Commons
-
- id name       type      dscr
- 10 ccby       copyright attribute work in manner specified by author
- 11 ccby-nd    copyright ccby + no derivatives upon distribution
- 12 ccby-nc-nd copyright ccby-nd + only non-commercial use only     
- 13 ccby-nc    copyright ccby +  only non-commercial use only     
- 15 ccby-nc-sa copyright ccby-nc + ccby-sa     
- 15 ccby-sa    copyright ccby + same license upon redistribution
-
- Creative Commons Links
-
- 10 ccby       http://www.hathitrust.org/documents/notice_cc_by.txt
- 11 ccby-nd    http://www.hathitrust.org/documents/notice_cc-by-nd.txt
- 12 ccby-nc-nd http://www.hathitrust.org/documents/notice_cc_by-nc-nd.txt
- 13 ccby-nc    http://www.hathitrust.org/documents/notice_cc_by-nc.txt
- 15 ccby-nc-sa http://www.hathitrust.org/documents/notice_cc_by-nc-sa.txt
- 15 ccby-sa    http://www.hathitrust.org/documents/notice_cc-by-sa.txt
+See RightsGlobals.pm for documentation on Attributes, Sources, etc.
 
 =cut
 
@@ -423,7 +394,7 @@ sub _validate_id {
     my $self = shift;
     my $id = shift;
     ASSERT((defined($id) && ($id eq $self->{'id'})),
-           qq{Id="$id: not valid for this instance of AccessRights object});
+           qq{Id="$id: not valid for this instance of Access::Rights object});
 }
 
 # ----------------------------------------------------------------------
