@@ -283,7 +283,7 @@ sub _initialize
         $self->Set('zipfile', $zipfile);
     }
 
-    my $source_attribute = $C->get_object('AccessRights')->get_source_attribute($C, $id);
+    my $source_attribute = $C->get_object('Access::Rights')->get_source_attribute($C, $id);
     $self->Set( 'source_attribute', $source_attribute );
 
     $self->Set( 'marcmetadata', $metadataRef );
@@ -630,7 +630,7 @@ sub GetValidSequence
     my $self = shift;
     my $seq = shift;
 
-    $seq = 0 if ( $seq !~ m,^[1-9]\d*$, );
+    $seq = 0 if ( $seq !~ m,^[1-9][0-9]*$, );
 
     my $firstPage = $self->GetFirstPageSequence();
     my $lastPage = $self->GetLastPageSequence();
@@ -681,7 +681,7 @@ sub SetRequestedPageSequence {
                     # number as the sequence number IF NUMERIC. Else it
                     # was alphanumeric or strictly alpha: stay where
                     # we are.
-                    if ($pageNumber =~ m,^\d+$,) {
+                    if ($pageNumber =~ m,^[1-9][0-9]*$,) {
                         $finalSequenceNumber = $pageNumber;
                     }
                     else {

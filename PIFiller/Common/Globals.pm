@@ -22,6 +22,8 @@ BEGIN
 use Utils;
 use Debug::DUtils;
 use Utils::Js;
+use Access::Statements;
+use Access::Rights;
 
 # ---------------------------------------------------------------------
 
@@ -91,6 +93,44 @@ sub handle_HAS_OCR_PI
     
     return $has_ocr;
     
+}
+
+# ---------------------------------------------------------------------
+
+=item handle_ACCESS_USE_PI :  PI_handler(ACCESS_USE)
+
+Container for the short description of Access and Use Policy,
+e.g. "Public Domain" and the link to the full policy description.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_ACCESS_USE_PI
+    : PI_handler(ACCESS_USE)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $id = $C->get_object('CGI')->param('id');
+
+    my $ar = $C->get_object('Access::Rights');
+    my $attr = $ar->get_rights_attribute($C, $id);
+    my $source = $ar->get_source_attribute($C, $id);
+
+    my $ref_to_arr_of_hashref = 
+      Access::Statements::get_stmt_by_rights_values($C, $attr, $source, 
+                                                  {
+                                                   stmt_url  => 1,
+                                                   stmt_head => 1,
+                                                  });
+    my $hashref = $ref_to_arr_of_hashref->[0];
+    my $url = $hashref->{stmt_url};
+    my $head = $hashref->{stmt_head};
+        
+    my $s;
+    $s .= wrap_string_in_tag($head, 'Header');
+    $s .= wrap_string_in_tag($url, 'Link');
+
+    return $s;
 }
 
 # ---------------------------------------------------------------------
