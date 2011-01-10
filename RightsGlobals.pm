@@ -128,6 +128,8 @@ $HT_AFFILIATE           = 5;
    '3'  => 'um-press',
    '4'  => 'ia',
    '5'  => 'yale',
+   '6'  => 'minn-dig-lib',
+   '7'  => 'minn-hist-soc',
   );
 
 %g_stmt_keys =
