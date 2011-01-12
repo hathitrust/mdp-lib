@@ -147,6 +147,7 @@ sub GetMdpItem
     my $class = shift;
     my ($C, $id, $itemFileSystemLocation ) = @_;
     my $config = $C->get_object('MdpConfig');
+    my $cgi = $C->get_object('CGI');
 
     $itemFileSystemLocation = Identifier::get_item_location($id) unless ( $itemFileSystemLocation );
 
@@ -155,16 +156,18 @@ sub GetMdpItem
     
     my $t0 = time;
     my $cache_mdpItem = ( $config->get('mdpitem_use_cache') eq 'true' );
+    my $cache_max_age = $config->get('mdpitem_max_age') || 0;
+    my $ignore_existing_cache = ( $cgi->param('newsid') eq "1" );
+    
     if ( $cache_mdpItem ) {
         DEBUG('time', qq{<h3>Start mdp item uncache</h3>} . Utils::display_stats());
         
         my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
-        $cache = Utils::Cache::Storable->new($cache_dir);
+        $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age);
         $mdpItem = $cache->Get($id, $cache_key);
         DEBUG('time', qq{<h3>Finish mdp item uncache</h3>} . Utils::display_stats());
 
-        my $cgi = $C->get_object('CGI');
-        if ( $cgi->param('newsid') ) {
+        if ( $ignore_existing_cache ) {
             $mdpItem = undef;
         }
         
@@ -203,7 +206,8 @@ sub GetMdpItem
         
         # don't cache if we've got a metadatafailure
         if ( $cache_mdpItem && ! $mdpItem->Get('metadatafailure') ) {
-            $cache->Set($id, $cache_key, $mdpItem);
+            DEBUG('pt,mdpitem,cache', qq{<h3>Cache MdpItem: $id : $cache_key</h3>});
+            $cache->Set($id, $cache_key, $mdpItem, $ignore_existing_cache);
         }
         
     }

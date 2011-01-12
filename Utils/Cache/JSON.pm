@@ -40,7 +40,7 @@ sub serialize
     
     my $data = encode_json($value);
 
-    my $fh = IO::File->new(">$tmpfilename") or die "Could not open $tmpfilename - $!";
+    my $fh = IO::File->new($tmpfilename, ">", ":utf8") or die "Could not open $tmpfilename - $!";
     binmode($fh);
     $fh->write($data);
     $fh->close;
@@ -56,7 +56,7 @@ sub instantiate
     {
         local $RS = undef;
         my $fh;
-        croak "Cannot open $keyFileName" if not open($fh, '<', $keyFileName);
+        croak "Cannot open $keyFileName" if not open($fh, '<', $keyFileName, ":utf8");
         $data = <$fh>;
         croak "Cannot close $keyFileName" if not close($fh);
     }
