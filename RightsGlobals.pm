@@ -287,8 +287,15 @@ $g_public_domain_US_attribute_value = 9;
 # ---------------------------------------------------------------------
 # Source values authorized for full book PDF download.
 # ---------------------------------------------------------------------
-@g_full_PDF_download_open_source_values = (2, 4);
-@g_full_PDF_download_closed_source_values = (1);
+#                                          
+@g_full_PDF_download_open_source_values = (
+                                           2, # lit-dlps-dc
+                                           4, # ia
+                                           5, # yale
+                                          );
+@g_full_PDF_download_closed_source_values = (
+                                             1, # google
+                                            );
 
 @g_source_values = keys %g_source_names;
 @g_rights_attribute_values = keys %g_rights_matrix;
