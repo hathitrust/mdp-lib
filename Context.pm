@@ -62,8 +62,10 @@ sub dispose
 {
     my $self = shift;
     
-    foreach my $object_key (keys %$self)
+    # dispose of the Database LAST!!!
+    foreach my $object_key (sort { $a eq 'Database' ? 1 : $b eq 'Database' ? -1 : ( $a cmp $b ) } keys %$self)
     {
+        next if ( $object_key eq 'Database' );
         my $object = $self->get_object($object_key);
         my $package = ref($object);
         if (exists &{"${package}::dispose"})

@@ -40,8 +40,8 @@ BEGIN
 use CGI;
 use CGI::Cookie;
 
-use Apache::Session::MySQL;
-my $g_session_store = 'Apache::Session::MySQL';
+use Apache::Session::MySQL::InnoDB;
+my $g_session_store = 'Apache::Session::MySQL::InnoDB';
 
 use Debug::DUtils;
 use Utils;
@@ -98,7 +98,7 @@ sub start_session
             $previous_sid = $sid = $cookies{$cookie_name}->value;
         }
     }
-
+    
     my $ses;
     eval
     {
@@ -280,10 +280,20 @@ sub _make_persistent
     my $dbh = $db->get_DBH($C);
     ASSERT($dbh->{Active}, qq{database handle not valid for session creation});
 
-    my $session_store_attrsref = {
-                                  Handle     => $dbh,
-                                  LockHandle => $dbh,
-                                 };
+    my $session_store_attrsref;
+    if ( $g_session_store eq 'Apache::Session::MySQL' ) {
+        $session_store_attrsref = {
+                                     Handle     => $dbh,
+                                     LockHandle => $dbh,
+                                  };
+    } else {
+        $session_store_attrsref = {
+                                     Handle     => $dbh,
+                                     Commit     => 1       # for InnoDB transactions
+                                  };
+    }
+
+
 
     eval
     {
