@@ -122,7 +122,7 @@ sub check_exclusive_access {
 
 =item __grant_access
 
-An item can be owner by more than one user if their affiliations are
+An item can be owned by more than one user if their affiliations are
 different.
 
 =cut
@@ -135,6 +135,11 @@ sub __grant_access {
     my $grant_owner;
     my $expires;
     
+    # Failsafe
+    if ((! $identity) || (! affiliation)) {
+        return ($granted, $grant_owner, $expires);
+    }
+        
     my ($sth, $statement);
 
     $statement = qq{LOCK TABLES n_exclusivity WRITE};

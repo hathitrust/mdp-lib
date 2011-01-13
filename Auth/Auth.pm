@@ -9,10 +9,6 @@ Auth::Auth (auth)
 
 This class provides the authentication interface for the App
 
-=head1 VERSION
-
-$Id: Auth.pm,v 1.21 2010/05/04 16:17:37 pfarber Exp $
-
 =head1 SYNOPSIS
 
 This object should NOT be saved on the session.  Its state is valid
@@ -123,10 +119,14 @@ sub _initialize {
             DEBUG('auth',
                   sub {
                       q{AUTH: user=} . $self->get_user_name($C) . q{ disp=} . $self->get_user_display_name($C)
-                          . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
-                              . q{ authsys=} . __get_auth_sys($ses)
-                                  .  q{ newlogin=} . $self->isa_new_login()
-                              });
+                        . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+                          . q{ authsys=} . __get_auth_sys($ses)
+                            . q{ newlogin=} . $self->isa_new_login()
+                              . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                                . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                                  . q{ is_umich=} . $self->affiliation_is_umich($C)
+                                    . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                });
         }
         else {
             # Not authenticated: THIS MAY BE CONDITION X:
@@ -375,6 +375,37 @@ sub is_in_library {
 
 # ---------------------------------------------------------------------
 
+=item __get_prioritized_scoped_affiliation
+
+Parse $ENV{affiliation} into its components.  
+
+Currently we support, at most, just
+"member@foo.edu;staff@foo.edu;affiliate@foo.edu".  Return one of
+these, in this priority order.
+
+Return undef if one of these affiliations is not present.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_prioritized_scoped_affiliation {
+    my $self = shift;
+    
+    my @aff_prios = ('member', 'alum', 'affiliate',);
+    my @affs = split(/\s*;\s*/, $ENV{'affiliation'});
+    @affs = map {lc($_)} @affs;
+    
+    my %aff_hash = map { ($_) =~ (m,(.*?)@.*$,) => $_ } @affs;
+
+    foreach my $aff (@aff_prios) {
+        return $aff_hash{$aff} if ($aff_hash{$aff});
+    }
+    
+    return undef;
+}
+
+# ---------------------------------------------------------------------
+
 =item get_eduPersonScopedAffiliation
 
 This is the full eduPersonScopedAffiliation, e.g. member@umich.edu
@@ -396,7 +427,7 @@ sub get_eduPersonScopedAffiliation {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $eduPersonScopedAffiliation = $ENV{'affiliation'};
+        $eduPersonScopedAffiliation = $self->__get_prioritized_scoped_affiliation();
     }
     
     return $eduPersonScopedAffiliation;
@@ -447,12 +478,21 @@ providers).
 
 http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#eduPersonTargetedID
 
+We have seen the umich IdP assign the semi-colon separated
+concatenation of the old:
+
+urn:mace:dir:attribute-def:eduPersonTargetedID 
+
+and the new:
+
+OID: 1.3.6.1.4.1.5923.1.1.1.10 values to persistent_id. We parse just one out.
+
 =cut
 
 # ---------------------------------------------------------------------
 sub get_eduPersonTargetedID {
     my $self = shift;
-    return $ENV{'persistent-id'};
+    return ( split(/;/, $ENV{'persistent_id'}) )[0];
 }
 
 # ---------------------------------------------------------------------
@@ -500,7 +540,7 @@ sub affiliation_is_umich {
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = $self->get_eduPersonScopedAffiliation($C);
-        $is_umich = (lc($aff) eq 'member@umich.edu');
+        $is_umich = (lc($aff) =~ m,umich.edu$,);
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend()) {
@@ -522,8 +562,8 @@ sub affiliation_is_umich {
 
 =item affiliation_is_hathitrust
 
-This is a broader affiliation that may provide for expanded services
-such as full book pdf download for certain classes of materials.
+This affiliation may provide for expanded services such as full book
+pdf download for certain classes of materials.
 
 =cut
 
@@ -536,7 +576,8 @@ sub affiliation_is_hathitrust {
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
-        $is_hathitrust = ($aff =~ m,^member,);
+        # If there's a scoped affiliation then they're hathitrust
+        $is_hathitrust = $aff;
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend()) {
@@ -558,7 +599,7 @@ sub affiliation_is_hathitrust {
 
 =item get_user_display_name
 
-This is either the users COSIGN uniquename or, using a fallback scheme
+This is either the user's COSIGN uniquename or, using a fallback scheme
 Shibboleth displayName, eppn, etc.
 
 =cut
