@@ -296,7 +296,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
-                         '^141\.211\.84\.100$',
+                         '^141\.211\.84\.27$',
                         ],
       },
 
