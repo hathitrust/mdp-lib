@@ -117,7 +117,7 @@ sub handle_ACCESS_USE_PI
     my $source = $ar->get_source_attribute($C, $id);
 
     my $ref_to_arr_of_hashref = 
-      Access::Statements::get_stmt_by_rights_values($C, $attr, $source, 
+      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $source, 
                                                   {
                                                    stmt_url  => 1,
                                                    stmt_head => 1,

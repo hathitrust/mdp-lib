@@ -9,15 +9,21 @@ Access::Statements;
 This package provides an interface to the Access and Use statements
 database. 
 
+PROGRAMMING NOTE: This module is shared between HT apps (like pt) and
+the Data API. Be judicious about adding additional Perl 'use'
+statements to keep it as lightweight as possible.
+
 =head1 SYNOPSIS
 
 Do NOT call any of the PRIVATE: methods directly.
 
 Accept a pair of values (mdp.rights_current.attr,
 mdp.rights_current.source) and return the statement field data as
-requested in the request hash to which the pair maps.
+requested in the request hash to which the pair maps. 
 
-my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $attr, $source,
+Only one of $C or $dbh is required.
+
+my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $dbh, $attr, $source,
                                  {
                                    stmt_key  => 1,
                                    stmt_url  => 1,
@@ -27,7 +33,8 @@ my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $attr, $sou
 
 Return the basic statements by their keys.
 
-my $stmt_ref = Access::Statements::get_stmt_by_key($C, $key                                 {
+my $stmt_ref = Access::Statements::get_stmt_by_key($C, $dbh, $key          
+                                 {
                                    stmt_key  => 1,
                                    stmt_url  => 1,
                                    stmt_head => 1,
@@ -45,8 +52,6 @@ Refer to mdp-lib/RightsGlobals.pm fpr definitions of attributes, sources, statem
 
 use Context;
 use Utils;
-use Debug::DUtils;
-use Database;
 use DbUtils;
 use RightsGlobals;
 
@@ -60,9 +65,9 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_stmt_by_rights_values {
-    my ($C, $attr, $source, $req_ref) = @_;
+    my ($C, $dbh, $attr, $source, $req_ref) = @_;
 
-    my $dbh = $C->get_object('Database')->get_DBH($C);
+    my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
     my ($attr_key, $source_key) = 
       (
@@ -76,7 +81,7 @@ sub get_stmt_by_rights_values {
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$subSELECT_clause};
     my $statement = qq{SELECT $fields FROM access_stmts } . $WHERE_clause;
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_arr_of_hashref;
@@ -92,16 +97,16 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_stmt_by_key {
-    my ($C, $key, $req_ref) = @_;
+    my ($C, $dbh, $key, $req_ref) = @_;
 
-    my $dbh = $C->get_object('Database')->get_DBH($C);
+    my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
     my $fields = __build_field_list($req_ref);
 
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key='$key'};
     my $statement = qq{SELECT $fields FROM access_stmts } . $WHERE_clause;
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_arr_of_hashref;
@@ -117,15 +122,15 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_all_stmts {
-    my ($C, $req_ref) = @_;
+    my ($C, $dbh, $req_ref) = @_;
 
-    my $dbh = $C->get_object('Database')->get_DBH($C);
+    my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
     my $fields = __build_field_list($req_ref);
 
     my $statement = qq{SELECT $fields FROM access_stmts };
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_arr_of_hashref;
