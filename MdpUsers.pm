@@ -445,6 +445,30 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'usertype'    => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
+   'rrotter'
+   => {
+       'displayname' => 'Rotter, Ryan',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'tmooney'
+   => {
+       'displayname' => 'Mooney, Thomas',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'ezbrooks'
+   => {
+       'displayname' => 'Brooks, Ezra',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
   );
 
 1;
