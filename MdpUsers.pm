@@ -233,6 +233,17 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
 
    # Indiana CRMS
+   'Marlett@indiana.edu'
+   => {
+       'displayname' => 'Marlett, Kathy',
+       'supervisor'  => 'pfarber',
+       'expires'     => '2011-11-30 23:59:59',
+       'usertype'    => 'onetime',
+       'iprestrict'  => [
+                         '^129\.79\.35\.84$',
+                        ],
+
+      },
    'shmichae@indiana.edu'
    => {
        'displayname' => 'Michaels, Sherri',
