@@ -41,10 +41,12 @@ sub HighlightMultipleQs
 # ----------------------------------------------------------------------
 sub highlight_hit
 {
-    my ($C, $parsedQsCgi, $s_ref, $partial) = @_;
+    my ($C, $parsedQsCgi, $s_ref, $tag) = @_;
 
     # flag to return: false if no hits found, true if hits found
     my $hitFound = 0;
+    
+    $tag = 'Highlight' unless ( $tag );
 
     # Input string can have multiple spaces that XPAT space
     # compression algorithms collapse to a single space.  Emulate that
@@ -59,7 +61,7 @@ sub highlight_hit
     # XPat::Simple to make Perl treat the string as characters instead
     # of bytes.
     my $buf = $$s_ref;
-
+    
     # Change all chars between '<' amd '>' and leading and trailing
     # half-tags to ' ' inclusive to avoid matching q's within tags
     # while maintaining character offsets into original data
@@ -137,8 +139,6 @@ sub highlight_hit
         }
     }
     
-    return \%qvalsHash if ( $partial );
-
     # Sort hits in descending order by length of word/phrase so that
     # we can prevent highlighting of substrings within a longer hit
     # string in cases involving data e.g. containing "I will send you
@@ -173,6 +173,9 @@ sub highlight_hit
             # and not delimited by word boundaries
             $RE = "(\Q$hit\E)";
         }
+        
+        # try to match across line endings
+        $RE =~ s, ,\s+,g;
 
         my $compRE = qr/$RE/; # compile the pattern
         my $matching = 1;
@@ -208,7 +211,7 @@ sub highlight_hit
     
     # Markup for XML vs. HTML and for multicoloring.
     my ( $sMarkup, $eMarkup ) =
-        (q{<Highlight class="hilite@" seq="_%%">}, q{</Highlight>});
+        (qq{<$tag class="hilite\@" seq="_%%">}, qq{</$tag>});
 
     my ( $sDefaultMarkupLen, $eMarkupLen ) =
         ( length( $sMarkup ), length( $eMarkup ) );
@@ -254,13 +257,24 @@ sub highlight_hit
         substr( $buf, $destStart, $sMarkupLen ) = $sMarkup;
         $destStart += $sMarkupLen;
 
+        # copy the hit from src to destination
+        ### substr( $buf, $destStart, $hitLen ) = substr( $$s_ref, $srcStart, $hitLen );
+        
+        my $chunk = substr( $$s_ref, $srcStart, $hitLen );
+        if ( $chunk =~ m,\n, ) {
+            ## break up matches that occur across line endings
+            ## don't bother trying to keep the same "seq" between them
+            ## my $cMarkup = $sMarkup; $cMarkup =~ s! seq=! cont seq=!;
+            $chunk =~ s,\n,$eMarkup\n$sMarkup,g;
+        }
+        my $chunkLen = length($chunk);
+        substr( $buf, $destStart, $hitLen ) = $chunk;
+
         # multicolor
         $sMarkup =~ s,$idx,@,;
-
-        # copy the hit from src to destination
-        substr( $buf, $destStart, $hitLen ) = substr( $$s_ref, $srcStart, $hitLen );
+        
         $srcStart += $hitLen;
-        $destStart += $hitLen;
+        $destStart += $chunkLen;
 
         # insert the ending hit markup into the destination
         substr( $buf, $destStart, $eMarkupLen ) = $eMarkup;
@@ -271,15 +285,18 @@ sub highlight_hit
     substr( $buf, $destStart ) = substr( $$s_ref, $srcStart );
 
     # supply highlighted terms with sequential attribute values
+    # 
     my $seq = 1;
     while ( $buf =~ s,seq="_%%",seq="$seq",s )
-    {     $seq++;     }
+    {
+        $seq++;     
+    }
 
     # If highlighting tag insertion severs an & char from its CER text
     # or the text from its terminal semi-colon, delete it and its
     # text.
-    $buf =~ s,&(<Highlight[^>]+>)[a-z]+,$1,g;
-    $buf =~ s,&[a-z]+(<Highlight[^>]+>),$1,g;
+    $buf =~ s,&(<$tag[^>]+>)[a-z]+,$1,g;
+    $buf =~ s,&[a-z]+(<$tag[^>]+>),$1,g;
 
     # point at new data
     $$s_ref = $buf;
