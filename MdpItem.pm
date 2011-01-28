@@ -218,6 +218,9 @@ sub GetMdpItem
               return $mdpItem->DumpPageInfoToHtml();
           });
           
+    if (DEBUG('noocr')) {
+        $mdpItem->Set('has_ocr', 0);
+    }
     return $mdpItem;
 }
 
@@ -1060,9 +1063,6 @@ sub BuildFileGrpHash {
     $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
     my $textFileGrp = $root->findnodes($xpath);
     $self->Set('has_ocr', scalar(@$textFileGrp));
-    if (DEBUG('noocr')) {
-        $self->Set('has_ocr', 0);
-    }
 
     if ($self->Get('has_ocr')) {
         # Test for all zero-length OCR files.
