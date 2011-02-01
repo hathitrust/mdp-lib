@@ -138,6 +138,28 @@ sub get_all_stmts {
 
 # ---------------------------------------------------------------------
 
+=item get_all_mappings
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_all_mappings {
+    my ($C, $dbh) = @_;
+
+    my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
+
+    my $statement = qq{SELECT * FROM access_stmts_map };
+
+    my $sth = DbUtils::prep_n_execute($_dbh, $statement);
+    my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+
+    return $ref_to_arr_of_hashref;
+}
+
+# ---------------------------------------------------------------------
+
 =item __build_field_list
 
 Description
