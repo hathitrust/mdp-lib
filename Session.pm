@@ -569,8 +569,9 @@ sub session_dumper
     require Data::Dumper;
     $Data::Dumper::Indent = 2;
     my $dump = Data::Dumper->Dump( [$self], [qw($self)] );
+    $dump =~ s,&,&amp;,g;
 
-    return qq{<pre>$dump</pre>};
+    return qq{<pre style="text-align: left">$dump</pre>};
 }
 
 
