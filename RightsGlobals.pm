@@ -6,9 +6,11 @@ package RightsGlobals;
  id        name           dscr
  1         google         Google
  2         lit-dlps-dc    LIT, DLPS, Digital Conversion
- 3         um-press       University of Michigan Press 
+ 3         ump            University of Michigan Press 
  4         ia             Internet Archive
  5         yale           Yale University
+ 6         umn            University of Minnesota
+ 7         mhs            Minnesota Historical Society
 
  ATTRIBUTES
  id        name        type      dscr
@@ -125,11 +127,11 @@ $HT_AFFILIATE           = 5;
   (
    '1'  => 'google',
    '2'  => 'lit-dlps-dc',
-   '3'  => 'um-press',
+   '3'  => 'ump',
    '4'  => 'ia',
    '5'  => 'yale',
-   '6'  => 'minn-dig-lib',
-   '7'  => 'minn-hist-soc',
+   '6'  => 'umn',
+   '7'  => 'mhs',
   );
 
 %g_stmt_keys =
