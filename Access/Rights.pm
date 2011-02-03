@@ -376,17 +376,6 @@ sub public_domain_world_creative_commons {
             ||
             $self->public_domain_world($C, $id)
            );
-=======
-            } else {
-                $message = q{NOT_AFFILIATED};
-            }
-        }
-    } else {
-        $message = q{NOT_PD};
-    }
-
-    return ($message, $status);
->>>>>>> a75e5f2... supporting BookReader
 }
 
 # ---------------------------------------------------------------------
