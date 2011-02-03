@@ -75,6 +75,9 @@ sub get_stmt_by_rights_values {
        $RightsGlobals::g_source_names{$source}
       );
 
+    $attr_key = 'nobody' if (! $attr_key);
+    $source_key = 'google' if (! $source_key);
+    
     my $fields = __build_field_list($req_ref);
 
     my $subSELECT_clause = qq{(SELECT stmt_key FROM access_stmts_map WHERE a_attr='$attr_key' AND a_source='$source_key')};
