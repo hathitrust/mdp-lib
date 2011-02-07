@@ -97,6 +97,27 @@ sub handle_HAS_OCR_PI
 
 # ---------------------------------------------------------------------
 
+=item handle_HT_ID_PI :  PI_handler(HT_ID)
+
+The HathiTrust Id
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_HT_ID_PI
+    : PI_handler(HT_ID)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+    
+    my $mdp_item = $C->get_object('MdpItem');    
+    my $id = $mdp_item->GetId();
+    
+    return $id;
+    
+}
+
+# ---------------------------------------------------------------------
+
 =item handle_ACCESS_USE_PI :  PI_handler(ACCESS_USE)
 
 Container for the short description of Access and Use Policy,
@@ -121,14 +142,17 @@ sub handle_ACCESS_USE_PI
                                                   {
                                                    stmt_url  => 1,
                                                    stmt_head => 1,
+                                                   stmt_icon => 1,
                                                   });
     my $hashref = $ref_to_arr_of_hashref->[0];
     my $url = $hashref->{stmt_url};
     my $head = $hashref->{stmt_head};
+    my $icon = $hashref->{stmt_icon};
         
     my $s;
     $s .= wrap_string_in_tag($head, 'Header');
     $s .= wrap_string_in_tag($url, 'Link');
+    $s .= wrap_string_in_tag($icon, 'Icon');
 
     return $s;
 }
