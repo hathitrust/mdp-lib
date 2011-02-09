@@ -178,16 +178,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^160\.94\.15\.131$',
                         ],
       },
-   'swans152@umn.edu'
-   => {
-       'displayname' => 'Swanson, Edward',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^160\.94\.224\.200$',
-                        ],
-      },
    's-zuri@umn.edu'
    => {
        'displayname' => 'Zuriff, Sue',
@@ -243,6 +233,17 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
 
    # Indiana CRMS
+   'Marlett@indiana.edu'
+   => {
+       'displayname' => 'Marlett, Kathy',
+       'supervisor'  => 'pfarber',
+       'expires'     => '2011-11-30 23:59:59',
+       'usertype'    => 'onetime',
+       'iprestrict'  => [
+                         '^129\.79\.35\.84$',
+                        ],
+
+      },
    'shmichae@indiana.edu'
    => {
        'displayname' => 'Michaels, Sherri',
@@ -306,7 +307,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
-                         '^141\.211\.84\.100$',
+                         '^141\.211\.84\.27$',
                         ],
       },
 
@@ -450,6 +451,30 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    'aelkiss'
    => {
        'displayname' => 'Elkiss, Aaron',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'rrotter'
+   => {
+       'displayname' => 'Rotter, Ryan',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'tmooney'
+   => {
+       'displayname' => 'Mooney, Thomas',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'ezbrooks'
+   => {
+       'displayname' => 'Brooks, Ezra',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
        'usertype'    => 'superuser',

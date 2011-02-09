@@ -578,9 +578,10 @@ call different output methods
 sub output {
     my $self = shift;
     my $C = shift;
-
+    my $content_type = shift;
+    
     my $transformed_xml_ref = $self->_get_transformed_xml($C);
-    $self->output_HTTP($C, $transformed_xml_ref);
+    $self->output_HTTP($C, $transformed_xml_ref, $content_type);
 }
 
 

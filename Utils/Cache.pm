@@ -41,14 +41,19 @@ use Utils::Extract;
 
 use CGI;
 
+use Debug::DUtils;
+
 sub new
 {
     my $class = shift;
     my $cacheDir = shift;
+    my $max_cache_age = shift || 0;
     
     my $self = {};
     $self->{cacheDir} = $cacheDir . "/";
     Utils::mkdir_path( $cacheDir, undef );
+    
+    $self->{max_cache_age} = $max_cache_age;
     
     bless $self, $class;
     return $self;
@@ -66,20 +71,28 @@ Serializes $value to the filesystem.
 sub Set
 {
     my $self = shift;
-    my ( $id, $key, $value ) = @_;
+    my ( $id, $key, $value, $force ) = @_;
     my $keyFileName = $self->BuildKeyFileName($id, $key);
 
+    # serialize data to a temporary file as a cheap way of 
+    # avoiding file collisions.
     my $tmpfilename = $self->GenerateTemporaryFilename($id, $key);
     $self->serialize($value, $tmpfilename);
+    
+    my $save_cache = ! $self->file_exists_n_newer($id, $keyFileName);
 
-    if ( ! -s $keyFileName ) {
-        # $outputFileName is still empty, so rename
+    if ( $save_cache || $force ) {
         for( my $try = 0; $try < 3; $try++ ) {
-            last if (move($tmpfilename, $keyFileName));
+            my $retval = move($tmpfilename, $keyFileName);
+            DEBUG('pt,mdpitem,cache', qq{<h3>Cache->Set: move $retval :: $try</h3>});
+            last if ( $retval );
         }
     }
     
     if ( -f $tmpfilename ) {
+        # $tmpfilename couldn't be moved so we punt and return this filename
+        # to the caller.
+        DEBUG('pt,mdpitem,cache', qq{<h3>Set: using $tmpfilename</h3>});
         $keyFileName = $tmpfilename;
     }
     
@@ -207,19 +220,31 @@ sub file_exists_n_newer {
     
 
     my $exists_n_newer = 0;
+    my $max_cache_age = $$self{max_cache_age};
     
     if (Utils::file_exists($derivative)) {
+
+        my $der_mtime = (stat($derivative))[9];
+
+        # ensure that $derivative is no older than $delta seconds
+        if ( $max_cache_age > 0 && ( time() - $der_mtime > $max_cache_age ) ) {
+            DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: } . time() . qq{ - $der_mtime > $max_cache_age</h3>});
+            return 0;
+        }
+
         my $itemFileSystemLocation = Identifier::get_item_location($id);
         my $barcode = Identifier::get_id_wo_namespace($id);
         my $zipfile = qq{$itemFileSystemLocation/$barcode.zip};
         
 
         my $zip_mtime = (stat($zipfile))[9];
-        my $der_mtime = (stat($derivative))[9];
 
         if ($der_mtime > $zip_mtime) {
             $exists_n_newer = 1;
         }
+
+        DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: der_mtime [$der_mtime] zip_mtime [$zip_mtime] = $exists_n_newer</h3>});
+        
     }
 
     return $exists_n_newer;

@@ -63,6 +63,7 @@ sub _initialize
     my $db_name =  $db_prefix . $config->get('db_name');
     my $db_user = $config->get('db_user');
     my $db_passwd = $config->get('db_passwd');
+    
 
     my $db_server = $config->get('db_server');
     my $dsn = qq{DBI:mysql:$db_name:$db_server};
@@ -101,6 +102,7 @@ sub _initialize
     $self->{'dbh'} = $dbh;
 
     $self->test_schema_version($config);
+    
 }
 
 # ---------------------------------------------------------------------
