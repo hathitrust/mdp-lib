@@ -25,20 +25,26 @@ Only one of $C or $dbh is required.
 
 my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $dbh, $attr, $source,
                                  {
-                                   stmt_key  => 1,
-                                   stmt_url  => 1,
-                                   stmt_head => 1,
-                                   stmt_text => 1,
+                                   stmt_key      => 1,
+                                   stmt_url      => 1,
+                                   stmt_url_aux  => 1,
+                                   stmt_icon     => 1,
+                                   stmt_icon_aux => 1,
+                                   stmt_head     => 1,
+                                   stmt_text     => 1,
                                  });
 
 Return the basic statements by their keys.
 
 my $stmt_ref = Access::Statements::get_stmt_by_key($C, $dbh, $key          
                                  {
-                                   stmt_key  => 1,
-                                   stmt_url  => 1,
-                                   stmt_head => 1,
-                                   stmt_text => 1,
+                                   stmt_key      => 1,
+                                   stmt_url      => 1,
+                                   stmt_url_aux  => 1,
+                                   stmt_icon     => 1,
+                                   stmt_icon_aux => 1,
+                                   stmt_head     => 1,
+                                   stmt_text     => 1,
                                  });
 
 
@@ -55,6 +61,17 @@ use Utils;
 use DbUtils;
 use RightsGlobals;
 
+my %ALL_FIELDS = 
+  (
+   stmt_key      => 'database',
+   stmt_head     => 'database',
+   stmt_text     => 'database',
+   stmt_url      => 'database',
+   stmt_url_aux  => 'hash',
+   stmt_icon     => 'hash',
+   stmt_icon_aux => 'hash',
+  );
+ 
 # ---------------------------------------------------------------------
 
 =item get_stmt_by_rights_values
@@ -78,14 +95,22 @@ sub get_stmt_by_rights_values {
     $attr_key = 'nobody' if (! $attr_key);
     $source_key = 'google' if (! $source_key);
     
-    my $fields = __build_field_list($req_ref);
+    my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
+    my $database_fields = join(', ', @$database_fields_arr_ref);
 
     my $subSELECT_clause = qq{(SELECT stmt_key FROM access_stmts_map WHERE a_attr='$attr_key' AND a_source='$source_key')};
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$subSELECT_clause};
-    my $statement = qq{SELECT $fields FROM access_stmts } . $WHERE_clause;
+    my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
 
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+
+
+    my $key_SELECT_clause = $subSELECT_clause;
+    my $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause);
+    my $key = $sth->fetchrow_array();
+
+    __add_hash_fields_for($key, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
     return $ref_to_arr_of_hashref;
 }
@@ -104,13 +129,16 @@ sub get_stmt_by_key {
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
-    my $fields = __build_field_list($req_ref);
+    my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
+    my $database_fields = join(', ', @$database_fields_arr_ref);
 
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key='$key'};
-    my $statement = qq{SELECT $fields FROM access_stmts } . $WHERE_clause;
+    my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
 
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+
+    __add_hash_fields_for($key, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
     return $ref_to_arr_of_hashref;
 }
@@ -129,12 +157,15 @@ sub get_all_stmts {
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
-    my $fields = __build_field_list($req_ref);
+    my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
+    my $database_fields = join(', ', @$database_fields_arr_ref);
 
-    my $statement = qq{SELECT $fields FROM access_stmts };
+    my $statement = qq{SELECT $database_fields FROM access_stmts };
 
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+
+    __add_hash_fields_for(undef, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
     return $ref_to_arr_of_hashref;
 }
@@ -161,21 +192,59 @@ sub get_all_mappings {
     return $ref_to_arr_of_hashref;
 }
 
+
 # ---------------------------------------------------------------------
 
-=item __build_field_list
+=item __build_field_lists
 
-Description
+Construct fields lists to return data from database and RightsGlobals
 
 =cut
 
 # ---------------------------------------------------------------------
-sub __build_field_list {
+sub __build_field_lists {
     my $req_hashref = shift;
 
-    my $fields = join(', ', keys %$req_hashref);
+    my @database_fields = ();
+    my @hash_fields = ();
+    
+    foreach my $field (keys %ALL_FIELDS) {
+        if ($ALL_FIELDS{$field} eq 'database') {
+            push(@database_fields, $field);
+        }
+        elsif ($ALL_FIELDS{$field} eq 'hash') {
+            push(@hash_fields, $field);
+        }
+    }
 
-    return $fields;
+    return (\@database_fields, \@hash_fields);
+}
+
+# ---------------------------------------------------------------------
+
+=item __add_hash_fields
+
+Add hash-based fields to return hash
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __add_hash_fields_for {
+    my $stmt_key = shift;
+    my $dest_ref_to_arr_of_hashref = shift;
+    my $src_arr_ref = shift;
+
+    my @stmt_keys = (defined $stmt_key) ? $stmt_key : (keys %RightsGlobals::g_stmt_keys);
+    
+    foreach my $key (@stmt_keys) {
+        foreach my $hashref (@$dest_ref_to_arr_of_hashref) {
+            if ($hashref->{stmt_key} eq $key) {
+                foreach my $field (@$src_arr_ref) {
+                    $hashref->{$field} = $RightsGlobals::g_stmt_keys{$key}{$field};
+                }
+            }
+        }
+    }
 }
 
 1;

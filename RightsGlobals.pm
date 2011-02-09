@@ -134,26 +134,61 @@ $HT_AFFILIATE           = 5;
    '7'  => 'mhs',
   );
 
+# Coordinates with table=mdp.access_stmts
 %g_stmt_keys =
   (
-   'pd'           => 1,
-   'pd-google'    => 2,
-   'pd-us'        => 3,
-   'pd-us-google' => 4,
-   'oa'           => 5,
-   'oa-google'    => 6,
-   'section108'   => 7,
-   'ic'           => 8,
-   'cc-by'        => 9,
-   'cc-by-nd'     => 10,
-   'cc-by-nc-nd'  => 11,
-   'cc-by-nc'     => 12,
-   'cc-by-nc-sa'  => 13,
-   'cc-by-sa'     => 14,
+   'pd'           => {
+                      'stmt_icon' => '',
+                     },
+   'pd-google'    => {
+                      'stmt_icon' => '',
+                     },
+   'pd-us'        => {
+                      'stmt_icon' => '',
+                     },
+   'pd-us-google' => {
+                      'stmt_icon' => '',
+                     },
+   'oa'           => {
+                      'stmt_icon' => '',
+                     },
+   'oa-google'    => {
+                      'stmt_icon' => '',
+                     },
+   'section108'   => {
+                      'stmt_icon' => '',
+                     },
+   'ic'           => {
+                      'stmt_icon' => '',
+                     },
+   'cc-by'        => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by/3.0/us/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by/3.0/us/',
+                     },
+   'cc-by-nd'     => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nd/3.0/us/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nd/3.0/us/',
+                     },
+   'cc-by-nc-nd'  => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc-nd/3.0/us/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc-nd/3.0/us/',
+                     },
+   'cc-by-nc'     => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc/3.0/us/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc/3.0/us/',
+                     },
+   'cc-by-nc-sa'  => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc-sa/3.0/us/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc-sa/3.0/us/',
+                     },
+   'cc-by-sa'     => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
+                     },
   );
 
 %g_rights_matrix =
-    (
+  (
      # public domain
      '1' => { 
              $ORDINARY_USER         => 'allow',
