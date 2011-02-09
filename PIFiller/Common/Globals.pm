@@ -140,19 +140,24 @@ sub handle_ACCESS_USE_PI
     my $ref_to_arr_of_hashref = 
       Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $source, 
                                                   {
-                                                   stmt_url  => 1,
-                                                   stmt_head => 1,
-                                                   stmt_icon => 1,
+                                                   stmt_url      => 1,
+                                                   stmt_url_aux  => 1,
+                                                   stmt_head     => 1,
+                                                   stmt_icon     => 1,
+                                                   stmt_icon_aux => 1,
                                                   });
     my $hashref = $ref_to_arr_of_hashref->[0];
     my $url = $hashref->{stmt_url};
+    my $aux_url = $hashref->{stmt_url_aux};
     my $head = $hashref->{stmt_head};
     my $icon = $hashref->{stmt_icon};
+    my $aux_icon = $hashref->{stmt_icon_aux};
         
     my $s;
     $s .= wrap_string_in_tag($head, 'Header');
     $s .= wrap_string_in_tag($url, 'Link');
-    $s .= wrap_string_in_tag($icon, 'Icon');
+    $s .= wrap_string_in_tag($aux_url, 'AuxLink');
+    $s .= wrap_string_in_tag($aux_icon, 'AuxIcon');
 
     return $s;
 }
