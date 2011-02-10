@@ -47,6 +47,9 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
 # New users should be configured with the same inception date as all
 # the other staff of the given supervisor.
+#
+# WARNING: keys to this hash must be lower-case to work vs. ACL.pm
+#
 %gAccessControlList =
   (
    # Shibboleth development e.g. persistent-id=...
@@ -233,7 +236,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
 
    # Indiana CRMS
-   'Marlett@indiana.edu'
+   'marlett@indiana.edu'
    => {
        'displayname' => 'Marlett, Kathy',
        'supervisor'  => 'pfarber',
