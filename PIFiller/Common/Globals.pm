@@ -157,6 +157,7 @@ sub handle_ACCESS_USE_PI
     $s .= wrap_string_in_tag($head, 'Header');
     $s .= wrap_string_in_tag($url, 'Link');
     $s .= wrap_string_in_tag($aux_url, 'AuxLink');
+    $s .= wrap_string_in_tag($icon, 'Icon');
     $s .= wrap_string_in_tag($aux_icon, 'AuxIcon');
 
     return $s;
