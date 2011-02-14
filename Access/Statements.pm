@@ -209,18 +209,21 @@ sub __build_field_lists {
     my @database_fields = ();
     my @hash_fields = ();
     
-    foreach my $field (keys %ALL_FIELDS) {
+    foreach my $field (keys %$req_hashref) {
         if ($ALL_FIELDS{$field} eq 'database') {
-            push(@database_fields, $field);
+            if ($req_hashref->{$field}) {
+                push(@database_fields, $field);
+            }
         }
         elsif ($ALL_FIELDS{$field} eq 'hash') {
-            push(@hash_fields, $field);
+            if ($req_hashref->{$field}) {
+                push(@hash_fields, $field);
+            }
         }
     }
 
     return (\@database_fields, \@hash_fields);
 }
-
 # ---------------------------------------------------------------------
 
 =item __add_hash_fields
