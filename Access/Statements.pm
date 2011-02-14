@@ -85,7 +85,8 @@ sub get_stmt_by_rights_values {
     my ($C, $dbh, $attr, $source, $req_ref) = @_;
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
-
+    my $sth;
+    
     my ($attr_key, $source_key) = 
       (
        $RightsGlobals::g_attribute_keys{$attr},
@@ -102,12 +103,12 @@ sub get_stmt_by_rights_values {
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$subSELECT_clause};
     my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
 
-    my $sth = DbUtils::prep_n_execute($_dbh, $statement);
+    $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
 
     my $key_SELECT_clause = $subSELECT_clause;
-    my $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause);
+    $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause);
     my $key = $sth->fetchrow_array();
 
     __add_hash_fields_for($key, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
