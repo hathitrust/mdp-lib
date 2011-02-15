@@ -2,38 +2,54 @@ package Vendors;
 
 use CGI;
 use FindBin qw($Bin);
+use File::Basename;
 
 my @my_inc = ();
 
-if ( -d "$Bin/../lib" ) {
-    push(@my_inc, "$Bin/../lib");
+sub import {
+    my ( $pkg, $filepath ) = @_;
+    my $binpath;
+    if ( $filepath ) {
+        $binpath = dirname($filepath);
+    } else {
+        $binpath = $Bin;
+    }
+    init($binpath);
 }
 
-my $local_switch = CGI::param('debug') && (CGI::param('debug') =~ m,local,);
-if ($local_switch) {
-    push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
-    $ENV{DEBUG} .= ',local,';
-}
+sub init {
+    my ( $Bin ) = @_;
 
-if ( -d "$Bin/../vendor" ) {
-    opendir(VENDOR, "$Bin/../vendor");
-    foreach my $repo ( readdir(VENDOR) ) {
-        if ( -d "$Bin/../vendor/$repo/lib" ) {
-            if ($local_switch){
-                my ($local_repo) = ($repo =~ m,(^[^-]+)-lib$,);
-                if (-d "$Bin/../../$local_repo/lib") {
-                    push(@my_inc, "$Bin/../../$local_repo/lib");
+    if ( -d "$Bin/../lib" ) {
+        push(@my_inc, "$Bin/../lib");
+    }
+
+    my $local_switch = CGI::param('debug') && (CGI::param('debug') =~ m,local,);
+    if ($local_switch) {
+        push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
+        $ENV{DEBUG} .= ',local,';
+    }
+
+    if ( -d "$Bin/../vendor" ) {
+        opendir(VENDOR, "$Bin/../vendor");
+        foreach my $repo ( readdir(VENDOR) ) {
+            if ( -d "$Bin/../vendor/$repo/lib" ) {
+                if ($local_switch){
+                    my ($local_repo) = ($repo =~ m,(^[^-]+)-lib$,);
+                    if (-d "$Bin/../../$local_repo/lib") {
+                        push(@my_inc, "$Bin/../../$local_repo/lib");
+                    }
                 }
-            }
-            else {
-                push(@my_inc, "$Bin/../vendor/$repo/lib");
+                else {
+                    push(@my_inc, "$Bin/../vendor/$repo/lib");
+                }
             }
         }
     }
+
+    unshift(@INC, @my_inc);
+    
 }
-
-unshift(@INC, @my_inc);
-
 
 1;
 
