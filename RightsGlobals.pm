@@ -134,6 +134,17 @@ $HT_AFFILIATE           = 5;
    '7'  => 'mhs',
   );
 
+@g_stmt_fields = 
+  qw(
+        stmt_key
+        stmt_url
+        stmt_url_aux
+        stmt_head
+        stmt_icon
+        stmt_icon_aux
+        stmt_text
+   );
+
 # Coordinates with table=mdp.access_stmts
 %g_stmt_keys =
   (
