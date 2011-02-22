@@ -64,6 +64,32 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                    ],
  },
 
+   # Michigan miscellaneous
+   'grossmei'
+   => {
+       'displayname' => 'Grossmei, Greg',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'rglushko'
+   => {
+       'displayname' => 'Glushko, Bobby',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'mslevine'
+   => {
+       'displayname' => 'Levine, Melissa',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+
    # Michigan CRMS - Anne Karle-Zenith
    'jaheim'
    => {
