@@ -65,6 +65,14 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
  },
 
    # Michigan miscellaneous
+   'bronick'
+   => {
+       'displayname' => 'Bronicki, Jackie',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
    'grossmei'
    => {
        'displayname' => 'Grossmei, Greg',
