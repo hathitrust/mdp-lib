@@ -132,6 +132,52 @@ sub GetMetadataFromMirlyn
     return (\$metadata, $metadata_failed);
 }
 
+# ---------------------------------------------------------------------
+
+=item __handle_mdpitem_cache_setup
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __handle_mdpitem_cache_setup {
+    my $C = shift;
+    my $id = shift;
+    
+    my $cgi = $C->get_object('CGI');
+    my $config = $C->get_object('MdpConfig', 1);    
+
+    my $mdpItem;
+    my $cache; 
+    my $cache_key = qq{mdpitem};
+
+    my $cache_mdpItem = 0;
+    my $ignore_existing_cache = 1;
+
+    if ($config) {
+        $cache_mdpItem = ( $config->get('mdpitem_use_cache') eq 'true' );
+        $ignore_existing_cache = ( $cgi->param('newsid') eq "1" );
+        my $cache_max_age = $config->get('mdpitem_max_age') || 0;
+    
+        if ( $cache_mdpItem ) {
+            DEBUG('time', qq{<h3>Start mdp item uncache</h3>} . Utils::display_stats());
+        
+            my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
+            $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age);
+            $mdpItem = $cache->Get($id, $cache_key);
+            DEBUG('time', qq{<h3>Finish mdp item uncache</h3>} . Utils::display_stats());
+
+            if ( $ignore_existing_cache ) {
+                $mdpItem = undef;
+            }
+        }
+    }
+
+    return ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem);
+}
+
+
 # ----------------------------------------------------------------------
 # NAME         : GetMdpItem
 # PURPOSE      :
@@ -146,32 +192,11 @@ sub GetMdpItem
 {
     my $class = shift;
     my ($C, $id, $itemFileSystemLocation ) = @_;
-    my $config = $C->get_object('MdpConfig');
-    my $cgi = $C->get_object('CGI');
 
     $itemFileSystemLocation = Identifier::get_item_location($id) unless ( $itemFileSystemLocation );
 
-    my $cache; my $cache_key = qq{mdpitem};
-    my $mdpItem;
-    
-    my $t0 = time;
-    my $cache_mdpItem = ( $config->get('mdpitem_use_cache') eq 'true' );
-    my $cache_max_age = $config->get('mdpitem_max_age') || 0;
-    my $ignore_existing_cache = ( $cgi->param('newsid') eq "1" );
-    
-    if ( $cache_mdpItem ) {
-        DEBUG('time', qq{<h3>Start mdp item uncache</h3>} . Utils::display_stats());
-        
-        my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
-        $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age);
-        $mdpItem = $cache->Get($id, $cache_key);
-        DEBUG('time', qq{<h3>Finish mdp item uncache</h3>} . Utils::display_stats());
-
-        if ( $ignore_existing_cache ) {
-            $mdpItem = undef;
-        }
-        
-    }
+    my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) = 
+      __handle_mdpitem_cache_setup($C, $id);
     
     # if we already have instantiated and saved on the session the
     # full mdpitem for the id being requested, we have everything we
@@ -198,18 +223,15 @@ sub GetMdpItem
     }
     else
     {
-
-        $mdpItem = $class->new( $C,$id );
+        $mdpItem = $class->new( $C, $id );
         
         DEBUG('pt,all', qq{<h3>Mirlyn metadata failure status for id="$id" = } . $mdpItem->Get('metadatafailure') . qq{</h3>});
-        
         
         # don't cache if we've got a metadatafailure
         if ( $cache_mdpItem && ! $mdpItem->Get('metadatafailure') ) {
             DEBUG('pt,mdpitem,cache', qq{<h3>Cache MdpItem: $id : $cache_key</h3>});
             $cache->Set($id, $cache_key, $mdpItem, $ignore_existing_cache);
         }
-        
     }
     
     DEBUG('mdpitem,all',
@@ -282,9 +304,6 @@ sub _initialize
         $self->SetItemZipped();
         $self->Set('zipfile', $zipfile);
     }
-
-    my $source_attribute = $C->get_object('Access::Rights')->get_source_attribute($C, $id);
-    $self->Set( 'source_attribute', $source_attribute );
 
     $self->Set( 'marcmetadata', $metadataRef );
 
@@ -558,8 +577,7 @@ sub GetRequestedSize
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub SetCurrentRequestInfo
-{
+sub SetCurrentRequestInfo {
     my $self = shift;
     my ( $C, $validRotationValuesHashRef ) = @_;
 
@@ -1658,22 +1676,23 @@ sub SetOrientationForIdSequence
     my ( $id, $sequence, $orientation ) = @_;
     
     my $C = new Context;
-    my $ses = $C->get_object('Session');
-    my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
+    my $ses = $C->get_object('Session', 1);
+    if ($ses) {
+        my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
     
-    my $do_persist = 1;
-    if($orientation == $MdpGlobals::gDefaultOrientation) {
-        if (defined($$orientation_cache{$sequence})) {
-            delete $$orientation_cache{$sequence};
+        my $do_persist = 1;
+        if($orientation == $MdpGlobals::gDefaultOrientation) {
+            if (defined($$orientation_cache{$sequence})) {
+                delete $$orientation_cache{$sequence};
+            } else {
+                $do_persist = 0;
+            }
         } else {
-            $do_persist = 0;
+            $$orientation_cache{$sequence} = $orientation;
         }
-    } else {
-        $$orientation_cache{$sequence} = $orientation;
+
+        $ses->set_persistent("orientation:$id", $orientation_cache) if ( $do_persist );
     }
-
-    $ses->set_persistent("orientation:$id", $orientation_cache) if ( $do_persist );
-
 }
 
 sub GetOrientationForIdSequence
@@ -1682,10 +1701,14 @@ sub GetOrientationForIdSequence
     my ( $id, $sequence ) = @_;
 
     my $C = new Context;
-    my $ses = $C->get_object('Session');
-    my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
-    
-    return $$orientation_cache{$sequence} || $MdpGlobals::gDefaultOrientation;
+    my $ses = $C->get_object('Session', 1);
+    if ($ses) {
+        my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
+        return $$orientation_cache{$sequence} || $MdpGlobals::gDefaultOrientation;
+    }
+    else {
+        return $MdpGlobals::gDefaultOrientation;
+    }
 }
 
 # ----------------------------------------------------------------------
