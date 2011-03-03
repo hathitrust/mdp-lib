@@ -96,20 +96,19 @@ sub get_stmt_by_rights_values {
     $attr_key = 'nobody' if (! $attr_key);
     $source_key = 'google' if (! $source_key);
     
+    my $key_SELECT_clause = qq{(SELECT stmt_key FROM access_stmts_map WHERE a_attr='$attr_key' AND a_source='$source_key')};
+    $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause);
+    my $key = $sth->fetchrow_array();
+    $req_ref->{stmt_key} = $key;
+
     my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
     my $database_fields = join(', ', @$database_fields_arr_ref);
-
-    my $subSELECT_clause = qq{(SELECT stmt_key FROM access_stmts_map WHERE a_attr='$attr_key' AND a_source='$source_key')};
-    my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$subSELECT_clause};
+    
+    my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$key_SELECT_clause};
     my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
 
     $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-
-    my $key_SELECT_clause = $subSELECT_clause;
-    $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause);
-    my $key = $sth->fetchrow_array();
 
     __add_hash_fields_for($key, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
