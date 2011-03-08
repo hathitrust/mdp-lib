@@ -322,6 +322,7 @@ sub get_full_PDF_access_status {
     $self->_validate_id($id);
 
     my $status = 'deny';
+    my $message;
     my $pdpdus = $self->public_domain_world($C, $id);
 
     # Unaffiliated users can get non-Google pd/pdus and IA volumes
@@ -331,18 +332,21 @@ sub get_full_PDF_access_status {
         # Open source?
         if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
             $status = 'allow';
-        }
-        else {
+        } elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
             #  More restrictive cases require affiliation
             if ($C->get_object('Auth')->affiliation_is_hathitrust($C)) {
-                if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-                    $status = 'allow';
-                }
+                $status = 'allow';
+            } else {
+                $message = q{NOT_AFFILIATED};
             }
+        } else {
+            $message = q{NOT_AVAILABLE};
         }
+    } else {
+        $message = q{NOT_AVAILABLE};
     }
 
-    return $status;
+    return ($message, $status);
 }
 
 # ---------------------------------------------------------------------
