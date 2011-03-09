@@ -85,7 +85,7 @@ my %g_default_debug_ids =
              },
      # CC Creative Commons Attribution-NonCommercial-ShareAlike
      '12' => {
-             'id'  => 'mdp.39015079672104',
+             'id'  => 'mdp.39015015823563',
              },
     );
 
