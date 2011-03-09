@@ -83,6 +83,10 @@ my %g_default_debug_ids =
      '11' => {
              'id'  => 'mdp.39015079124874',
              },
+     # CC Creative Commons Attribution-NonCommercial-ShareAlike
+     '12' => {
+             'id'  => 'mdp.39015079672104',
+             },
     );
 
 
