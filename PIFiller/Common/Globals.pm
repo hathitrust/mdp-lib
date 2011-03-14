@@ -284,56 +284,92 @@ sub handle_DEBUG_UNCOMPRESSED_PI
 }
 
 # ---------------------------------------------------------------------
-#
-#                         Shared Subroutines
-#
-# ---------------------------------------------------------------------
 
-# ---------------------------------------------------------------------
+=item handle_SELECT_COLLECTION_WIDGET_PI
 
-=item get_owner_string
-
-If the owner of a collection is an $SID (i.e. 32 characters) return
-the $temp_coll_owner_string This is to replace the $SID which is used
-for the owner name if collection created when user is not logged in
+Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_owner_string
+sub handle_SELECT_COLLECTION_WIDGET_PI
+    : PI_handler(SELECT_COLLECTION_WIDGET)
 {
-    my $C = shift;
-    my $owner_string = shift;
+    my ($C, $act, $piParamHashRef) = @_;
+    my $cgi = $C->get_object('CGI');
+    my $coll_id = $cgi->param('c');
 
-    my $config = $C->get_object('MdpConfig');
-    my $temp_coll_owner_string = $config->get('temp_coll_owner_string');
-    
-    if (
-        (length($owner_string) == 32)
-        &&
-        ($owner_string =~ m,^[0-9a-f]+$,g)
-       )
-    {
-        # The only time owner will be 32 characters and all hex digits
-        # is if its a session_id
-        $owner_string = $temp_coll_owner_string;
-    } 
+    # XXX tbw  Hack for use by LS.
+    # original code gets data from action where operation put it but LS doesnt do that
+    #    my $coll_hashref =
+    #        $act->get_transient_facade_member_data($C, 'list_items_owned_collection_data');
+    # is there a co on the ls action yes!
+    my $co = $act->get_transient_facade_member_data($C, 'collection_object');
+    my $owner = $co->get_user_id;
+    my $CS = $act->get_transient_facade_member_data($C, 'collection_set_object');
+    my $coll_hashref = $CS->get_coll_data_from_user_id($owner);
+    # end hack
 
-    # Obfuscate
-    if ($owner_string ne $temp_coll_owner_string)
+    my $s = '';
+    foreach my $row (@{$coll_hashref})
     {
-        my @parts = split('@', $owner_string);
-        $owner_string = $parts[0];
-        if (scalar(@parts) > 1)
+         # don't list current collection
+        if ($row->{'MColl_ID'} != $coll_id)
         {
-            $owner_string .= " (*)";
+            my $collinfo = '';
+            $collinfo .= wrap_string_in_tag($row->{'MColl_ID'}, 'collid');
+            $collinfo .= wrap_string_in_tag($row->{'collname'}, 'CollName');
+            $s .= wrap_string_in_tag($collinfo, 'Coll');
         }
     }
-    
 
-    return $owner_string;
+    return $s;
 }
+
+
 # ---------------------------------------------------------------------
+
+=item PT_HREF_helper
+
+Does path mapping to support development vs. production path elements
+and to support The Shibboleth Dirty Hack: /shcgi/
+
+=cut
+
+# ---------------------------------------------------------------------
+sub PT_HREF_helper {
+    my ($C, $extern_id, $which) = @_;
+
+    my $temp_cgi = new CGI('');
+    $temp_cgi->param('id', $extern_id);
+    $temp_cgi->param('debug', CGI::param('debug'));
+
+    if ($which eq 'pt_search') {
+        my $cgi = $C->get_object('CGI');
+        my $q1 = $cgi->param('q1');
+        $temp_cgi->param('q1', $q1);
+    }
+
+    my $config = $C->get_object('MdpConfig');
+    my $key;
+    if ($which eq 'pt_search') {
+        $key = 'pt_search_script';
+    }
+    else {
+        $key = 'pt_script';
+    }
+    my $pt_script = $config->get($key);
+
+    # The Shibboleth Dirty Hack
+    my $shib = $C->get_object('Auth')->auth_sys_is_SHIBBOLETH($C);
+    if ($shib) {
+        $pt_script =~ s,/cgi/,/shcgi/,;
+    }
+    my $href = Utils::url_to($temp_cgi, $pt_script);
+
+    return $href;
+}
+
 
 1;
 

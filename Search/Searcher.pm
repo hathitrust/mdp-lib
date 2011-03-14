@@ -79,11 +79,12 @@ sub _initialize {
     my $self = shift;
     my $engine_uri = shift;
     my $timeout = shift;
-
+    my $use_ls_shards = shift;
 
     ASSERT(defined($engine_uri), qq{Missing Solr engine URI});
     $self->{'Solr_engine_uri'} = $engine_uri;
     $self->{'timeout'} = defined($timeout) ? $timeout : DEFAULT_TIMEOUT;
+    $self->{use_ls_shards} = $use_ls_shards;
 }
 
 # ---------------------------------------------------------------------
@@ -215,10 +216,15 @@ Description
 # ---------------------------------------------------------------------
 sub __get_request_object {
     my $self = shift;
-    my $url = shift;
+    my $uri = shift;
 
-    $url = Encode::encode_utf8($url);
-    my $req = HTTP::Request->new(GET => $url);
+    $uri = Encode::encode_utf8($uri);
+
+    my ($url, $query_string) = (split(/\?/, $uri));  
+    my $req = HTTP::Request->new('POST', $url, undef, $query_string);
+
+    $req->header( 'Content-Type' => 'application/x-www-form-urlencoded' );
+    
     return $req;
 }
 
@@ -237,6 +243,102 @@ sub get_engine_uri {
     return $self->{'Solr_engine_uri'};
 }
 
+# ---------------------------------------------------------------------
+
+=item __force_head_node_DEBUG
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __force_head_node_DEBUG {
+    my ($head_node_debug) = grep(/^head\d+/, split(',', $ENV{'DEBUG'}));
+    my ($head_node) = ($head_node_debug =~ m,(\d+),);
+    DEBUG($head_node_debug, qq{head node FORCED to: $head_node});
+    
+    return $head_node;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_random_shard_solr_engine_uri CLASS METHOD
+
+Randomize the primary Solr instance for multishard queries to
+distribute the result merge load.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_random_shard_solr_engine_uri {
+    my $C = shift;
+
+    my $config = $C->get_object('MdpConfig');
+    
+    my @engine_uris = $config->get('mbooks_solr_engines');
+    my @num_shards_list = $config->get('num_shards_list');
+
+    # an integer between 0 and number of shards in @num_shards_list - 1
+    my $index_of_shard_in_list; 
+    my $forced_node = __force_head_node_DEBUG();
+    if ($forced_node) {
+        $index_of_shard_in_list = $forced_node - 1;
+    }
+    else {
+        $index_of_shard_in_list = int(rand(scalar(@num_shards_list)));
+    }
+    
+    my $random_shard = $num_shards_list[$index_of_shard_in_list];
+    
+    return $engine_uris[$random_shard-1];
+}
+
+
+# ---------------------------------------------------------------------
+
+=item use_ls_shards
+
+Add shards param to search LS index
+
+=cut
+
+# ---------------------------------------------------------------------
+sub use_ls_shards {
+    my $self = shift;
+
+    return $self->{use_ls_shards};
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_LS_Solr_shards_param
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_LS_Solr_shards_param {
+    my $self = shift;
+    my $C = shift;
+    
+    my $config = $C->get_object('MdpConfig');
+    ASSERT($config->has('num_shards_list') && $config->has('mbooks_solr_engines'),
+           qq{Search::Searcher not configured for LS shards: missing shard list});
+           
+    my @num_shards_list = $config->get('num_shards_list');
+    my @shard_engine_uris = $config->get('mbooks_solr_engines');
+
+    my @active_shard_engine_uris;
+    foreach my $shard (@num_shards_list) {
+        push(@active_shard_engine_uris, $shard_engine_uris[$shard-1]);
+    }
+    map {$_ =~ s,^http://,,} @active_shard_engine_uris;
+    
+    my $shards_param = 'shards=' . join(',', @active_shard_engine_uris);
+
+    return $shards_param;
+}
 
 
 # ---------------------------------------------------------------------
@@ -252,9 +354,16 @@ sub __get_Solr_select_url {
     my $self = shift;
     my ($C, $query_string) = @_;
 
-    my $engine_uri = $self->get_engine_uri();
+    my $shards_param = $self->use_ls_shards() ? $self->__get_LS_Solr_shards_param($C) : undef;
+    
+    my $primary_engine_uri = $self->get_engine_uri();
     my $script = $C->get_object('MdpConfig')->get('solr_select_script');
-    my $url = $engine_uri . $script . '?' . $query_string;
+    my $url = 
+        $primary_engine_uri 
+            . $script 
+                . '?' 
+                  . (defined($shards_param) ? "${shards_param}&" : '')
+                    . $query_string;
 
     return $url;
 }

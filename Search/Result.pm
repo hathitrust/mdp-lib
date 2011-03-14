@@ -169,6 +169,22 @@ sub AFTER_ingest_Solr_search_response
 
 # ---------------------------------------------------------------------
 
+=item get_status_line
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_status_line
+{
+    my $self = shift;
+    return $self->{'status_line'};
+}
+
+
+# ---------------------------------------------------------------------
+
 =item http_status_ok
 
 Description
