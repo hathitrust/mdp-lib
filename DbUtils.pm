@@ -79,6 +79,11 @@ sub prep_n_execute
 Returns a 32-bit signed integer between 0 and 2147483647 that is not a
 value currently sotred in the indicated field of the indicated table.
 
+Wed Mar 16 10:41:21 2011 Collection Builder LS backend needs a value
+for the coll_id Solr doc field for every item regardless of whether
+the item is in a collection or not.  Reserve 0 for the coll_id of
+items not in any collection.
+
 =cut
 
 # ---------------------------------------------------------------------
