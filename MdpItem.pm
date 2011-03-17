@@ -146,7 +146,7 @@ sub __handle_mdpitem_cache_setup {
     my $C = shift;
     my $id = shift;
     
-    my $cgi = $C->get_object('CGI');
+    my $cgi = $C->get_object('CGI', 1);
     my $config = $C->get_object('MdpConfig', 1);    
 
     my $mdpItem;
@@ -156,7 +156,7 @@ sub __handle_mdpitem_cache_setup {
     my $cache_mdpItem = 0;
     my $ignore_existing_cache = 1;
 
-    if ($config) {
+    if (defined($config) && defined($cgi)) {
         $cache_mdpItem = ( $config->get('mdpitem_use_cache') eq 'true' );
         $ignore_existing_cache = ( $cgi->param('newsid') eq "1" );
         my $cache_max_age = $config->get('mdpitem_max_age') || 0;
@@ -1670,7 +1670,7 @@ sub SetOrientationForIdSequence
     
     my $C = new Context;
     my $ses = $C->get_object('Session', 1);
-    if ($ses) {
+    if (defined($ses)) {
         my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
     
         my $do_persist = 1;
@@ -1695,7 +1695,7 @@ sub GetOrientationForIdSequence
 
     my $C = new Context;
     my $ses = $C->get_object('Session', 1);
-    if ($ses) {
+    if (defined($ses)) {
         my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
         return $$orientation_cache{$sequence} || $MdpGlobals::gDefaultOrientation;
     }
