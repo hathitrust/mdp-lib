@@ -19,6 +19,7 @@ Extracted from PT::MdpItem; only concerned with $id.mets.xml data.
 =cut
 
 use strict;
+use CGI;
 use MirlynGlobals;
 
 # MDP
@@ -581,10 +582,21 @@ sub SetCurrentRequestInfo {
     my $self = shift;
     my ( $C, $validRotationValuesHashRef ) = @_;
 
-    my $cgi = $C->get_object('CGI');
+    my $cgi = $C->get_object('CGI', 1);
+    if (! defined($cgi)) {
+        $cgi = new CGI('');
+        $cgi->param( 'id', 1 );
+        $cgi->param( 'seq', 1 );
+        $cgi->param( 'num', 1 );
+        $cgi->param( 'u', 0 );
+        $cgi->param( 'size', 100 );
+        $cgi->param( 'orient', 0 );
+    }
 
-    # check that the requested sequence is within the range of available pages
-    $self->CheckCgiSequence( $cgi );
+    # check that the requested sequence is within the range of
+    # available pages
+    my $validSeq = $self->GetValidSequence( $cgi->param( 'seq' ) );
+    $cgi->param( 'seq', $validSeq );
 
     my $id     = $cgi->param( 'id' );
     my $seq    = $cgi->param( 'seq' );
@@ -622,25 +634,6 @@ sub SetCurrentRequestInfo {
     }
 
     $cgi->param( 'orient', $orientationToUse );
-}
-
-# ----------------------------------------------------------------------
-# NAME         : CheckCgiSequence, GetValidSequence
-# PURPOSE      :
-# CALLS        :
-# INPUT        :
-# RETURNS      :
-# GLOBALS      :
-# SIDE-EFFECTS :
-# NOTES        :
-# ----------------------------------------------------------------------
-sub CheckCgiSequence
-{
-    my $self = shift;
-    my $cgi = shift;
-
-    my $validSeq = $self->GetValidSequence( $cgi->param( 'seq' ) );
-    $cgi->param( 'seq', $validSeq );
 }
 
 sub GetValidSequence
