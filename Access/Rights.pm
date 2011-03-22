@@ -301,16 +301,16 @@ sub check_final_access_status_by_attribute {
 Under certain conditions the full book PDF download function is
 authorized.
 
-As of  Wed Jun  9 16:11:22 2010:
+As of Mon Mar 21 17:01:55 2011
 
-0) DLPS-pd + IA volumes authorized for unaffiliated users
+Allowed are: 
 
-1) Google-pd are authorized for authenticated HathiTrust
-affiliates. This includes UM but excludes UM friend accounts.
+1) non-google pd/pdus/world/cc for anyone
 
-Notes: UM Press (source=3) and OPB (attr=3) volumes are never
-authorized. SSD users of in-copyright works are never
-authorized. These follow from the above.
+2) google pd/pdus/world only authenticated HathiTrust
+affiliates. Excludes UM friend accounts.
+
+Exception: UM Press (ump)(source=3)
 
 =cut
 
@@ -323,27 +323,36 @@ sub get_full_PDF_access_status {
 
     my $status = 'deny';
     my $message;
-    my $pdpdus = $self->public_domain_world($C, $id);
+    
+    my $pd_pdus_world = $self->public_domain_world($C, $id);
+    my $creative_commons = $self->creative_commons($C, $id);
 
-    # Unaffiliated users can get non-Google pd/pdus and IA volumes
-    if ($pdpdus) {
+    if ($creative_commons) {
+        $status = 'allow';
+    }
+    else {
         my $source = $self->get_source_attribute($C, $id);
 
-        # Open source?
-        if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
-            $status = 'allow';
-        } elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-            #  More restrictive cases require affiliation
-            if ($C->get_object('Auth')->affiliation_is_hathitrust($C)) {
+        if ($pd_pdus_world) {
+            if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
                 $status = 'allow';
-            } else {
-                $message = q{NOT_AFFILIATED};
             }
-        } else {
+            elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
+                #  More restrictive cases require affiliation
+                if ($C->get_object('Auth')->affiliation_is_hathitrust($C)) {
+                    $status = 'allow';
+                } 
+                else {
+                    $message = q{NOT_AFFILIATED};
+                }
+            } 
+            else {
+                $message = q{NOT_AVAILABLE};
+            }
+        }
+        else {
             $message = q{NOT_AVAILABLE};
         }
-    } else {
-        $message = q{NOT_AVAILABLE};
     }
 
     return ($message, $status);
@@ -351,9 +360,29 @@ sub get_full_PDF_access_status {
 
 # ---------------------------------------------------------------------
 
+=item public_domain_world_creative_commons
+
+Can you think of a better name?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub public_domain_world_creative_commons {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    return (
+            $self->creative_commons($C, $id)
+            ||
+            $self->public_domain_world($C, $id)
+           );
+}
+
+# ---------------------------------------------------------------------
+
 =item PUBLIC: public_domain_world
 
-Description: is this id PD/PDUS/World?
+Description: is this id pd/pdus/world?
 
 =cut
 
@@ -377,6 +406,32 @@ sub public_domain_world {
         return 0;
     }
 }
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: creative_commons
+
+Description: is this id one of the Creative Commons
+rights_current.attr valuse?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub creative_commons {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+    my $attribute = $self->get_rights_attribute($C, $id);
+
+    if (grep(/^$attribute$/, @RightsGlobals::g_creative_commons_attribute_values)) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
 
 # ----------------------------------------------------------------------
 #
