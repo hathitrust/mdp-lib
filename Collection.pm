@@ -1281,10 +1281,10 @@ sub count_all_items_for_coll_from_coll_items {
     my $self = shift;
     my $coll_id = shift;
 
-    my $coll_item_table = $self->get_coll_item_table_name;
+    my $coll_item_table_name = $self->get_coll_item_table_name;
 
     my $SELECT = qq{SELECT count(extern_item_id) } ;
-    my $FROM = qq{FROM $coll_item_table};
+    my $FROM = qq{FROM $coll_item_table_name};
     my $WHERE = qq{WHERE MColl_ID=$coll_id};
 
     my $statement = join (' ', qq{$SELECT $FROM $WHERE});
@@ -1306,7 +1306,8 @@ sub count_all_items_for_coll_from_coll_items {
 updates the collection table to match the actual counts of items in
 the coll_items table
 
-# XXX should this be CollectionSet's responsibility?
+Tue Mar 22 12:20:57 2011: Made the update and test atomic so
+batch_collection.pl can work in parallel
 
 =cut
 
@@ -1315,13 +1316,27 @@ sub update_item_count {
     my $self = shift;
     my $coll_id = shift;
 
+    my ($statement, $sth);
     my $dbh = $self->get_dbh();
+
     my $coll_table = $self->get_coll_table_name;
+    my $coll_item_table = $self->get_coll_item_table_name;
+
+    $statement = qq{LOCK TABLES $coll_item_table WRITE, $coll_table WRITE};
+    DEBUG('dbcoll', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+
     my $coll_item_count = $self->count_all_items_for_coll_from_coll_items($coll_id);
 
-    my $statement = qq{UPDATE $coll_table SET num_items=$coll_item_count WHERE MColl_ID=$coll_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $statement = qq{UPDATE $coll_table SET num_items=$coll_item_count WHERE MColl_ID=$coll_id};
+    DEBUG('dbcoll', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    
     my $collection_table_count = $self->count_all_items_for_coll($coll_id);
+
+    $statement = qq{UNLOCK TABLES};
+    DEBUG('dbcoll', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     ASSERT($coll_item_count == $collection_table_count, qq{update_item_count failed for $coll_id});
 }
