@@ -90,6 +90,7 @@ my %g_default_debug_ids =
     );
 
 
+
 # ---------------------------------------------------------------------
 
 =item PUBLIC: validate_mbooks_id
@@ -318,6 +319,21 @@ sub __set_id_globally {
     }
 }
 
+# ---------------------------------------------------------------------
+
+=item get_safe_Solr_id
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_safe_Solr_id {
+    my $id = shift;
+
+    $id =~ s,ark:,ark\\:,;
+    return $id;
+}
 
 1;
 
