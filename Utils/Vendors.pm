@@ -24,7 +24,7 @@ sub init {
         push(@my_inc, "$Bin/../lib");
     }
 
-    my $local_switch = CGI::param('debug') && (CGI::param('debug') =~ m,local,);
+    my $local_switch = $ENV{DEBUG_LOCAL} || (CGI::param('debug') && (CGI::param('debug') =~ m,local,));
     if ($local_switch) {
         push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
         $ENV{DEBUG} .= ',local,';
