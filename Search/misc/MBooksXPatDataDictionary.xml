@@ -1,0 +1,351 @@
+<DB>
+  <Text>
+    <Files>
+      <File>
+        <SysName><?XMLFILEPATH?></SysName>
+        <ModDate>1076447217</ModDate>
+        <Offset>0</Offset>
+      </File>
+    </Files>
+  </Text>
+
+  <Indices>
+    <Index>
+      <Name></Name>
+      <File>
+        <SysName><?IDXFILE?></SysName>
+        <ModDate>1076447235</ModDate>
+        <Offset>0</Offset>
+      </File>
+      <InitFile><?INITFILE?></InitFile>
+      <IndexPoints>
+        <IndexPt> &printable.</IndexPt>
+        <IndexPt> &Latin.</IndexPt>
+        <IndexPt> &Greek.</IndexPt>
+        <IndexPt> &Cyrillic.</IndexPt>
+        <IndexPt> &Han.</IndexPt>
+        <IndexPt>&printable.&Han.</IndexPt>
+        <IndexPt>&Han.&printable.</IndexPt>
+        <IndexPt>&Han.&Han.</IndexPt>
+        <IndexPt> &Hangul.</IndexPt>
+        <IndexPt>&printable.&Hangul.</IndexPt>
+        <IndexPt>&Hangul.&printable.</IndexPt>
+        <IndexPt>&Hangul.&Hangul.</IndexPt>
+        <IndexPt>&Han.&Hangul.</IndexPt>
+        <IndexPt>&Hangul.&Han.</IndexPt>
+        <IndexPt> &Hiragana.</IndexPt>
+        <IndexPt>&printable.&Hiragana.</IndexPt>
+        <IndexPt>&Hiragana.&printable.</IndexPt>
+        <IndexPt>&Hiragana.&Hiragana.</IndexPt>
+        <IndexPt>&Hiragana.&Katakana.</IndexPt>
+        <IndexPt>&Katakana.&Hiragana.</IndexPt>
+        <IndexPt>&Han.&Hiragana.</IndexPt>
+        <IndexPt>&Hiragana.&Han.</IndexPt>
+        <IndexPt> &Katakana.</IndexPt>
+        <IndexPt>&printable.&Katakana.</IndexPt>
+        <IndexPt>&Katakana.&printable.</IndexPt>
+        <IndexPt>&Katakana.&Katakana.</IndexPt>
+        <IndexPt>&Katakana.&Hiragana.</IndexPt>
+        <IndexPt>&Hiragana.&Katakana.</IndexPt>
+        <IndexPt>&Katakana.&Han.</IndexPt>
+        <IndexPt>&Han.&Katakana.</IndexPt>
+      </IndexPoints>
+      <Mappings>
+        <Map><From>&backspace.</From><To> </To></Map>
+        <Map><From>&tab.</From><To> </To></Map>
+        <Map><From>&newline.</From><To> </To></Map>
+        <Map><From>!</From><To> </To></Map>
+        <Map><From>"</From><To> </To></Map>
+        <Map><From>$</From><To> </To></Map>
+        <Map><From>%</From><To> </To></Map>
+        <Map><From>'</From><To> </To></Map>
+        <Map><From>(</From><To> </To></Map>
+        <Map><From>)</From><To> </To></Map>
+        <Map><From>*</From><To> </To></Map>
+        <Map><From>+</From><To> </To></Map>
+        <Map><From>,</From><To> </To></Map>
+        <Map><From>-</From><To> </To></Map>
+        <Map><From>.</From><To> </To></Map>
+        <Map><From>:</From><To> </To></Map>
+        <Map><From>;</From><To> </To></Map>
+        <Map><From>=</From><To> </To></Map>
+        <Map><From>&gt.</From><To> </To></Map>
+        <Map><From>?</From><To> </To></Map>
+        <Map><From>@</From><To> </To></Map>
+        <Map><From><CharRange><First>A</First><Last>Z</Last></CharRange></From><To><CharRange><First>a</First><Last>z</Last></CharRange></To></Map>
+        <Map><From>[</From><To> </To></Map>
+        <Map><From>\</From><To> </To></Map>
+        <Map><From>]</From><To> </To></Map>
+        <Map><From>^</From><To> </To></Map>
+        <Map><From>_</From><To> </To></Map>
+        <Map><From>`</From><To> </To></Map>
+        <Map><From>{</From><To> </To></Map>
+        <Map><From>|</From><To> </To></Map>
+        <Map><From>}</From><To> </To></Map>
+        <Map><From>~</From><To> </To></Map>
+
+        <!-- Latin mappings -->
+        <Map><From>U+00C0</From><To>U+0061</To></Map>
+        <Map><From>U+00C2</From><To>U+0061</To></Map>
+        <Map><From>U+00C3</From><To>U+0061</To></Map>
+        <Map><From>U+00C4</From><To>U+0061</To></Map>
+        <Map><From>U+00C5</From><To>U+0061</To></Map>
+        <Map><From>U+00E0</From><To>U+0061</To></Map>
+        <Map><From>U+00E1</From><To>U+0061</To></Map>
+        <Map><From>U+00E2</From><To>U+0061</To></Map>
+        <Map><From>U+00E3</From><To>U+0061</To></Map>
+        <Map><From>U+00E4</From><To>U+0061</To></Map>
+        <Map><From>U+00E5</From><To>U+0061</To></Map>
+        <Map><From>U+00C7</From><To>U+0063</To></Map>
+        <Map><From>U+00E7</From><To>U+0063</To></Map>
+        <Map><From>U+00C8</From><To>U+0065</To></Map>
+        <Map><From>U+00C9</From><To>U+0065</To></Map>
+        <Map><From>U+00CA</From><To>U+0065</To></Map>
+        <Map><From>U+00CB</From><To>U+0065</To></Map>
+        <Map><From>U+00E8</From><To>U+0065</To></Map>
+        <Map><From>U+00E9</From><To>U+0065</To></Map>
+        <Map><From>U+00EA</From><To>U+0065</To></Map>
+        <Map><From>U+00EB</From><To>U+0065</To></Map>
+        <Map><From>U+00CC</From><To>U+0069</To></Map>
+        <Map><From>U+00CD</From><To>U+0069</To></Map>
+        <Map><From>U+00CE</From><To>U+0069</To></Map>
+        <Map><From>U+00CF</From><To>U+0069</To></Map>
+        <Map><From>U+00EC</From><To>U+0069</To></Map>
+        <Map><From>U+00ED</From><To>U+0069</To></Map>
+        <Map><From>U+00EE</From><To>U+0069</To></Map>
+        <Map><From>U+00EF</From><To>U+0069</To></Map>
+        <Map><From>U+00D1</From><To>U+006E</To></Map>
+        <Map><From>U+00F1</From><To>U+006E</To></Map>
+        <Map><From>U+00D2</From><To>U+006F</To></Map>
+        <Map><From>U+00D3</From><To>U+006F</To></Map>
+        <Map><From>U+00D4</From><To>U+006F</To></Map>
+        <Map><From>U+00D5</From><To>U+006F</To></Map>
+        <Map><From>U+00D6</From><To>U+006F</To></Map>
+        <Map><From>U+00D8</From><To>U+006F</To></Map>
+        <Map><From>U+00F2</From><To>U+006F</To></Map>
+        <Map><From>U+00F3</From><To>U+006F</To></Map>
+        <Map><From>U+00F4</From><To>U+006F</To></Map>
+        <Map><From>U+00F5</From><To>U+006F</To></Map>
+        <Map><From>U+00F6</From><To>U+006F</To></Map>
+        <Map><From>U+00F8</From><To>U+006F</To></Map>
+        <Map><From>U+00D9</From><To>U+0075</To></Map>
+        <Map><From>U+00DA</From><To>U+0075</To></Map>
+        <Map><From>U+00DB</From><To>U+0075</To></Map>
+        <Map><From>U+00DC</From><To>U+0075</To></Map>
+        <Map><From>U+00F9</From><To>U+0075</To></Map>
+        <Map><From>U+00FA</From><To>U+0075</To></Map>
+        <Map><From>U+00FB</From><To>U+0075</To></Map>
+        <Map><From>U+00FC</From><To>U+0075</To></Map>
+        <Map><From>U+00DD</From><To>U+0079</To></Map>
+        <Map><From>U+00FD</From><To>U+0079</To></Map>
+        <Map><From>U+00FF</From><To>U+0079</To></Map>
+
+        <!-- Greek mappings -->
+        <Map><From>U+0391</From><To>U+03B1</To></Map>
+        <Map><From>U+0392</From><To>U+03B2</To></Map>
+        <Map><From>U+0393</From><To>U+03B3</To></Map>
+        <Map><From>U+0394</From><To>U+03B4</To></Map>
+        <Map><From>U+0395</From><To>U+03B5</To></Map>
+        <Map><From>U+0396</From><To>U+03B6</To></Map>
+        <Map><From>U+0397</From><To>U+03B7</To></Map>
+        <Map><From>U+0398</From><To>U+03B8</To></Map>
+        <Map><From>U+0399</From><To>U+03B9</To></Map>
+        <Map><From>U+039A</From><To>U+03BA</To></Map>
+        <Map><From>U+039B</From><To>U+03BB</To></Map>
+        <Map><From>U+039C</From><To>U+03BC</To></Map>
+        <Map><From>U+039D</From><To>U+03BD</To></Map>
+        <Map><From>U+039E</From><To>U+03BE</To></Map>
+        <Map><From>U+039F</From><To>U+03BF</To></Map>
+        <Map><From>U+03A0</From><To>U+03C0</To></Map>
+        <Map><From>U+03A1</From><To>U+03C1</To></Map>
+        <Map><From>U+03A3</From><To>U+03C3</To></Map>
+        <Map><From>U+03A4</From><To>U+03C4</To></Map>
+        <Map><From>U+03A5</From><To>U+03C5</To></Map>
+        <Map><From>U+03A6</From><To>U+03C6</To></Map>
+        <Map><From>U+03A7</From><To>U+03C7</To></Map>
+        <Map><From>U+03A8</From><To>U+03C8</To></Map>
+        <Map><From>U+03A9</From><To>U+03C9</To></Map>
+
+        <!-- Cyrillic mappings -->
+        <Map><From>U+0400</From><To>U+0450</To></Map>
+        <Map><From>U+0401</From><To>U+0451</To></Map>
+        <Map><From>U+0402</From><To>U+0452</To></Map>
+        <Map><From>U+0403</From><To>U+0453</To></Map>
+        <Map><From>U+0404</From><To>U+0454</To></Map>
+        <Map><From>U+0405</From><To>U+0455</To></Map>
+        <Map><From>U+0406</From><To>U+0456</To></Map>
+        <Map><From>U+0407</From><To>U+0457</To></Map>
+        <Map><From>U+0408</From><To>U+0458</To></Map>
+        <Map><From>U+0409</From><To>U+0459</To></Map>
+        <Map><From>U+040A</From><To>U+045A</To></Map>
+        <Map><From>U+040B</From><To>U+045B</To></Map>
+        <Map><From>U+040C</From><To>U+045C</To></Map>
+        <Map><From>U+040D</From><To>U+045D</To></Map>
+        <Map><From>U+040E</From><To>U+045E</To></Map>
+        <Map><From>U+040F</From><To>U+045F</To></Map>
+        <Map><From>U+0410</From><To>U+0430</To></Map>
+        <Map><From>U+0411</From><To>U+0431</To></Map>
+        <Map><From>U+0412</From><To>U+0432</To></Map>
+        <Map><From>U+0413</From><To>U+0433</To></Map>
+        <Map><From>U+0414</From><To>U+0434</To></Map>
+        <Map><From>U+0415</From><To>U+0435</To></Map>
+        <Map><From>U+0416</From><To>U+0436</To></Map>
+        <Map><From>U+0417</From><To>U+0437</To></Map>
+        <Map><From>U+0418</From><To>U+0438</To></Map>
+        <Map><From>U+0419</From><To>U+0439</To></Map>
+        <Map><From>U+041A</From><To>U+043A</To></Map>
+        <Map><From>U+041B</From><To>U+043B</To></Map>
+        <Map><From>U+041C</From><To>U+043C</To></Map>
+        <Map><From>U+041D</From><To>U+043D</To></Map>
+        <Map><From>U+041E</From><To>U+043E</To></Map>
+        <Map><From>U+041F</From><To>U+043F</To></Map>
+        <Map><From>U+0420</From><To>U+0440</To></Map>
+        <Map><From>U+0421</From><To>U+0441</To></Map>
+        <Map><From>U+0422</From><To>U+0442</To></Map>
+        <Map><From>U+0423</From><To>U+0443</To></Map>
+        <Map><From>U+0424</From><To>U+0444</To></Map>
+        <Map><From>U+0425</From><To>U+0445</To></Map>
+        <Map><From>U+0426</From><To>U+0446</To></Map>
+        <Map><From>U+0427</From><To>U+0447</To></Map>
+        <Map><From>U+0428</From><To>U+0448</To></Map>
+        <Map><From>U+0429</From><To>U+0449</To></Map>
+        <Map><From>U+042A</From><To>U+044A</To></Map>
+        <Map><From>U+042B</From><To>U+044B</To></Map>
+        <Map><From>U+042C</From><To>U+044C</To></Map>
+        <Map><From>U+042D</From><To>U+044D</To></Map>
+        <Map><From>U+042E</From><To>U+044E</To></Map>
+        <Map><From>U+042F</From><To>U+044F</To></Map>
+        <Map><From>U+0460</From><To>U+0461</To></Map>
+        <Map><From>U+0462</From><To>U+0463</To></Map>
+        <Map><From>U+0464</From><To>U+0465</To></Map>
+        <Map><From>U+0466</From><To>U+0467</To></Map>
+        <Map><From>U+0468</From><To>U+0469</To></Map>
+        <Map><From>U+046A</From><To>U+046B</To></Map>
+        <Map><From>U+046C</From><To>U+046D</To></Map>
+        <Map><From>U+046E</From><To>U+046F</To></Map>
+        <Map><From>U+0470</From><To>U+0471</To></Map>
+        <Map><From>U+0472</From><To>U+0473</To></Map>
+        <Map><From>U+0474</From><To>U+0475</To></Map>
+        <Map><From>U+0476</From><To>U+0477</To></Map>
+        <Map><From>U+0478</From><To>U+0479</To></Map>
+        <Map><From>U+047A</From><To>U+047B</To></Map>
+        <Map><From>U+047C</From><To>U+047D</To></Map>
+        <Map><From>U+047E</From><To>U+047F</To></Map>
+        <Map><From>U+0480</From><To>U+0481</To></Map>
+        <Map><From>U+048A</From><To>U+048B</To></Map>
+        <Map><From>U+048C</From><To>U+048D</To></Map>
+        <Map><From>U+048E</From><To>U+048F</To></Map>
+        <Map><From>U+0490</From><To>U+0491</To></Map>
+        <Map><From>U+0492</From><To>U+0493</To></Map>
+        <Map><From>U+0494</From><To>U+0495</To></Map>
+        <Map><From>U+0496</From><To>U+0497</To></Map>
+        <Map><From>U+0498</From><To>U+0499</To></Map>
+        <Map><From>U+049A</From><To>U+049B</To></Map>
+        <Map><From>U+049C</From><To>U+049D</To></Map>
+        <Map><From>U+049E</From><To>U+049F</To></Map>
+        <Map><From>U+04A0</From><To>U+04A1</To></Map>
+        <Map><From>U+04A2</From><To>U+04A3</To></Map>
+        <Map><From>U+04A4</From><To>U+04A5</To></Map>
+        <Map><From>U+04A6</From><To>U+04A7</To></Map>
+        <Map><From>U+04A8</From><To>U+04A9</To></Map>
+        <Map><From>U+04AA</From><To>U+04AB</To></Map>
+        <Map><From>U+04AC</From><To>U+04AD</To></Map>
+        <Map><From>U+04AE</From><To>U+04AF</To></Map>
+        <Map><From>U+04B0</From><To>U+04B1</To></Map>
+        <Map><From>U+04B2</From><To>U+04B3</To></Map>
+        <Map><From>U+04B4</From><To>U+04B5</To></Map>
+        <Map><From>U+04B6</From><To>U+04B7</To></Map>
+        <Map><From>U+04B8</From><To>U+04B9</To></Map>
+        <Map><From>U+04BA</From><To>U+04BB</To></Map>
+        <Map><From>U+04BC</From><To>U+04BD</To></Map>
+        <Map><From>U+04BE</From><To>U+04BF</To></Map>
+        <Map><From>U+04C0</From><To>U+04CF</To></Map>
+        <Map><From>U+04C1</From><To>U+04C2</To></Map>
+        <Map><From>U+04C3</From><To>U+04C4</To></Map>
+        <Map><From>U+04C5</From><To>U+04C6</To></Map>
+        <Map><From>U+04C7</From><To>U+04C8</To></Map>
+        <Map><From>U+04C9</From><To>U+04CA</To></Map>
+        <Map><From>U+04CB</From><To>U+04CC</To></Map>
+        <Map><From>U+04CD</From><To>U+04CE</To></Map>
+        <Map><From>U+04D0</From><To>U+04D1</To></Map>
+        <Map><From>U+04D2</From><To>U+04D3</To></Map>
+        <Map><From>U+04D4</From><To>U+04D5</To></Map>
+        <Map><From>U+04D6</From><To>U+04D7</To></Map>
+        <Map><From>U+04D8</From><To>U+04D9</To></Map>
+        <Map><From>U+04DA</From><To>U+04DB</To></Map>
+        <Map><From>U+04DC</From><To>U+04DD</To></Map>
+        <Map><From>U+04DE</From><To>U+04DF</To></Map>
+        <Map><From>U+04E0</From><To>U+04E1</To></Map>
+        <Map><From>U+04E2</From><To>U+04E3</To></Map>
+        <Map><From>U+04E4</From><To>U+04E5</To></Map>
+        <Map><From>U+04E6</From><To>U+04E7</To></Map>
+        <Map><From>U+04E8</From><To>U+04E9</To></Map>
+        <Map><From>U+04EA</From><To>U+04EB</To></Map>
+        <Map><From>U+04EC</From><To>U+04ED</To></Map>
+        <Map><From>U+04EE</From><To>U+04EF</To></Map>
+        <Map><From>U+04F0</From><To>U+04F1</To></Map>
+        <Map><From>U+04F2</From><To>U+04F3</To></Map>
+        <Map><From>U+04F4</From><To>U+04F5</To></Map>
+        <Map><From>U+04F6</From><To>U+04F7</To></Map>
+        <Map><From>U+04F8</From><To>U+04F9</To></Map>
+        <Map><From>U+04FA</From><To>U+04FB</To></Map>
+        <Map><From>U+04FC</From><To>U+04FD</To></Map>
+        <Map><From>U+04FE</From><To>U+04FF</To></Map>
+        <Map><From>U+0500</From><To>U+0501</To></Map>
+        <Map><From>U+0502</From><To>U+0503</To></Map>
+        <Map><From>U+0504</From><To>U+0505</To></Map>
+        <Map><From>U+0506</From><To>U+0507</To></Map>
+        <Map><From>U+0508</From><To>U+0509</To></Map>
+        <Map><From>U+050A</From><To>U+050B</To></Map>
+        <Map><From>U+050C</From><To>U+050D</To></Map>
+        <Map><From>U+050E</From><To>U+050F</To></Map>
+        <Map><From>U+0510</From><To>U+0511</To></Map>
+        <Map><From>U+0512</From><To>U+0513</To></Map>
+
+        <!-- Punctuation mappings -->
+        <Map><From>U+2014</From><To> </To></Map>
+
+        <!-- More mappings: use
+        http://unicode.org/Public/UNIDATA/CaseFolding.txt as a
+        starting point -->
+
+        <StopWords></StopWords>
+      </Mappings>
+      <LongestMatch>
+        <Length>0</Length>
+        <Resolution>0</Resolution>
+      </LongestMatch>
+      <IntegrityCheck>-1205052564</IntegrityCheck>
+    </Index>
+  </Indices>
+
+  <Regions>
+    <Region>
+      <Name>page</Name>
+      <Desc>page</Desc>
+      <File>
+        <SysName><?RGNFILEPATH?></SysName>
+        <ModDate>1121873517</ModDate>
+        <Offset>114152</Offset>
+      </File>
+      <Count>4</Count>
+      <Type>pairs</Type>
+    </Region>
+
+    <Region>
+      <Name>page-T</Name>
+      <Desc>page-T</Desc>
+      <File>
+        <SysName><?RGNFILEPATH?></SysName>
+        <ModDate>1121873517</ModDate>
+        <Offset>114152</Offset>
+      </File>
+      <Count>4</Count>
+      <Type>pairs</Type>
+    </Region>
+  </Regions>
+
+  <Locks></Locks>
+
+  <Grammar></Grammar>
+</DB>

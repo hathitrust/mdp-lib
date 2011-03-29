@@ -570,7 +570,12 @@ sub session_dumper
     $Data::Dumper::Indent = 2;
     my $dump = Data::Dumper->Dump( [$self], [qw($self)] );
 
-    return qq{<pre>$dump</pre>};
+    # protect entities and turn naked & into &amp;
+    $dump =~ s/&([^;]+);/ENTITY:$1:ENTITY/gis;
+    $dump =~ s/&/&amp;/gis;
+    $dump =~ s/ENTITY:([a-z0-9]+):ENTITY/&$1;/gis;
+
+    return qq{<pre style="text-align: left">$dump</pre>};
 }
 
 
