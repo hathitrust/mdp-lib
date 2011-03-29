@@ -106,7 +106,6 @@ sub __Solr_result {
 
     if (DEBUG('query')) {
         my $d = $url;
-#        $d = Encode::encode_utf8($d);
         Utils::map_chars_to_cers(\$d, [q{"}, q{'}]) if Debug::DUtils::under_server();;
         DEBUG('query', qq{Query URL: $d});
     }
@@ -206,8 +205,13 @@ sub __get_request_object {
 
     my ($url, $query_string) = (split(/\?/, $uri));  
 
-    # Translate from Perl's internal representation to UTF-8
-    $query_string = Encode::encode_utf8($query_string);
+    # If this is a string of characters, translate from Perl's
+    # internal representation to bytes to make HTTP::Request happy.
+    # If it came from a terminal, it will probably be a sequence of
+    # bytes already (utf8 flag not set).
+    if (Encode::is_utf8($query_string)) {
+        $query_string = Encode::encode_utf8($query_string);
+    }
 
     my $req = HTTP::Request->new('POST', $url, undef, $query_string);
 
