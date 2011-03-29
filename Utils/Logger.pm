@@ -99,7 +99,7 @@ sub __Log_string {
         sleep 1;
     }
 
-    if (open(LOG, ">>$logfile_path")) {
+    if (open(LOG, ">>:encoding(UTF-8)", $logfile_path)) {
         LOG->autoflush(1);
         print LOG qq{$s\n};
         close(LOG);
@@ -128,7 +128,7 @@ sub __Log_simple {
     my $logfile = qq{MDP-generic-$date.log};
 
     my $logfile_path = Utils::get_tmp_logdir() . "/$logfile";
-    if (open(LOG, ">>$logfile_path")) {
+    if (open(LOG, ">>:encoding(UTF-8)", $logfile_path)) {
         LOG->autoflush(1);
         print LOG qq{$time: $s\n};
         close(LOG);

@@ -1,6 +1,5 @@
 package Search::Searcher;
 
-
 =head1 NAME
 
 Search::Searcher (searcher)
@@ -10,10 +9,6 @@ Search::Searcher (searcher)
 This class encapsulates the search interface to Solr/Lucene. It
 provides two interfaces.  One to handle user entered queries and one
 to handle queries generated internally by the application.
-
-=head1 VERSION
-
-$Id: Searcher.pm,v 1.37 2010/02/18 18:07:24 pfarber Exp $
 
 =head1 SYNOPSIS
 
@@ -25,23 +20,13 @@ $rs = $searcher->get_Solr_raw_internal_query_result($C, $query_string, $rs);
 
 my $id_arr_ref = $rs->get_result_ids();
 
-
-
-Coding example
-
 =head1 METHODS
 
 =over 8
 
 =cut
 
-BEGIN {
-    if ($ENV{'HT_DEV'}) {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
+use Encode;
 use LWP::UserAgent;
 
 #use App;
@@ -121,6 +106,7 @@ sub __Solr_result {
 
     if (DEBUG('query')) {
         my $d = $url;
+#        $d = Encode::encode_utf8($d);
         Utils::map_chars_to_cers(\$d, [q{"}, q{'}]) if Debug::DUtils::under_server();;
         DEBUG('query', qq{Query URL: $d});
     }
@@ -218,12 +204,14 @@ sub __get_request_object {
     my $self = shift;
     my $uri = shift;
 
-    $uri = Encode::encode_utf8($uri);
-
     my ($url, $query_string) = (split(/\?/, $uri));  
+
+    # Translate from Perl's internal representation to UTF-8
+    $query_string = Encode::encode_utf8($query_string);
+
     my $req = HTTP::Request->new('POST', $url, undef, $query_string);
 
-    $req->header( 'Content-Type' => 'application/x-www-form-urlencoded' );
+    $req->header( 'Content-Type' => 'application/x-www-form-urlencoded; charset=utf8'  );
     
     return $req;
 }
@@ -384,6 +372,7 @@ sub __get_query_response {
     my ($C, $ua, $req) = @_;
     
     my $res = $ua->request($req);
+
     my $code = $res->code();
     my $status_line = $res->status_line;
     my $http_status_fail = (! $res->is_success());
