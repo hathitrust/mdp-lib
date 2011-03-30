@@ -109,9 +109,9 @@ sub __Solr_result {
         Utils::map_chars_to_cers(\$d, [q{"}, q{'}]) if Debug::DUtils::under_server();;
         DEBUG('query', qq{Query URL: $d});
     }
-    my ($code, $response, $status_line) = $self->__get_query_response($C, $ua, $req);
+    my ($code, $response, $status_line, $failed_HTTP_dump) = $self->__get_query_response($C, $ua, $req);
 
-    $rs->ingest_Solr_search_response($code, \$response, $status_line);
+    $rs->ingest_Solr_search_response($code, \$response, $status_line, $failed_HTTP_dump);
 
     return $rs;
 }
@@ -386,6 +386,8 @@ sub __get_query_response {
     my $otherDebug = DEBUG('idx,all');
     my $Debug = $responseDebug || $otherDebug;
     
+    my $failed_HTTP_dump = '';
+        
     if ($Debug || $http_status_fail) {
 
         if ($otherDebug) {
@@ -408,6 +410,7 @@ sub __get_query_response {
                 my $app_name = $C->has_object('App') ? $C->get_object('App')->get_app_name($C) : 'ls';
                 Utils::Logger::__Log_string($C, $lg,
                                                  'query_error_logfile', '___QUERY___', 'ls');
+                $failed_HTTP_dump = $d;
             }
             
             Utils::map_chars_to_cers(\$d, [q{"}, q{'}]) if Debug::DUtils::under_server();;
@@ -416,10 +419,10 @@ sub __get_query_response {
     }
 
     if (! $http_status_fail) {
-        return ($code, $res->content(), $res->status_line());
+        return ($code, $res->content(), $res->status_line(), '');
     }
     else {
-        return ($code, '',  $res->status_line());
+        return ($code, '',  $res->status_line(), $failed_HTTP_dump);
     }
 }
 

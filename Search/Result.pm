@@ -108,7 +108,7 @@ Example Solr result is:
 sub ingest_Solr_search_response
 {
     my $self = shift;
-    my ($code, $Solr_response_ref, $status_line) = @_;
+    my ($code, $Solr_response_ref, $status_line, $failed_HTTP_dump) = @_;
 
     my $http_status_ok = ($code eq '200');
 
@@ -137,6 +137,7 @@ sub ingest_Solr_search_response
     $self->{'num_found'} = $num_found;
     # May be overridden for queries that limit by rows
     $self->{'rows_returned'} = $num_found;
+    $self->{'failed_HTTP_dump'} = $failed_HTTP_dump;
 
     # In Subclass:
     if ($http_status_ok)
@@ -165,6 +166,22 @@ sub AFTER_ingest_Solr_search_response
     ASSERT(0, qq{AFTER_ingest_Solr_search_response() in __PACKAGE__ is pure virtual});
 }
 
+
+
+# ---------------------------------------------------------------------
+
+=item get_failed_HTTP_dump
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_failed_HTTP_dump
+{
+    my $self = shift;
+    return $self->{'failed_HTTP_dump'};
+}
 
 
 # ---------------------------------------------------------------------
