@@ -74,6 +74,43 @@ sub build_javascript_array
         
 # ---------------------------------------------------------------------
 
+=item build_javascript_assoc_array 
+
+generate the following javascript
+
+  function getCollSizeArray()
+  {
+    var COLL_NAME = new Array()
+    COLL_NAME[2342340]=45;
+    COLL_NAME[456456456]=16;
+    COLL_NAME[23456345634]=1001;
+    
+    etc ...
+  }	
+
+=cut
+
+# ---------------------------------------------------------------------
+sub build_javascript_assoc_array
+{
+    my ($js_function_name, $arr_name, $hashref) = @_;
+    
+    my $js;
+    $js .= qq{function $js_function_name()\n};
+    $js .= qq{\{\n};
+    $js .= qq{var $arr_name = new Array();\n};
+
+    foreach my $key (keys %$hashref) {
+        $js .= qq{$arr_name\[$key\] = $hashref->{$key};\n};
+    }
+    $js .= qq{return $arr_name;\n};
+    $js .= qq{\}\n};
+
+    return $js;
+}
+        
+# ---------------------------------------------------------------------
+
 =item build_javascript_var
 
 generate the following javascript
