@@ -391,7 +391,7 @@ Return undef if one of these affiliations is not present.
 sub __get_prioritized_scoped_affiliation {
     my $self = shift;
     
-    my @aff_prios = ('member', 'alum', 'affiliate',);
+    my @aff_prios = qw(member faculty staff student alum affiliate);
     my @affs = split(/\s*;\s*/, $ENV{'affiliation'});
     @affs = map {lc($_)} @affs;
     
