@@ -280,7 +280,7 @@ Description
 
 # ---------------------------------------------------------------------
 sub Delete_id_from_j_shared_queue {
-    my ($C, $dbh, $id)
+    my ($C, $dbh, $id) = @_;
 
     my $ok = 1;
     my ($sth, $statement);
