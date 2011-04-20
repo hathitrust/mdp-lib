@@ -270,7 +270,40 @@ sub dequeue_item_ids {
     return ($ok, $id_arr_ref);
 }
 
+# ---------------------------------------------------------------------
 
+=item Delete_id_from_j_shared_queue
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub Delete_id_from_j_shared_queue {
+    my ($C, $dbh, $id)
+
+    my $ok = 1;
+    my ($sth, $statement);
+
+    eval {
+        $statement = qq{LOCK TABLES j_shared_queue WRITE};
+        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+        $statement = qq{DELETE FROM j_shared_queue WHERE id='$id'};
+        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+        $statement = qq{UNLOCK TABLES};
+        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+    };
+    if ($@) {
+        $ok = 0;
+    }
+    
+    return $ok;
+}
 
 
 1;
