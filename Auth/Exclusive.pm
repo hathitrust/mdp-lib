@@ -136,7 +136,7 @@ sub __grant_access {
     my $expires;
     
     # Failsafe
-    if ((! $identity) || (! affiliation)) {
+    if ((! $identity) || (! $affiliation)) {
         return ($granted, $grant_owner, $expires);
     }
         

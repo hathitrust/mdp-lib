@@ -11,6 +11,7 @@ package RightsGlobals;
  5         yale           Yale University
  6         umn            University of Minnesota
  7         mhs            Minnesota Historical Society
+ 8         usu            Utah State University
 
  ATTRIBUTES
  id        name        type      dscr
@@ -132,7 +133,19 @@ $HT_AFFILIATE           = 5;
    '5'  => 'yale',
    '6'  => 'umn',
    '7'  => 'mhs',
+   '8'  => 'usu',
   );
+
+@g_stmt_fields = 
+  qw(
+        stmt_key
+        stmt_url
+        stmt_url_aux
+        stmt_head
+        stmt_icon
+        stmt_icon_aux
+        stmt_text
+   );
 
 # Coordinates with table=mdp.access_stmts
 %g_stmt_keys =
@@ -318,7 +331,8 @@ $HT_AFFILIATE           = 5;
 # ---------------------------------------------------------------------
 # "Public domain"
 # ---------------------------------------------------------------------
-@g_public_domain_world_attribute_values = (1, 7, 9, 10, 11, 12, 13, 14, 15);
+@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15);
+@g_public_domain_world_attribute_values = (1, 7, 9);
 $g_public_domain_US_attribute_value = 9;
 
 # ---------------------------------------------------------------------
@@ -329,6 +343,7 @@ $g_public_domain_US_attribute_value = 9;
                                            2, # lit-dlps-dc
                                            4, # ia
                                            5, # yale
+                                           8, # usu
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google

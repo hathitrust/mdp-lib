@@ -41,7 +41,7 @@ sub a_Authorized {
     my $usertype_req = shift;
     my $authorized = 0;
 
-    my $user = $ENV{'REMOTE_USER'};
+    my $user = lc($ENV{'REMOTE_USER'});
     my $ipaddr = $ENV{'REMOTE_ADDR'};
 
     my $usertype = $MdpUsers::gAccessControlList{$user}{'usertype'};

@@ -1,6 +1,5 @@
 package Search::Searcher;
 
-
 =head1 NAME
 
 Search::Searcher (searcher)
@@ -10,10 +9,6 @@ Search::Searcher (searcher)
 This class encapsulates the search interface to Solr/Lucene. It
 provides two interfaces.  One to handle user entered queries and one
 to handle queries generated internally by the application.
-
-=head1 VERSION
-
-$Id: Searcher.pm,v 1.37 2010/02/18 18:07:24 pfarber Exp $
 
 =head1 SYNOPSIS
 
@@ -25,23 +20,13 @@ $rs = $searcher->get_Solr_raw_internal_query_result($C, $query_string, $rs);
 
 my $id_arr_ref = $rs->get_result_ids();
 
-
-
-Coding example
-
 =head1 METHODS
 
 =over 8
 
 =cut
 
-BEGIN {
-    if ($ENV{'HT_DEV'}) {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
+use Encode;
 use LWP::UserAgent;
 
 #use App;
@@ -79,11 +64,12 @@ sub _initialize {
     my $self = shift;
     my $engine_uri = shift;
     my $timeout = shift;
-
+    my $use_ls_shards = shift;
 
     ASSERT(defined($engine_uri), qq{Missing Solr engine URI});
     $self->{'Solr_engine_uri'} = $engine_uri;
     $self->{'timeout'} = defined($timeout) ? $timeout : DEFAULT_TIMEOUT;
+    $self->{use_ls_shards} = $use_ls_shards;
 }
 
 # ---------------------------------------------------------------------
@@ -123,9 +109,9 @@ sub __Solr_result {
         Utils::map_chars_to_cers(\$d, [q{"}, q{'}]) if Debug::DUtils::under_server();;
         DEBUG('query', qq{Query URL: $d});
     }
-    my ($code, $response, $status_line) = $self->__get_query_response($C, $ua, $req);
+    my ($code, $response, $status_line, $failed_HTTP_dump) = $self->__get_query_response($C, $ua, $req);
 
-    $rs->ingest_Solr_search_response($code, \$response, $status_line);
+    $rs->ingest_Solr_search_response($code, \$response, $status_line, $failed_HTTP_dump);
 
     return $rs;
 }
@@ -215,10 +201,22 @@ Description
 # ---------------------------------------------------------------------
 sub __get_request_object {
     my $self = shift;
-    my $url = shift;
+    my $uri = shift;
 
-    $url = Encode::encode_utf8($url);
-    my $req = HTTP::Request->new(GET => $url);
+    my ($url, $query_string) = (split(/\?/, $uri));  
+
+    # If this is a string of characters, translate from Perl's
+    # internal representation to bytes to make HTTP::Request happy.
+    # If it came from a terminal, it will probably be a sequence of
+    # bytes already (utf8 flag not set).
+    if (Encode::is_utf8($query_string)) {
+        $query_string = Encode::encode_utf8($query_string);
+    }
+
+    my $req = HTTP::Request->new('POST', $url, undef, $query_string);
+
+    $req->header( 'Content-Type' => 'application/x-www-form-urlencoded; charset=utf8'  );
+    
     return $req;
 }
 
@@ -237,6 +235,102 @@ sub get_engine_uri {
     return $self->{'Solr_engine_uri'};
 }
 
+# ---------------------------------------------------------------------
+
+=item __force_head_node_DEBUG
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __force_head_node_DEBUG {
+    my ($head_node_debug) = grep(/^head\d+/, split(',', $ENV{'DEBUG'}));
+    my ($head_node) = ($head_node_debug =~ m,(\d+),);
+    DEBUG($head_node_debug, qq{head node FORCED to: $head_node});
+    
+    return $head_node;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_random_shard_solr_engine_uri CLASS METHOD
+
+Randomize the primary Solr instance for multishard queries to
+distribute the result merge load.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_random_shard_solr_engine_uri {
+    my $C = shift;
+
+    my $config = $C->get_object('MdpConfig');
+    
+    my @engine_uris = $config->get('mbooks_solr_engines');
+    my @num_shards_list = $config->get('num_shards_list');
+
+    # an integer between 0 and number of shards in @num_shards_list - 1
+    my $index_of_shard_in_list; 
+    my $forced_node = __force_head_node_DEBUG();
+    if ($forced_node) {
+        $index_of_shard_in_list = $forced_node - 1;
+    }
+    else {
+        $index_of_shard_in_list = int(rand(scalar(@num_shards_list)));
+    }
+    
+    my $random_shard = $num_shards_list[$index_of_shard_in_list];
+    
+    return $engine_uris[$random_shard-1];
+}
+
+
+# ---------------------------------------------------------------------
+
+=item use_ls_shards
+
+Add shards param to search LS index
+
+=cut
+
+# ---------------------------------------------------------------------
+sub use_ls_shards {
+    my $self = shift;
+
+    return $self->{use_ls_shards};
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_LS_Solr_shards_param
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_LS_Solr_shards_param {
+    my $self = shift;
+    my $C = shift;
+    
+    my $config = $C->get_object('MdpConfig');
+    ASSERT($config->has('num_shards_list') && $config->has('mbooks_solr_engines'),
+           qq{Search::Searcher not configured for LS shards: missing shard list});
+           
+    my @num_shards_list = $config->get('num_shards_list');
+    my @shard_engine_uris = $config->get('mbooks_solr_engines');
+
+    my @active_shard_engine_uris;
+    foreach my $shard (@num_shards_list) {
+        push(@active_shard_engine_uris, $shard_engine_uris[$shard-1]);
+    }
+    map {$_ =~ s,^http://,,} @active_shard_engine_uris;
+    
+    my $shards_param = 'shards=' . join(',', @active_shard_engine_uris);
+
+    return $shards_param;
+}
 
 
 # ---------------------------------------------------------------------
@@ -252,9 +346,16 @@ sub __get_Solr_select_url {
     my $self = shift;
     my ($C, $query_string) = @_;
 
-    my $engine_uri = $self->get_engine_uri();
+    my $shards_param = $self->use_ls_shards() ? $self->__get_LS_Solr_shards_param($C) : undef;
+    
+    my $primary_engine_uri = $self->get_engine_uri();
     my $script = $C->get_object('MdpConfig')->get('solr_select_script');
-    my $url = $engine_uri . $script . '?' . $query_string;
+    my $url = 
+        $primary_engine_uri 
+            . $script 
+                . '?' 
+                  . (defined($shards_param) ? "${shards_param}&" : '')
+                    . $query_string;
 
     return $url;
 }
@@ -275,6 +376,7 @@ sub __get_query_response {
     my ($C, $ua, $req) = @_;
     
     my $res = $ua->request($req);
+
     my $code = $res->code();
     my $status_line = $res->status_line;
     my $http_status_fail = (! $res->is_success());
@@ -284,6 +386,8 @@ sub __get_query_response {
     my $otherDebug = DEBUG('idx,all');
     my $Debug = $responseDebug || $otherDebug;
     
+    my $failed_HTTP_dump = '';
+        
     if ($Debug || $http_status_fail) {
 
         if ($otherDebug) {
@@ -306,6 +410,7 @@ sub __get_query_response {
                 my $app_name = $C->has_object('App') ? $C->get_object('App')->get_app_name($C) : 'ls';
                 Utils::Logger::__Log_string($C, $lg,
                                                  'query_error_logfile', '___QUERY___', 'ls');
+                $failed_HTTP_dump = $d;
             }
             
             Utils::map_chars_to_cers(\$d, [q{"}, q{'}]) if Debug::DUtils::under_server();;
@@ -314,10 +419,10 @@ sub __get_query_response {
     }
 
     if (! $http_status_fail) {
-        return ($code, $res->content(), $res->status_line());
+        return ($code, $res->content(), $res->status_line(), '');
     }
     else {
-        return ($code, '',  $res->status_line());
+        return ($code, '',  $res->status_line(), $failed_HTTP_dump);
     }
 }
 

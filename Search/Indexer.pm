@@ -1,6 +1,5 @@
 package Search::Indexer;
 
-
 =head1 NAME
 
 Search::Indexer (idxr)
@@ -9,10 +8,6 @@ Search::Indexer (idxr)
 
 This class encapsulates the functionality needed to index a document
 produced by a Search::Document::Solr class.
-
-=head1 VERSION
-
-$Id: Indexer.pm,v 1.41 2009/12/27 21:04:50 pfarber Exp $
 
 =head1 SYNOPSIS
 
@@ -25,13 +20,13 @@ To select a non-default engine:
 
 my $idxr = new Search::Indexer('mbooks_solr_DEV_1_engine');
 
-
-
 =head1 METHODS
 
 =over 8
 
 =cut
+
+use strict;
 
 use Time::HiRes;
 use LWP::UserAgent;
@@ -41,15 +36,6 @@ use Utils;
 use Utils::Logger;
 use Debug::DUtils;
 use Search::Constants;
-
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
 
 use constant DEFAULT_TIMEOUT => 30; # LWP default
 
@@ -305,19 +291,20 @@ sub __response_handler
 
     my $index_state;
     my $success = $response->is_success;
+    my $code = $response->code();
+    my $status_line = $response->status_line();
 
     if ($success)
     {
         $index_state = IX_INDEXED;
+        DEBUG('idx', qq{DEBUG: INDEXER: Good HTTP response: $code status=} . $response->status_line());
     }
     else
     {
-        my $code = $response->code();
-        my $status_line = $response->status_line();
-
         my $s = qq{Solr error response: code=$code, status="$status_line"\n} 
             . $response->content();
         Utils::Logger::__Log_simple($s);
+        DEBUG('idx', qq{DEBUG: INDEXER: Bad HTTP response: $code status=} . $response->status_line() . q{ (see logfile)} );
 
         if ($code =~ m,^5\d\d,)
         {

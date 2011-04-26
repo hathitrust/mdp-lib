@@ -133,6 +133,22 @@ sub get {
     }
 }
 
+# ---------------------------------------------------------------------
+
+=item has ($config_var_name)
+
+Test that a config variable has a value
+
+=cut
+
+# ---------------------------------------------------------------------
+sub has {
+    my ($self, $var_name) = @_;
+
+    my $val = $self->{'config'}->{_}{$var_name};
+    return defined($val);
+}
+
 
 1;
 

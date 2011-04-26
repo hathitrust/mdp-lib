@@ -103,21 +103,20 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub _initialize
-{
+sub _initialize {
     my $self = shift;
 
     $self->{'dbh'} = shift;
     my $config = shift;
     $self->{'user_id'} = shift;
 
-    if (DEBUG('usetesttbl'))
-    {
+    my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
+    
+    if ($use_test_tables) {
         $self->{'coll_table_name'} = $config->get('test_coll_table_name');
         $self->{'coll_item_table_name'} = $config->get('test_coll_item_table_name');
     }
-    else 
-    {
+    else {
         $self->{'coll_table_name'} = $config->get('coll_table_name');
         $self->{'coll_item_table_name'} = $config->get('coll_item_table_name');
     }
@@ -361,10 +360,11 @@ sub delete_all_colls_for_user
     my $coll_item_table = $self->get_coll_item_table_name;
 
     $user_id = $dbh->quote($user_id);
-
+    
+    my ($statement, $sth);
+    
     # lock both tables
-    my  $statement = qq{LOCK TABLES $coll_item_table WRITE,$coll_table WRITE};
-    my $sth;
+    $statement = qq{LOCK TABLES $coll_item_table WRITE,$coll_table WRITE};
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     
     #  delete from coll_item table
@@ -373,7 +373,6 @@ sub delete_all_colls_for_user
     $statement .= qq{  WHERE $coll_item_table.MColl_ID = $coll_table.MColl_ID};
     $statement .= qq{ and $coll_table.owner = $user_id };
 
-    my $sth;
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     # XXX check for errors ?
@@ -385,49 +384,6 @@ sub delete_all_colls_for_user
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
 }
-
-#----------------------------------------------------------------------
-
-=item delete_coll(coll_id)
-
-Description
-
-=cut
-
-#----------------------------------------------------------------------
-sub delete_coll
-{
-    my $self = shift;
-    my $coll_id = shift;
-
-    my $dbh = $self->{'dbh'};
-    my $coll_table_name = $self->get_coll_table_name;
-    my $coll_item_table_name = $self->get_coll_item_table_name;
-    my $user_id = $self->get_user_id;
-
-    # WARNING we are now using the config file for CollectionSet to
-    # configure a Collection object.  This gets the right test
-    # database but might cause problems later.  Actually this should
-    # only cause problems for the test framework.  The app should use
-    # the same config file! tbw check this out
-    my $config = $self->{'config'};
-
-    my $co =  Collection->new($dbh,$config,$user_id) ;
-
-    # what checks if any should be made prior to removing the
-    # collection?  We assume the application will already check that
-    # the collection is owned by the user by calling sub
-    # coll_owned_by_user
-    ASSERT($co->coll_owned_by_user($coll_id, $user_id),
-           qq{Collection $coll_id not owned by user $user_id});
-
-    DbUtils::del_row_by_key($dbh, $coll_table_name, 'MColl_ID', $coll_id);
-
-    # DbUtils doesn't return a status so should we write our own?
-    # return $status;
-    DbUtils::del_one_or_more_rows_by_key($dbh, $coll_item_table_name, 'MColl_ID', $coll_id);
-}
-
 
 
 

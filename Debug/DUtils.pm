@@ -31,6 +31,7 @@ BEGIN {
 }
 
 use CGI;
+use Encode;
 use Session;
 use Utils;
 use Auth::ACL;
@@ -331,7 +332,7 @@ sub __debug_Log {
     my $logfile = qq{mdpdebugging-$date.log};
 
     my $debug_log_file = "$logdir/$logfile";
-    open(DBG, ">>$debug_log_file");
+    open(DBG, ">>encoding(utf8)", $debug_log_file);
     my $m = ((ref($msg) eq 'CODE') ? &$msg : $msg);
     print DBG qq{$time: $m\n};
     close (DBG);
@@ -471,6 +472,8 @@ sub handle_terminal_debug_msg {
     # Utils::replace_endtags_with_newlines(\$message);
 
     # If we are not attached to a terminal only save to message buffer.
+    $message = Encode::encode_utf8($message);
+    
     if ($ENV{'TERM'}) {
         print qq{$message\n};
         $main::MESSAGE_BUFFER .= qq{$message\n};
