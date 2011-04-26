@@ -17,7 +17,8 @@ APP_dest = ( /htapps/babel/mdp-lib )
 #
 # Release instructions
 #
-( ${APP_src} ) -> ( ${NASMACC} ${NASICTC} )
+#( ${APP_src} ) -> ( ${NASMACC} ${NASICTC} )
+( ${APP_src} ) -> ( ${NASICTC} )
         install -oremove ${APP_dest};
         except_pat ( \\.git );
         notify hathitrust-release@umich.edu ;
