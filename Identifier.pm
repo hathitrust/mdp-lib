@@ -105,7 +105,7 @@ sub validate_mbooks_id {
     my $arg = shift;
 
     my $candidate_id;
-    if (ref($arg) eq 'CGI') {
+    if (ref($arg) =~ m/^CGI/) {
         $candidate_id = $arg->param('id');
     }
     else {
@@ -310,7 +310,7 @@ sub __set_id_globally {
     my $arg = shift;
 
     my $QUERY_STRING;
-    if (ref($arg) eq 'CGI') {
+    if (ref($arg) =~ m/^CGI/) {
         $QUERY_STRING = $arg->query_string();
         $QUERY_STRING =~ s,id=.+?[\;\&]?,,g;
         $arg->param('id', $id);
