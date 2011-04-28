@@ -38,6 +38,8 @@ sub init {
                     my ($local_repo) = ($repo =~ m,(^[^-]+)-lib$,);
                     if (-d "$Bin/../../$local_repo/lib") {
                         push(@my_inc, "$Bin/../../$local_repo/lib");
+                    } elsif ( -d "$Bin/../../$repo") {
+                        push(@my_inc, "$Bin/../../$repo");
                     }
                 }
                 else {
