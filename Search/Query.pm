@@ -210,13 +210,25 @@ the query will devolve to the default AND query.
 
 4) All other punctuation is _removed_
 
+5) added code to allow query string as an argument for advanced search processing (tbw)
 =cut
 
 # ---------------------------------------------------------------------
 sub get_processed_user_query_string {
     my $self = shift;
+    my $query_string = shift;
 
-    my $user_query_string = $self->get_query_string();
+    my $user_query_string;
+    
+    if (defined ($query_string))
+    {
+        $user_query_string= $query_string;
+    }
+    else
+    {
+        $user_query_string = $self->get_query_string();
+    }
+    
 
     # Replace sequences of 2 or more double-quotes (") with a single
     # double-quote
