@@ -153,7 +153,7 @@ sub GetFile
     my $key = shift;
 
     my $keyFileName = $self->BuildKeyFileName($id, $key);
-    if ( $self->file_exists_n_newer($keyFileName) ) {
+    if ( $self->file_exists_n_newer($id, $keyFileName) ) {
         return $keyFileName;
     }
 
