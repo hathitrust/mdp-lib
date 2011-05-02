@@ -248,7 +248,11 @@ fix up paths to css and graphics in static HTML files.
 
 # ---------------------------------------------------------------------
 sub ___determine_app {
-    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,^/(.*?)/,);
+
+    # regex to capture in $1 e.g. 'pt' in either /cgi/pt or
+    # /cgi/pt/search namely: anyting after /cgi/ that is followed by a
+    # slash but not the slash or everything after /cgi/
+    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,^/cgi/((.*)(?=/)|(.*)),);
     return $appname;
 }
 
