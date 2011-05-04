@@ -445,11 +445,12 @@ sub handle_buffered_debug_msg {
         $msg = $message;
     }
 
-    my $message_buffer_ref = $g_session->get_persistent('debug_message_buffer');
-    $msg = qq{<p><font color="brown"> $msg </font></p>\n};
-    $$message_buffer_ref .= $msg;
-
-    $g_session->set_persistent('debug_message_buffer', $message_buffer_ref);
+    if ($g_session) {
+        my $message_buffer_ref = $g_session->get_persistent('debug_message_buffer');
+        $msg = qq{<p><font color="brown"> $msg </font></p>\n};
+        $$message_buffer_ref .= $msg;
+        $g_session->set_persistent('debug_message_buffer', $message_buffer_ref);
+    }
 }
 
 # ---------------------------------------------------------------------
