@@ -396,7 +396,7 @@ sub public_domain_world {
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-            return (_resolve_access_by_GeoIP() eq 'allow');
+            return (_resolve_access_by_GeoIP($C) eq 'allow');
         }
         else {
             return 1;
@@ -565,7 +565,7 @@ sub _Assert_final_access_status {
         ($initial_access_status, undef, undef, undef);
 
     if ($initial_access_status eq 'allow_by_geo_ipaddr') {
-        $final_access_status = _resolve_access_by_GeoIP();
+        $final_access_status = _resolve_access_by_GeoIP($C);
     }
     elsif ($initial_access_status eq 'allow_by_exclusivity') {
         ($final_access_status, $granted, $owner, $expires) =
@@ -608,7 +608,7 @@ sub _Check_final_access_status {
     my $final_access_status = $initial_access_status;
 
     if ($initial_access_status eq 'allow_by_geo_ipaddr') {
-        $final_access_status = _resolve_access_by_GeoIP();
+        $final_access_status = _resolve_access_by_GeoIP($C);
     }
     elsif ($initial_access_status eq 'allow_by_lib_ipaddr') {
         if ($DYNAMIC_LABELS) {
@@ -837,27 +837,48 @@ sub _determine_access_type {
 
 =item CLASS PRIVATE: _resolve_access_by_GeoIP
 
-Description
+First check IP against proxies database and if IP present, assume user
+agent is outside the U.S.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub _resolve_access_by_GeoIP {
-    require "Geo/IP.pm";
+    my $C = shift;
 
-    my $status;
+    my $status = 'deny';
 
     # Allow caller to specify IP address, optionally
     my $IPADDR = shift || $ENV{'REMOTE_ADDR'};
 
-    my $geoIP = Geo::IP->new();
-    my $country_code = $geoIP->country_code_by_addr($IPADDR);
-    if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
-        $status = 'allow';
-    }
-    else {
+    my $dbh = $C->get_object('Database')->get_DBH($C);
+    my $statement = qq{SELECT ip FROM proxies WHERE ip='$IPADDR'};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    
+    my $ip = $sth->fetchrow_array || 0;
+    if ($ip) {
         $status = 'deny';
     }
+    else {
+        require "Geo/IP.pm";
+        my $geoIP = Geo::IP->new();
+        my $country_code = $geoIP->country_code_by_addr($IPADDR);
+        if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
+            $status = 'allow';
+        }
+        else {
+            $status = 'deny';
+        }
+    }
+    
+    DEBUG('pt,auth,all',
+          sub {
+              my $a = $ip ? 'present in mdp.proxies' : 'not a proxy';
+              my $s = qq{<h4>IPADDR=$IPADDR  ($a)</h4>};
+              return $s;
+          });
+
+    return $status;
 }
 
 # ---------------------------------------------------------------------
