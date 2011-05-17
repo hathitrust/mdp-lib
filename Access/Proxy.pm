@@ -16,7 +16,6 @@ This package provides an interface to a service that attempts to determine wheth
 
 =cut
 
-use Context;
 use Socket;
 
 my %blacklist_services =
@@ -27,7 +26,6 @@ my %blacklist_services =
   );
 
 sub blacklisted {
-    my $C = shift;
     my ($ip_addr, $server_addr, $port) = @_;
 
     my $blacklist = 0;

@@ -837,8 +837,7 @@ sub _determine_access_type {
 
 =item CLASS PRIVATE: _resolve_access_by_GeoIP
 
-First check IP against proxies database and if IP present, assume user
-agent is outside the U.S.
+First check IP for U.S. origin then test for proxies.
 
 =cut
 
@@ -851,32 +850,19 @@ sub _resolve_access_by_GeoIP {
     # Allow caller to specify IP address, optionally
     my $IPADDR = shift || $ENV{'REMOTE_ADDR'};
 
-    my $dbh = $C->get_object('Database')->get_DBH($C);
-    my $statement = qq{SELECT ip FROM proxies WHERE ip='$IPADDR'};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
-    
-    my $ip = $sth->fetchrow_array || 0;
-    if ($ip) {
-        $status = 'deny';
+    require "Geo/IP.pm";
+    my $geoIP = Geo::IP->new();
+    my $country_code = $geoIP->country_code_by_addr($IPADDR);
+    if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
+        # veryify this is not a US proxy for a non-US request
+        require "Access/Proxy.pm";
+        Access::Proxy::blacklisted($IPADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})
+            ? $status = 'deny'
+              : $status = 'allow';
     }
     else {
-        require "Geo/IP.pm";
-        my $geoIP = Geo::IP->new();
-        my $country_code = $geoIP->country_code_by_addr($IPADDR);
-        if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
-            $status = 'allow';
-        }
-        else {
-            $status = 'deny';
-        }
+        $status = 'deny';
     }
-    
-    DEBUG('pt,auth,all',
-          sub {
-              my $a = $ip ? 'present in mdp.proxies' : 'not a proxy';
-              my $s = qq{<h4>IPADDR=$IPADDR  ($a)</h4>};
-              return $s;
-          });
 
     return $status;
 }
