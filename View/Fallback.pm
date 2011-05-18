@@ -79,15 +79,17 @@ my %g_coll_id_map =
      '1715299752' => 'aadl:moaa_resources',
      '1874608773' => 'aadl:moaa',
      '0000000000' => 'umhistmath',
+     '781708252'  => 'keanuniv:NJ_History_Project',
     );
 
 # Map permanent collection name to web directory path
 my %g_collection_map = 
     (
-     'aadl:moaa_resources' => '/mb/web/m/moaa-cb1',
-     'aadl:moaa'           => '/mb/web/m/moaa-cb2',
-     'umpress:UM_Press'    => '/mb/web/u/umpress',
-     'umhistmath'          => '',
+     'aadl:moaa_resources'         => '/mb/web/m/moaa-cb1',
+     'aadl:moaa'                   => '/mb/web/m/moaa-cb2',
+     'umpress:UM_Press'            => '/mb/web/u/umpress',
+     'umhistmath'                  => '',
+     'keanuniv:NJ_History_Project' => '/mb/web/k/kean',
     );
 
 
