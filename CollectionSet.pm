@@ -200,8 +200,9 @@ sub add_coll
     ASSERT(! $self->exists_coll_name_for_owner($coll_name, $owner),
            qq{CollectionSet::add_coll Collection name $coll_name for $owner is already in table $coll_table_name});
 
-    ASSERT(length($description) <= 255,
-           qq{Can't add new description because it is too long\nMaximum size of description is 255 characters});
+    if (length($description) > 255) {
+        $description = substr($description, 0, 255);
+    }
 
     my $MColl_ID = DbUtils::generate_unique_id($dbh, $coll_table_name, 'MColl_ID');
     $$coll_hash_ref{'MColl_ID'} = $MColl_ID;
