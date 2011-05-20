@@ -216,6 +216,18 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
 
+   # Minnesota temp
+   'c-hend@umn.edu'
+   => {
+       'displayname' => 'Hendrick, Constance',
+       'supervisor'  => 'pfarber',
+       'expires'     => '2011-08-12 23:59:59',
+       'usertype'    => 'onetime',
+       'iprestrict'  => [
+                         '^134\.84\.113\.10$',
+                        ],
+      },
+
    # Minnesota CRMS
    'v-dudl@umn.edu'
    => {
