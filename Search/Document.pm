@@ -9,11 +9,12 @@ Search::Document (doc)
 
 This class returns a document object structured corectly for
 submission to the a given Indexer.  The Indexer types are currently
-XPAT and Solr implemented as subclasses.
+XPAT and Solr implemented as subclasses. The XPAT Indexer types are
+basically defunct.
 
 =head1 SYNOPSIS
 
-see PT::Document::XPAT and MBooks::Document::Solr;
+see slip/lib/Document*
 
 =head1 METHODS
 
