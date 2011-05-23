@@ -98,7 +98,7 @@ sub __bl_check_db {
             }
         }
     }
-    return 1;
+    return 1 if (defined $ENV{TEST_BLACKLIST});
     
     return $blacklist;
 }
@@ -128,6 +128,7 @@ sub __bl_check_services {
             }
         }
     }
+    return 1 if (defined $ENV{TEST_BLACKLIST});
 
     return $blacklist;
 }
