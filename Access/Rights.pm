@@ -856,9 +856,14 @@ sub _resolve_access_by_GeoIP {
     if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
         # veryify this is not a US proxy for a non-US request
         require "Access/Proxy.pm";
-        Access::Proxy::blacklisted($IPADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})
-            ? $status = 'deny'
-              : $status = 'allow';
+        my $dbh = $C->get_object('Database')->get_DBH($C);
+
+        if (Access::Proxy::blacklisted($dbh, $IPADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})) {
+            $status = 'deny';
+        }
+        else {
+            $status = 'allow';
+        }
     }
     else {
         $status = 'deny';
