@@ -248,7 +248,12 @@ fix up paths to css and graphics in static HTML files.
 
 # ---------------------------------------------------------------------
 sub ___determine_app {
-    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,^/(.*?)/,);
+
+    # regex to capture in $1 e.g. 'pt' in either /pt/cgi/pt pr /cgi/pt
+    # or /cgi/pt/search or /pt/cgi/pt/search namely: anyting after
+    # /cgi/ that is followed by a slash but not the slash or
+    # everything after /cgi/
+    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,/cgi/((.*)(?=/)|(.*)),);
     return $appname;
 }
 
@@ -440,11 +445,12 @@ sub handle_buffered_debug_msg {
         $msg = $message;
     }
 
-    my $message_buffer_ref = $g_session->get_persistent('debug_message_buffer');
-    $msg = qq{<p><font color="brown"> $msg </font></p>\n};
-    $$message_buffer_ref .= $msg;
-
-    $g_session->set_persistent('debug_message_buffer', $message_buffer_ref);
+    if ($g_session) {
+        my $message_buffer_ref = $g_session->get_persistent('debug_message_buffer');
+        $msg = qq{<p><font color="brown"> $msg </font></p>\n};
+        $$message_buffer_ref .= $msg;
+        $g_session->set_persistent('debug_message_buffer', $message_buffer_ref);
+    }
 }
 
 # ---------------------------------------------------------------------

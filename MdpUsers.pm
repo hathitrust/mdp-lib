@@ -97,6 +97,40 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'usertype'    => 'staff',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
+   'bentobey'
+   => {
+       'displayname' => 'Tobey, Benjamin',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'melamber'
+   => {
+       'displayname' => 'Whitehead, Melvin',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+
+   'chisli'
+   => {
+       'displayname' => 'Li, Chisheng',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'lhardman'
+   => {
+       'displayname' => 'lhardman',
+       'supervisor'  => 'jpwilkin',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+
 
    # Michigan CRMS - Anne Karle-Zenith
    'jaheim'
@@ -180,6 +214,18 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+
+   # Minnesota temp
+   'c-hend@umn.edu'
+   => {
+       'displayname' => 'Hendrick, Constance',
+       'supervisor'  => 'pfarber',
+       'expires'     => '2011-08-12 23:59:59',
+       'usertype'    => 'onetime',
+       'iprestrict'  => [
+                         '^134\.84\.113\.10$',
+                        ],
       },
 
    # Minnesota CRMS
