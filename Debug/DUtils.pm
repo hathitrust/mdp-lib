@@ -86,7 +86,7 @@ sub setup_debug_environment {
     my $cgi = new CGI;
     my $debugging = $cgi->param('debug');
 
-    $ENV{'DEBUG'} = $debugging
+    $ENV{'DEBUG'} .= $debugging
       if ($debugging);
 
     my @requested_switches =  split(',', $debugging);
