@@ -12,6 +12,7 @@ package RightsGlobals;
  6         umn            University of Minnesota
  7         mhs            Minnesota Historical Society
  8         usu            Utah State University
+ 9         ucm            Universidad Complutense de Madrid
 
  ATTRIBUTES
  id        name        type      dscr
@@ -134,6 +135,7 @@ $HT_AFFILIATE           = 5;
    '6'  => 'umn',
    '7'  => 'mhs',
    '8'  => 'usu',
+   '9'  => 'ucm',
   );
 
 @g_stmt_fields = 
@@ -344,6 +346,7 @@ $g_public_domain_US_attribute_value = 9;
                                            4, # ia
                                            5, # yale
                                            8, # usu
+                                           9, # ucm
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
