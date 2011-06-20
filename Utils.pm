@@ -84,7 +84,7 @@ sub ASSERT_core
         if (Debug::DUtils::under_server() && (! $development || $force))
         {
             require Debug::Email;
-            Debug::Email::send_debug_email($msg);
+            Debug::Email::buffer_debug_email($msg);
         }
     }
 
