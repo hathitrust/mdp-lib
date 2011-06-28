@@ -466,7 +466,7 @@ sub remove_nonprinting_chars
     #             || ((c >= 0xE000) && (c <= 0xFFFD))
     #             || ((c >= 0x10000) && (c <= 0x10FFFF))
 
-#    $$s_ref =~ s,[\000-\010\013-\014\016-\037]+, ,gs;
+    $$s_ref =~ s,[\000-\010\013-\014\016-\037]+, ,gs;
 }
 
 # ---------------------------------------------------------------------
@@ -495,6 +495,7 @@ sub clean_cgi_params
                 remove_nonprinting_chars(\$v);
                 remove_truncated_cers(\$v);
                 map_chars_to_cers(\$v, [qq{"}, qq{'}]);
+                trim_spaces(\$v);
 
                 push(@newvals, $v);
             }
