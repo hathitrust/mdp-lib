@@ -36,6 +36,11 @@ package RightsGlobals;
  14        cc-by-nc-sa copyright  cc-by-nc + ccby-sa
  15        cc-by-sa    copyright  cc-by + same license upon redistribution
 
+ (Orphan works project)
+
+ id        name        type        dscr
+ 16        orphcand    copyright   ---
+
  STATEMENT KEYS
  pd
  pd-google
@@ -51,6 +56,7 @@ package RightsGlobals;
  cc-by-nc
  cc-by-nc-sa
  cc-by-sa
+ orphcand
 
 =cut
 
@@ -104,6 +110,7 @@ $HT_AFFILIATE           = 5;
    '13' => 'copyright cc-by +  only non-commercial use only',
    '14' => 'copyright cc-by-nc + ccby-sa',
    '15' => 'copyright cc-by + same license upon redistribution',
+   '16' => 'in-copyright orphan candidate',
   );
 
 %g_attribute_keys =
@@ -122,7 +129,8 @@ $HT_AFFILIATE           = 5;
    12 => 'cc-by-nc-nd',
    13 => 'cc-by-nc',
    14 => 'cc-by-nc-sa',
-   15 => 'cc-by-sa'
+   15 => 'cc-by-sa',
+   16 => 'orphcand',
   );
 
 %g_source_names = 
@@ -199,6 +207,9 @@ $HT_AFFILIATE           = 5;
    'cc-by-sa'     => {
                       'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
                       'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
+                     },
+   'orca'         => {
+                      'stmt_icon' => '',
                      },
   );
 
@@ -328,6 +339,14 @@ $HT_AFFILIATE           = 5;
               $UM_AFFILIATE          => 'allow',
               $HT_AFFILIATE          => 'allow',
              },
+     # orphan candidate
+     '16' => { 
+              $ORDINARY_USER         => 'deny',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'deny',
+              $UM_AFFILIATE          => 'deny',
+              $HT_AFFILIATE          => 'deny',
+            },
     );
 
 # ---------------------------------------------------------------------
