@@ -208,7 +208,7 @@ $HT_AFFILIATE           = 5;
                       'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
                       'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
                      },
-   'orca'         => {
+   'oaca'         => {
                       'stmt_icon' => '',
                      },
   );
