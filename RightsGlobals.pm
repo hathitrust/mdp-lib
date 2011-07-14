@@ -39,7 +39,7 @@ package RightsGlobals;
  (Orphan works project)
 
  id        name        type        dscr
- 16        orphcand    copyright   ---
+ 16        orphcand    copyright   orphan candidate - in 90-day holding period (implies in-copyright)
 
  STATEMENT KEYS
  pd
@@ -208,7 +208,10 @@ $HT_AFFILIATE           = 5;
                       'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
                       'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
                      },
-   'oaca'         => {
+   'candidates'   => {
+                      'stmt_icon' => '',
+                     },
+   'orphans'      => {
                       'stmt_icon' => '',
                      },
   );
@@ -355,6 +358,7 @@ $HT_AFFILIATE           = 5;
 @g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15);
 @g_public_domain_world_attribute_values = (1, 7, 9);
 $g_public_domain_US_attribute_value = 9;
+$g_orphan_candidate_attribute_value = 16;
 
 # ---------------------------------------------------------------------
 # Source values authorized for full book PDF download.

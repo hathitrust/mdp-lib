@@ -409,6 +409,28 @@ sub public_domain_world {
 
 # ---------------------------------------------------------------------
 
+=item PUBLIC: orphan_candidate
+
+Description: is this id an orphand candidate?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub orphan_candidate {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    my $attribute = $self->get_rights_attribute($C, $id);
+    if ($attribute == $RightsGlobals::g_orphan_candidate_attribute_value) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+# ---------------------------------------------------------------------
+
 =item PUBLIC: creative_commons
 
 Description: is this id one of the Creative Commons
