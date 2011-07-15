@@ -268,7 +268,11 @@ sub get_processed_user_query_string {
     # token whereas if we remove the punctuation, the query parser
     # will see 2 or more operands and perform a boolean AND which is
     # slow.
-    $user_query_string =~ s/[!&:?\[\]\\^{|}~]/ /g;
+    $user_query_string =~ s/[!:?\[\]\\^{~}]/ /g;
+    $user_query_string =~ s/\|\|/ /g;
+    $user_query_string =~ s/\&\&/ /g;
+
+
 
     # Remove leading and trailing whitespace
     Utils::trim_spaces(\$user_query_string);
