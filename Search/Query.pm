@@ -271,7 +271,12 @@ sub get_processed_user_query_string {
     $user_query_string =~ s/[!:?\[\]\\^{~}]/ /g;
     $user_query_string =~ s/\|\|/ /g;
     $user_query_string =~ s/\&\&/ /g;
-
+           #XXX  temporarily remove single ampersand
+           # Solr ICUTokenizer will remove it anyway and current code that displays processed
+           # query string assumes &amp; and blows up with unescaped &
+           # Need to work through code and determine just where and when to change &amp; to & and
+           #vice versa
+           $user_query_string =~ s/\&/ /g;
 
 
     # Remove leading and trailing whitespace
