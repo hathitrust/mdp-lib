@@ -130,7 +130,14 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'usertype'    => 'staff',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-
+   'azaytsev'
+   => {
+       'displayname' => 'Zaytsev, Angelina',
+       'supervisor'  => 'jjyork',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
 
    # Michigan CRMS - Anne Karle-Zenith
    'jaheim'
