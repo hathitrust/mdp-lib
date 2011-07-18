@@ -469,13 +469,17 @@ sub _get_where
     my $where = "WHERE ";
     my $user_id = $self->get_user_id;
 
-    ASSERT(($coll_type eq 'my_colls') || ($coll_type eq 'pub_colls'),
+    ASSERT(($coll_type eq 'my_colls') || ($coll_type eq 'pub_colls') || ($coll_type eq 'all_colls'),
            qq{CollectionSet::list_colls(coll_type) is $coll_type.  Should be my_colls or pub_colls});
 
 
     if ($coll_type eq "pub_colls")
     {
         $where .= qq{shared = 1};
+    }
+    elsif ($coll_type eq "all_colls")
+    {
+        $where .= qq{(shared = 1 AND num_items > 0) OR (owner = '$user_id')};
     }
     else
     {

@@ -41,7 +41,7 @@ sub handle_PUB_COLL_LINK_PI
 
     my $debug = $C->get_object('CGI')->param('debug');
     my $params = $C->get_object('MdpConfig')->get('list_colls_base_params');
-    $params .= ";colltype=pub;debug=$debug";
+    $params .= ";colltype=all;debug=$debug";
 
     my $pub_coll_url;
     my $auth = $C->get_object('Auth');
