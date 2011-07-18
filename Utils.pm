@@ -17,14 +17,6 @@ specific dependencies.  Let's keep it that way.
 
 =cut
 
-BEGIN
-{
-    if ( $ENV{'HT_DEV'} )
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
 
 
 BEGIN

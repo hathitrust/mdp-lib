@@ -310,7 +310,14 @@ sub coll_owned_by_user
 
     DEBUG('dbcoll', qq{username = $username collection $coll_id owned by $owner"});
 
-    return ($username eq $owner);
+    # When owner is an email address, compare case in-sensitively to avoid stuff like
+    # Mary.Smith@some.edu vs. Mary.smith@some.edu (both legit)
+    my ($test_username, $test_owner) = ($username, $owner);
+    if ($test_owner =~ m,@,) {
+        ($test_username, $test_owner) = (lc($username), lc($owner));
+    }
+
+    return ($test_username eq $test_owner);
 }
 
 # ---------------------------------------------------------------------
@@ -817,10 +824,9 @@ sub edit_description {
 
     my $dbh = $self->get_dbh;
 
-    # truncate desc if more than 255 chars and then the following
-    # assert should never get triggered check for off by one error
-    ASSERT (length($value) <= 255,
-            qq{Can't add new description because it is too long\nMaximum size of description is 255 characters});
+    if (length($value) > 255) {
+        $value = substr($value, 0, 255);
+    }
 
     # specific processing
     $self-> _edit_metadata($coll_id, 'description', $value);

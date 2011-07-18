@@ -497,6 +497,24 @@ sub get_eduPersonTargetedID {
 
 # ---------------------------------------------------------------------
 
+=item __get_parsed_displayName
+
+Parse eduperson displayName returning first element in case multiple
+values are released.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_parsed_displayName {
+    my $self = shift;
+    
+    my @elems = split(/\s*;\s*/, $ENV{displayName});
+    
+    return $elems[0];
+}
+
+# ---------------------------------------------------------------------
+
 =item get_displayName
 
 This is the displayName attribute, e.g. Franklin Lumpkin, Esq.
@@ -513,7 +531,7 @@ sub get_displayName {
     my $displayName = 'anonymous';
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $displayName = $ENV{'displayName'};
+        $displayName = $self->__get_parsed_displayName();
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         $displayName = $ENV{'REMOTE_USER'};

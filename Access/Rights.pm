@@ -396,11 +396,33 @@ sub public_domain_world {
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-            return (_resolve_access_by_GeoIP() eq 'allow');
+            return (_resolve_access_by_GeoIP($C) eq 'allow');
         }
         else {
             return 1;
         }
+    }
+    else {
+        return 0;
+    }
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: orphan_candidate
+
+Description: is this id an orphand candidate?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub orphan_candidate {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    my $attribute = $self->get_rights_attribute($C, $id);
+    if ($attribute == $RightsGlobals::g_orphan_candidate_attribute_value) {
+        return 1;
     }
     else {
         return 0;
@@ -565,7 +587,7 @@ sub _Assert_final_access_status {
         ($initial_access_status, undef, undef, undef);
 
     if ($initial_access_status eq 'allow_by_geo_ipaddr') {
-        $final_access_status = _resolve_access_by_GeoIP();
+        $final_access_status = _resolve_access_by_GeoIP($C);
     }
     elsif ($initial_access_status eq 'allow_by_exclusivity') {
         ($final_access_status, $granted, $owner, $expires) =
@@ -608,7 +630,7 @@ sub _Check_final_access_status {
     my $final_access_status = $initial_access_status;
 
     if ($initial_access_status eq 'allow_by_geo_ipaddr') {
-        $final_access_status = _resolve_access_by_GeoIP();
+        $final_access_status = _resolve_access_by_GeoIP($C);
     }
     elsif ($initial_access_status eq 'allow_by_lib_ipaddr') {
         if ($DYNAMIC_LABELS) {
@@ -837,27 +859,39 @@ sub _determine_access_type {
 
 =item CLASS PRIVATE: _resolve_access_by_GeoIP
 
-Description
+First check IP for U.S. origin then test for proxies.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub _resolve_access_by_GeoIP {
-    require "Geo/IP.pm";
+    my $C = shift;
 
-    my $status;
+    my $status = 'deny';
 
     # Allow caller to specify IP address, optionally
     my $IPADDR = shift || $ENV{'REMOTE_ADDR'};
 
+    require "Geo/IP.pm";
     my $geoIP = Geo::IP->new();
     my $country_code = $geoIP->country_code_by_addr($IPADDR);
     if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
-        $status = 'allow';
+        # veryify this is not a US proxy for a non-US request
+        require "Access/Proxy.pm";
+        my $dbh = $C->get_object('Database')->get_DBH($C);
+
+        if (Access::Proxy::blacklisted($dbh, $IPADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})) {
+            $status = 'deny';
+        }
+        else {
+            $status = 'allow';
+        }
     }
     else {
         $status = 'deny';
     }
+
+    return $status;
 }
 
 # ---------------------------------------------------------------------
