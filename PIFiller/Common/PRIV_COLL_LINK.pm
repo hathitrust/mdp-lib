@@ -40,7 +40,7 @@ sub handle_PRIV_COLL_LINK_PI
 
     my $debug = $C->get_object('CGI')->param('debug');
     my $params = $C->get_object('MdpConfig')->get('list_colls_base_params');
-    $params .= ";colltype=priv;debug=$debug";
+    $params .= ";colltype=my-collections;debug=$debug";
 
     my $priv_coll_url;
     my $auth = $C->get_object('Auth');
