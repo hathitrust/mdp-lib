@@ -10,10 +10,6 @@ Search::Query ((Q)
 This class represents the form of the Solr query as based on the
 user's query string.
 
-=head1 VERSION
-
-$Id: Query.pm,v 1.20 2010/01/26 21:57:49 tburtonw Exp $
-
 =head1 SYNOPSIS
 
 my $Q = new Search::Query($query_string, [[1,234,4,456,563456,43563,3456345634]]);
@@ -25,13 +21,6 @@ $Q->get_Solr_query_string();
 =over 8
 
 =cut
-
-BEGIN {
-    if ($ENV{'HT_DEV'}) {
-        require "strict.pm";
-        strict::import();
-    }
-}
 
 use Utils;
 use Utils::Time;
@@ -277,7 +266,7 @@ sub get_processed_user_query_string {
            # Solr ICUTokenizer will remove it anyway and current code that displays processed
            # query string assumes &amp; and blows up with unescaped &
            # Need to work through code and determine just where and when to change &amp; to & and
-           #vice versa
+           # vice versa
            $user_query_string =~ s/\&/ /g;
 
 
@@ -524,8 +513,12 @@ sub GetToken {
         }
 
         my $tok = shift @Tokens;
-        print qq{token="$tok" };
         DEBUG('parse,all', sub {return qq{Get: token="$tok"};});
+
+        if ($token) {
+            die unless(IsReserved($tok));
+        }
+ 
         if (IsReserved($tok)) {
             if ($token) {
                 unshift(@Tokens, $tok);
