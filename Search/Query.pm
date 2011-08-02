@@ -462,7 +462,7 @@ sub parse_preprocess {
 sub IsReserved {
     my $tok = shift;
     if (grep(/^\Q$tok\E$/, values(%Reserved))) {
-        print qq{Reserved: $tok\n};
+        DEBUG('parse,all', sub {return qq{Reserved: $tok\n};});
     }
 }
 
