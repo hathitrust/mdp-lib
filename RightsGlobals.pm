@@ -248,10 +248,10 @@ $HT_AFFILIATE           = 5;
      # copyright-orphaned (implies in-copyright)
      '4' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'deny',
-             $UM_AFFILIATE          => 'deny',
-             $HT_AFFILIATE          => 'deny',
+             $SSD_USER              => 'allow_by_holdings_by_agreement',
+             $LIBRARY_IPADDR_USER   => 'allow_by_holdings_by_agreement',
+             $UM_AFFILIATE          => 'allow_by_holdings_by_agreement',
+             $HT_AFFILIATE          => 'allow_by_holdings_by_agreement',
             },
      # undetermined copyright status
      '5' => { 

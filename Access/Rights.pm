@@ -47,8 +47,7 @@ method.
 $final_accessstatus = $ar->check_final_access_status($C, $id);
 
 For the preceeding two calls, the Context object must contain at least
-a CGI and an Database object.  Session is optional to
-maintain state for 'ssd' users, e.g. SSD students.
+a CGI and an Database object.
 
 For the next class method, the Context object may be empty.
 
@@ -75,6 +74,9 @@ use Auth::Auth;
 use Auth::Exclusive;
 use RightsGlobals;
 use MirlynGlobals;
+
+use Access::Holdings;
+use Access::Orphans;
 
 sub new {
     my $class = shift;
@@ -136,12 +138,7 @@ sub get_rights_attribute {
 
 =item PUBLIC: get_source_attribute
 
-SOURCES
-id 	name 	    dscr
-1 	google 	    Google
-2 	lit-dlps-dc LIT, DLPS, Digital Conversion
-3       um press
-4       ia          Internet Archive
+SOURCES See RightsGlobals.pm
 
 =cut
 
@@ -171,7 +168,14 @@ sub get_source_attribute {
 
 =item CLASS PUBLIC: get_fulltext_attr_list
 
-For this user, which rights attributes equate to 'fulltext'
+For this user (assuming user is authenticated) for user's institution,
+which rights attributes equate to 'fulltext'
+
+WARNING: The list returned by this subroutine is valid ONLY when
+called to construct a filter query that INCLUDES A TEST FOR HOLDINGS.
+It is permissive of the attributes that equate to 'allow' in the
+CERTAIN KNOWLEDGE that these rights attribute values will be QUALIFIED
+BY THIS HOLDINGS TEST.
 
 =cut
 
@@ -179,6 +183,21 @@ For this user, which rights attributes equate to 'fulltext'
 sub get_fulltext_attr_list {
     my $C = shift;
     return _get_final_access_status_attr_list($C, 'allow');
+}
+
+# ---------------------------------------------------------------------
+
+=item CLASS PUBLIC: get_no_fulltext_attr_list
+
+For this user (assuming user is authenticated) for user's institution,
+which rights attributes equate to 'search-only', i.e. no 'fulltext'.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_no_fulltext_attr_list {
+    my $C = shift;
+    return _get_final_access_status_attr_list($C, 'deny');
 }
 
 # ---------------------------------------------------------------------
@@ -202,7 +221,7 @@ sub assert_final_access_status {
     }
 
     my $rights_attribute = $self->get_rights_attribute($C, $id);
-    my $access_type = _determine_access_type($C, $id);
+    my $access_type = _determine_access_type($C);
 
     my $initial_access_status =
         _determine_initial_access_status($rights_attribute, $access_type);
@@ -258,7 +277,7 @@ sub check_final_access_status {
     }
 
     my $rights_attribute = $self->get_rights_attribute($C, $id);
-    my $access_type = _determine_access_type($C, $id);
+    my $access_type = _determine_access_type($C);
 
     my $initial_access_status =
         _determine_initial_access_status($rights_attribute, $access_type);
@@ -294,6 +313,7 @@ sub check_final_access_status_by_attribute {
 
     return $final_access_status;
 }
+
 # ---------------------------------------------------------------------
 
 =item PUBLIC: get_full_PDF_access_status
@@ -596,6 +616,9 @@ sub _Assert_final_access_status {
     elsif ($initial_access_status eq 'allow_by_lib_ipaddr') {
         $final_access_status = 'allow';
     }
+    if ($initial_access_status eq 'allow_by_holdings_by_agreement') {
+        $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+    }
 
     ___final_access_status_check($final_access_status);
 
@@ -606,46 +629,54 @@ sub _Assert_final_access_status {
 
 =item  CLASS PRIVATE: _Check_final_access_status
 
-In cases where the id is not available (such as determining which
-attributes equate to 'allow' for a query for full text items) punt if
-the initial_access_status is 'allow_by_exclusivity' and set
-final_access_status to 'deny'.
+In cases where the id required to determine *holdings* and is not
+available (such as determining which attributes equate to 'allow' for
+a Facet for just fulltext items), set it to 'allow'. Downstream code
+will have to filter records based on its holdings data over all items
+to determine which will appear in search results. There are two cases
+where holdings come into play:
 
-As of Tue Apr 27 12:27:40 2010 we decided to have the UI express the
-denial of access that depends on being able to gain exclusive access
-when another user *with the identical affiliation* already has
-exclusive access.  Links will always say 'deny' for OPB even when
-"in_a_library".  This is configurable below in case we want to make
-the CB and LS labels dynamic.  Note however, that when it comes to
-actually accessing the book, UM OPB access is allowed.
+(1) If the initial_access_status is 'allow_by_exclusivity' we set
+final_access_status to 'allow'. It is highly improbable that an item
+to which exclusive access applies will be acquired by a user other
+that the user viewing results filtered by the 'fulltext' Facet
+resulting in a 'search-only' link to pageturner in the search results.
+
+(2) If the initial_access_status is 'allow_by_holdings_by_agreement' we set 
+final_access_status to 'allow'.
 
 =cut
 
 # ---------------------------------------------------------------------
-my $DYNAMIC_LABELS = 0;
-
 sub _Check_final_access_status {
     my ($C, $initial_access_status, $id) = @_;
 
     my $final_access_status = $initial_access_status;
 
-    if ($initial_access_status eq 'allow_by_geo_ipaddr') {
+    if 
+      ($initial_access_status eq 'allow_by_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C);
     }
-    elsif ($initial_access_status eq 'allow_by_lib_ipaddr') {
-        if ($DYNAMIC_LABELS) {
-            $final_access_status = 'allow';
-        }
-        else {
-            $final_access_status = 'deny';
-        }
+    elsif 
+      ($initial_access_status eq 'allow_by_lib_ipaddr') {
+        $final_access_status = 'allow';
     }
-    elsif ($initial_access_status eq 'allow_by_exclusivity') {
-        if ($DYNAMIC_LABELS) {
+    elsif 
+      ($initial_access_status eq 'allow_by_exclusivity') {
+        if (defined($id)) {
             $final_access_status = _check_access_exclusivity($C, $id);
         }
         else {
-            $final_access_status = 'deny';
+            $final_access_status = 'allow';
+        }
+    }
+    elsif 
+      ($initial_access_status eq 'allow_by_holdings_by_agreement') {
+        if (defined($id)) {
+            $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+        }
+        else {
+            $final_access_status = 'allow';
         }
     }
 
@@ -659,7 +690,12 @@ sub _Check_final_access_status {
 
 =item CLASS PRIVATE: _determine_rights_attribute
 
-Description
+This will need to be enhanced to test for the triple
+[institution,id,condition] in the Holdings Database and if
+condition="brittle", return 3 else return value in
+mdp.rights_current.attr
+
+If institution is not known return mdp.rights_current.attr 
 
 =cut
 
@@ -803,47 +839,45 @@ sub _get_source_attribute {
 
 Determine for each what sort of access class a user falls into in
 order to determine authorization for each value of the rights
-attribute in mdp.rights table.
+attribute in mdp.rights_current table.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub _determine_access_type {
-    my ($C, $id) = @_;
+    my $C = shift;
 
     my $access_type = $RightsGlobals::ORDINARY_USER;
 
-    # Is this a ssd user?
-    my $ssd = $C->get_object('CGI')->param('ssd');
-    if (
-        defined($id)
-        &&
-        $ssd
-        &&
-        (_user_ssd_status($C, $id) eq 'allowed')
-       ) {
-        $access_type = $RightsGlobals::SSD_USER
-    }
-    else {
-        my $auth = $C->get_object('Auth');
+    # Tests are in order of which access type would give most
+    # privileges. Note: If authed as UMICH, exclusive access to
+    # brittle books is limited by number of copies held and by users
+    # vith exclusive access grants to same whereas if unauthenticated
+    # and in a library building they would not be constrained at all.
 
-        # Being in a (UM) library gives rights to see in-copyright
-        # brittle book images. If not, see if user is a HathiTrust affiliate
-        # that can gain exclusive access
-        if ($auth->is_in_library()) {
-            # Allows brittle book access to unlimited number of users
-            $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
-        }
-        elsif ($auth->affiliation_is_umich($C)) {
-            # on or off-campus full PDF + outside of library exclusive
-            # brittle access + some DLPS ic works
-            $access_type = $RightsGlobals::UM_AFFILIATE;
-        }
-        elsif ($auth->affiliation_is_hathitrust($C)) {
-            # full PDF + exclusive brittle access
-            $access_type = $RightsGlobals::HT_AFFILIATE;
-        }
+    my $auth = $C->get_object('Auth');
+
+    if 
+      ($auth->get_eduPersonEntitlement_print_disabled($C)) {
+        $access_type = $RightsGlobals::SSD_USER;
     }
+    elsif 
+      ($auth->affiliation_is_umich($C)) {
+        # on or off-campus full PDF of pd + outside of library
+        # exclusive brittle access + some DLPS ic works + orphans
+        $access_type = $RightsGlobals::UM_AFFILIATE;
+    }
+    elsif 
+      ($auth->affiliation_is_hathitrust($C)) {
+        # full PDF + exclusive brittle access
+        $access_type = $RightsGlobals::HT_AFFILIATE;
+    }
+    elsif 
+      ($auth->is_in_library()) {
+        # brittle book access not limited by number held or exclusion
+        $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
+    }
+
     DEBUG('pt,auth,all',
           sub {
               my $a = $RightsGlobals::g_access_type_names{$access_type};
@@ -925,6 +959,30 @@ sub _check_access_exclusivity {
 
 # ---------------------------------------------------------------------
 
+=item _resolve_access_by_held_and_agreement
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _resolve_access_by_held_and_agreement {
+    my ($C, $id) = @_;
+
+    my $status = 'deny';
+    
+    my $inst = $C->get_object('Auth')->get_institution();
+    if (Access::Orphans::institution_agreement($C, $inst)) {
+        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+            $status = 'allow';
+        }
+    }
+    
+    return $status;
+}
+
+# ---------------------------------------------------------------------
+
 =item CLASS PRIVATE: _assert_access_exclusivity
 
 Description
@@ -953,187 +1011,6 @@ sub _assert_access_exclusivity {
     return ($status, $granted, $owner, $expires);
 }
 
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _user_ssd_status_wo_session
-
-Helper for _user_ssd_status.  The "gr" CGI needs access status but does
-not maintain a session nor pass an ssd parameter to compute SSD status
-so to cut down on overhead the SSD status will be
-denied-notcheckedout.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _user_ssd_status_wo_session {
-    my ($C, $id) = @_;
-
-    my $ssd = 'denied-nonsession';
-    DEBUG('pt,auth,all', qq{<h4>SSD status="$ssd"</h4>});
-    return $ssd;
-}
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _user_ssd_status_w_session
-
-Helper for _user_ssd_status. A user must be logged to have ssd status
-regardless of the state of the ssd flag on the session
-
-=cut
-
-# ---------------------------------------------------------------------
-my %cached_ssd_status;
-
-sub _user_ssd_status_w_session {
-    my ($C, $id) = @_;
-
-    # Prevent needless database accesses
-    return $cached_ssd_status{$id}
-        if ($cached_ssd_status{$id});
-
-    my $ses = $C->get_object('Session');
-    my $auth = $C->get_object('Auth');
-
-    my $logged_in = $auth->is_logged_in();
-    my $ssd_requested = $C->get_object('CGI')->param('ssd');
-
-    my $ssd = $ses->get_persistent_subkey('ssd', $id);
-    DEBUG('pt,auth,all', qq{<h4>SSD status [ON ENTRY]="$ssd"</h4>});
-
-    if (! $ssd) {
-        $ses->set_persistent_subkey('ssd', $id, 'initial');
-        $cached_ssd_status{$id} = $ssd;
-    }
-
-    if (! $ssd_requested) {
-        my $ssd = 'denied-notrequested';
-        $ses->set_persistent_subkey('ssd', $id, $ssd);
-        $cached_ssd_status{$id} = $ssd;
-        DEBUG('pt,auth,all', qq{<h4>SSD status="$ssd"</h4>});
-
-        return $ssd;
-        # NOTREACHED
-    }
-
-    if (! $logged_in) {
-        # Cannot be ssd for any ID if not logged in
-        my $ssd = 'denied-notloggedin';
-        $ses->set_persistent_subkey('ssd', $id, $ssd);
-        $cached_ssd_status{$id} = $ssd;
-        DEBUG('pt,auth,all', qq{<h4>SSD status="$ssd"</h4>});
-
-        return $ssd;
-        # NOTREACHED
-    }
-
-    # The user is now logged in and now requests SSD status. Check
-    # again if status is not 'allowed'
-    my $check_status = 0;
-    $ssd = $ses->get_persistent_subkey('ssd', $id);
-    if ($ssd ne 'allowed') {
-        $check_status = 1;
-    }
-
-    if ($check_status) {
-        # Test user for ssd privilege for this ID
-        my $uniqname = $auth->get_user_name();
-        if (_authenticate_ssd_user($C, $uniqname, $id)) {
-            $ssd = 'allowed';
-            $cached_ssd_status{$id} = $ssd;
-            $ses->set_persistent_subkey('ssd', $id, $ssd);
-        }
-        else {
-            $ssd = 'denied-notcheckedout';
-            $cached_ssd_status{$id} = $ssd;
-            $ses->set_persistent_subkey('ssd', $id, $ssd);
-        }
-    }
-
-    DEBUG('pt,auth,all', qq{<h4>SSD status="$ssd"</h4>});
-
-    return $ssd;
-}
-
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _user_ssd_status
-
-A user must be logged to have ssd status regardless of the state
-of the ssd flag on the session
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _user_ssd_status {
-    my ($C, $id) = @_;
-
-    my $ssd;
-
-    if ($C->has_object('Session')) {
-        $ssd = _user_ssd_status_w_session($C, $id);
-    }
-    else {
-        $ssd = _user_ssd_status_wo_session($C, $id);
-    }
-
-    return $ssd;
-}
-
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE:_authenticate_ssd_user
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _authenticate_ssd_user {
-    my ($C, $uniqname, $id) = @_;
-
-    return 0 if (! $uniqname);
-
-    my $authenticated = 0;
-
-    my $url = $MirlynGlobals::g_ssd_access_url;
-    $url =~ s,__UNIQNAME__,$uniqname,g;
-
-    my $response = Utils::get_user_agent()->get($url);
-    my $response_ok = $response->is_success;
-    my $response_status = $response->status_line;
-
-    if ($response_ok) {
-        my $patron_data = $response->content;
-
-        DEBUG('ptdata',
-              sub {
-                  my $d = $patron_data; Utils::map_chars_to_cers(\$d, [q{"}, q{'}]);
-                  return qq{<h4>Patron data:<br/></h4> $d};
-              });
-
-        if ($patron_data) {
-            $patron_data = Encode::decode_utf8($patron_data);
-
-            # parse for ssd user flag and "barcode" in question
-            if (($patron_data =~ m,<z305-field-3>SSD</z305-field-3>,)
-                &&
-                ($patron_data =~ m,<z30-call-no-2>$id</z30-call-no-2>,)) {
-                $authenticated = 1;
-            }
-        }
-    }
-    DEBUG('pt,auth,all',
-          sub {
-              my $u = $url; Utils::map_chars_to_cers(\$u);
-              return qq{<h4>SSD authentication result="$authenticated"<br/>URL="$u"<br/>XServer response="$response_status"</h4>};
-          });
-
-    return $authenticated;
-}
-
 1;
 
 
@@ -1145,7 +1022,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-10 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-11 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

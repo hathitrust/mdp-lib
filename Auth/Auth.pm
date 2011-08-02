@@ -67,13 +67,6 @@ browser is closed or else after between 6 months and one year.
 
 =cut
 
-BEGIN {
-    if ($ENV{'HT_DEV'}) {
-        require "strict.pm";
-        strict::import();
-    }
-}
-
 use Utils;
 use Debug::DUtils;
 use Session;
@@ -81,6 +74,42 @@ use Session;
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
+
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/usability/(1|2)$,ios;
+
+use constant MICH_SSD_LIST => qw
+  (
+      brekac
+      caone
+      cboyer
+      ccarpey
+      cherisht
+      dgoraya
+      echols
+      ekderus
+      gsheena
+      hkanter
+      jlfr
+      jrcarmon
+      jrmorak
+      kimjiy
+      kmbally
+      kqread
+      krausant
+      longcane
+      mrmarsh
+      mshoe
+      msschmit
+      nicolejg
+      noahw
+      orodrigu
+      rdorian
+      rokapur
+      rubind
+      shanorwo
+      ssutaria
+      ijohns
+ );
 
 sub new {
     my $class = shift;
@@ -358,10 +387,8 @@ sub get_institution {
 =item is_in_library
 
 This plays a role in Section 108 brittle book access authorization. We
-do not currently have a way to determine whether someone in a library
-at a non UM institution can see a brittle book.  It might not be
-brittle at their institution. As such, this applies only to UM at
-present.
+do not currently have IP addresses of non-UM Library buildings. If we
+did, we could consult the Holdings database for book's condition.
 
 =cut
 
@@ -377,7 +404,7 @@ sub is_in_library {
 
 =item __get_prioritized_scoped_affiliation
 
-Parse $ENV{affiliation} into its components.  
+Parse $ENV{affiliation} into its components.
 
 Currently we support, at most, just
 "member@foo.edu;staff@foo.edu;affiliate@foo.edu".  Return one of
@@ -390,17 +417,17 @@ Return undef if one of these affiliations is not present.
 # ---------------------------------------------------------------------
 sub __get_prioritized_scoped_affiliation {
     my $self = shift;
-    
+
     my @aff_prios = qw(member faculty staff student alum affiliate);
     my @affs = split(/\s*;\s*/, $ENV{'affiliation'});
     @affs = map {lc($_)} @affs;
-    
+
     my %aff_hash = map { ($_) =~ (m,(.*?)@.*$,) => $_ } @affs;
 
     foreach my $aff (@aff_prios) {
         return $aff_hash{$aff} if ($aff_hash{$aff});
     }
-    
+
     return undef;
 }
 
@@ -420,7 +447,7 @@ sub get_eduPersonScopedAffiliation {
     my $C = shift;
 
     my $eduPersonScopedAffiliation;
-    
+
     if ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend()) {
             $eduPersonScopedAffiliation = 'member@umich.edu';
@@ -429,7 +456,7 @@ sub get_eduPersonScopedAffiliation {
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
         $eduPersonScopedAffiliation = $self->__get_prioritized_scoped_affiliation();
     }
-    
+
     return $eduPersonScopedAffiliation;
 }
 
@@ -465,6 +492,44 @@ sub get_eduPersonPrincipalName {
     return $eduPersonPrincipalName;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_eduPersonEntitlement_print_disabled
+
+This is the eduPersonEntitlement attribute value that equates to print disabled status.
+
+http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#eduPersonEntitlement
+
+The values follow the URL-type scheme:
+
+http://www.hathitrust.org/usability/N
+
+where N can be:
+
+0 - no special privs
+1 - print disabled
+2 - assist print disabled
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_eduPersonEntitlement_print_disabled {
+    my $self = shift;
+    my $C = shift;
+
+    my $is_print_disabled = 0;
+
+    if ($self->auth_sys_is_SHIBBOLETH($C)) {
+        my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+        $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+    }
+    elsif ($self->auth_sys_is_COSIGN($C)) {
+        $is_print_disabled = grep(/^$ENV{REMOTE_USER}$/, UMICH_SSD_LIST) || DEBUG('ssd');
+    }
+
+    return $is_print_disabled;
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -481,7 +546,7 @@ http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-2008
 We have seen the umich IdP assign the semi-colon separated
 concatenation of the old:
 
-urn:mace:dir:attribute-def:eduPersonTargetedID 
+urn:mace:dir:attribute-def:eduPersonTargetedID
 
 and the new:
 
@@ -507,9 +572,9 @@ values are released.
 # ---------------------------------------------------------------------
 sub __get_parsed_displayName {
     my $self = shift;
-    
+
     my @elems = split(/\s*;\s*/, $ENV{displayName});
-    
+
     return $elems[0];
 }
 
@@ -527,7 +592,7 @@ http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-2008
 sub get_displayName {
     my $self = shift;
     my $C = shift;
-    
+
     my $displayName = 'anonymous';
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
@@ -635,8 +700,8 @@ sub get_user_display_name {
                 $user_display_name = $ENV{'REMOTE_USER'};
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-                $user_display_name = 
-                    $self->get_displayName($C) 
+                $user_display_name =
+                    $self->get_displayName($C)
                             || $self->get_eduPersonScopedAffiliation($C);
             }
         }
