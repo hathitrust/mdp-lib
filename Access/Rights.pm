@@ -509,7 +509,8 @@ sub _validate_id {
 
 =item CLASS PRIVATE: _get_final_access_status_attr_list
 
-For this user, which rights attributes equate to 'allow' or 'deny'
+For this user, which rights attributes equate to 'allow' or 'deny' and
+see notes on _Check_final_access_status()
 
 =cut
 
@@ -629,18 +630,19 @@ sub _Assert_final_access_status {
 
 =item  CLASS PRIVATE: _Check_final_access_status
 
-In cases where the id required to determine *holdings* and is not
-available (such as determining which attributes equate to 'allow' for
-a Facet for just fulltext items), set it to 'allow'. Downstream code
-will have to filter records based on its holdings data over all items
-to determine which will appear in search results. There are two cases
+The id is required to determine holdings. If the id is not available
+(such as determining which attributes equate to 'allow' for a Facet
+for just fulltext items), set access to 'allow'. Downstream code will
+have to filter records based on its holdings data over all items to
+determine which should appear in search results. There are two cases
 where holdings come into play:
 
 (1) If the initial_access_status is 'allow_by_exclusivity' we set
 final_access_status to 'allow'. It is highly improbable that an item
 to which exclusive access applies will be acquired by a user other
-that the user viewing results filtered by the 'fulltext' Facet
-resulting in a 'search-only' link to pageturner in the search results.
+that the user viewing results filtered by the 'fulltext' Facet.  The
+anomaly here is a 'search-only' link to pageturner in the search
+results for 'fulltext' only.
 
 (2) If the initial_access_status is 'allow_by_holdings_by_agreement' we set 
 final_access_status to 'allow'.
