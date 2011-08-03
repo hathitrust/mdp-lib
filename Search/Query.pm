@@ -26,7 +26,10 @@ use Utils;
 use Utils::Time;
 use Utils::Logger;
 use Debug::DUtils;
-
+use Context;
+use Auth::Auth;
+use Access::Rights;
+use RightsGlobals;
 
 sub new {
     my $class = shift;
@@ -144,6 +147,84 @@ sub set_processed_query_string {
     my $self = shift;
     my $s = shift;
     $self->{'processedquerystring'} = $s;
+}
+
+
+# ---------------------------------------------------------------------
+
+=item get_Solr_no_fulltext_filter_query
+
+Construct a filter query informed by the authentication and holdings
+environment for 'search-only'.  This is the negation of
+get_Solr_fulltext_filter_query() + attr 8
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_Solr_no_fulltext_filter_query {
+    my $self = shift;
+    my $C = shift;
+    
+    my $fulltext_FQ_string = $self->get_Solr_fulltext_filter_query($C);
+
+    my $no_fulltext_FQ_string = 
+      '((NOT+(' . $fulltext_FQ_string . '))' . join('+OR+', 'rights:' . RightsGlobals::g_available_to_no_one_attribute_value) . ')';
+    
+    return $no_fulltext_FQ_string;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_Solr_fulltext_filter_query
+
+Construct a filter query informed by the authentication and holdings
+environment.
+
+Construct, given the users institution (inst):
+   e.g. fq=(rights:1+OR+rights:7)+OR+(ht_holding_inst:inst+AND+attr:3)+OR+(ht_holding_inst:inst+AND+attr:4)
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_Solr_fulltext_filter_query {
+    my $self = shift;
+    my $C = shift;
+    
+    # These are the attrs, for this users access type (e.g. SSD) and
+    # institution that equate to the 'allow' status, i.e. fulltext.
+    # If any of them also require the institution to hold the volumes
+    # those attrs will be qualified by institution.
+    my $fulltext_attr_list_ref = Access::Rights::get_fulltext_attr_list($C);
+    
+    my @holdings_qualified_attr_list = ();
+    my @unqualified_attr_list = @$fulltext_attr_list_ref;
+    
+    foreach my $fulltext_attr (@$fulltext_attr_list_ref) {
+        if (grep(/^$fulltext_attr$/, @RightsGlobals::g_access_requires_holdings_attribute_values)) {
+            push(@holdings_qualified_attr_list, $fulltext_attr);
+            @unqualified_attr_list = grep(! /^$fulltext_attr$/, @unqualified_attr_list);
+        }
+    }
+    
+    my $unqualified_string = '';
+    if (scalar @unqualified_attr_list) {
+        $unqualified_string = 
+          '(' . join('+OR+', map { 'rights:' . $_ } @unqualified_attr_list) . ')';
+    }
+    
+    # Qualify by holdings.  If there is no institution, these attrs
+    # should be filtered by an institution value that never matches.
+    my $holdings_qualified_string = '';
+    if (scalar @holdings_qualified_attr_list) {
+        my $inst = $C->get_object('Auth')->get_institution();
+        $inst = '___NO_INST___' if (! $inst);
+        $holdings_qualified_string = 
+          '(' . join('+OR+', map { 'ht_holding_inst:$inst+AND+rights:' . $_ } @holdings_qualified_attr_list) . ')';
+    }
+    
+    my $fulltext_FQ_string = $unqualified_string . ($holdings_qualified_string ? '+OR+' . $holdings_qualified_string : '');
+    
+    return $fulltext_FQ_string;
 }
 
 

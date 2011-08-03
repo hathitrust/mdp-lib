@@ -607,18 +607,26 @@ sub _Assert_final_access_status {
     my ($final_access_status, $granted, $owner, $expires) =
         ($initial_access_status, undef, undef, undef);
 
-    if ($initial_access_status eq 'allow_by_geo_ipaddr') {
+    if 
+      ($initial_access_status eq 'allow_by_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C);
     }
-    elsif ($initial_access_status eq 'allow_by_exclusivity') {
+    elsif 
+      ($initial_access_status eq 'allow_by_exclusivity') {
         ($final_access_status, $granted, $owner, $expires) =
             _assert_access_exclusivity($C, $id);
     }
-    elsif ($initial_access_status eq 'allow_by_lib_ipaddr') {
+    elsif 
+      ($initial_access_status eq 'allow_by_lib_ipaddr') {
         $final_access_status = 'allow';
     }
-    if ($initial_access_status eq 'allow_by_holdings_by_agreement') {
+    elsif
+      ($initial_access_status eq 'allow_by_holdings_by_agreement') {
         $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+    }
+    elsif 
+      ($initial_access_status eq 'allow_by_holdings') {
+        $final_access_status = _resolve_access_by_held($C, $id);
     }
 
     ___final_access_status_check($final_access_status);
@@ -678,10 +686,21 @@ sub _Check_final_access_status {
             $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
         }
         else {
-            $final_access_status = 'allow';
+            # downstream must filter on holdings if $final_access_status = 'allow'
+            $final_access_status = _institution_has_orphan_agreement($C) ? 'allow' : 'deny'; 
         }
     }
-
+    elsif 
+      ($initial_access_status eq 'allow_by_holdings') {
+        if (defined($id)) {
+            $final_access_status = _resolve_access_by_held($C, $id);
+        }
+        else {
+            # downstream must filter on holdings
+            $final_access_status = 'deny';
+        }
+    }
+    
     ___final_access_status_check($final_access_status);
 
     return $final_access_status;
@@ -981,6 +1000,44 @@ sub _resolve_access_by_held_and_agreement {
     }
     
     return $status;
+}
+
+# ---------------------------------------------------------------------
+
+=item _resolve_access_by_held
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _resolve_access_by_held {
+    my ($C, $id) = @_;
+
+    my $status = 'deny';
+    
+    my $inst = $C->get_object('Auth')->get_institution();
+    if (Access::Holdings::id_is_held($C, $id, $inst)) {
+        $status = 'allow';
+    }
+    
+    return $status;
+}
+
+# ---------------------------------------------------------------------
+
+=item _institution_has_orphan_agreement
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _institution_has_orphan_agreement {
+    my $C = shift;
+
+    my $inst = $C->get_object('Auth')->get_institution();
+    return Access::Orphans::institution_agreement($C, $inst);
 }
 
 # ---------------------------------------------------------------------

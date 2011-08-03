@@ -229,7 +229,7 @@ $HT_AFFILIATE           = 5;
      # in-copyright
      '2' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
+             $SSD_USER              => 'allow_by_holdings',
              $LIBRARY_IPADDR_USER   => 'deny',
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
@@ -240,9 +240,9 @@ $HT_AFFILIATE           = 5;
      # is enforced and access granted downstream.
      '3' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr',
-             $UM_AFFILIATE          => 'allow_by_exclusivity', 
+             $SSD_USER              => 'allow_by_holdings',
+             $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr', # holding is implied here
+             $UM_AFFILIATE          => 'allow_by_exclusivity', # holding is implied here
              $HT_AFFILIATE          => 'deny', 
             },
      # copyright-orphaned (implies in-copyright)
@@ -256,18 +256,20 @@ $HT_AFFILIATE           = 5;
      # undetermined copyright status
      '5' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
+             $SSD_USER              => 'allow_by_holdings',
              $LIBRARY_IPADDR_USER   => 'deny',
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
             },
-     # available to UM affiliates and UM walk-in patrons (all campuses)
+     # available to UM affiliates and UM walk-in patrons (all
+     # campuses), these moved to 7 (world) so make them equivalent to
+     # 7 if a volume appears as 6
      '6' => { 
-             $ORDINARY_USER         => 'deny',
+             $ORDINARY_USER         => 'allow',
              $SSD_USER              => 'allow',
              $LIBRARY_IPADDR_USER   => 'allow',
              $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'deny',
+             $HT_AFFILIATE          => 'allow',
             },
      # available to everyone in the world
      '7' => { 
@@ -342,10 +344,10 @@ $HT_AFFILIATE           = 5;
               $UM_AFFILIATE          => 'allow',
               $HT_AFFILIATE          => 'allow',
              },
-     # orphan candidate
+     # orphan candidate (implied in-copyright)
      '16' => { 
               $ORDINARY_USER         => 'deny',
-              $SSD_USER              => 'allow',
+              $SSD_USER              => 'allow_by_holdings',
               $LIBRARY_IPADDR_USER   => 'deny',
               $UM_AFFILIATE          => 'deny',
               $HT_AFFILIATE          => 'deny',
@@ -357,6 +359,9 @@ $HT_AFFILIATE           = 5;
 # ---------------------------------------------------------------------
 @g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15);
 @g_public_domain_world_attribute_values = (1, 7, 9);
+@g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16);
+
+$g_available_to_no_one_attribute_value = 8;
 $g_public_domain_US_attribute_value = 9;
 $g_orphan_candidate_attribute_value = 16;
 
