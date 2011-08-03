@@ -155,6 +155,7 @@ sub _initialize {
                                 . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
                                   . q{ is_umich=} . $self->affiliation_is_umich($C)
                                     . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                      . q{ entitlement=} . $ENV{entitlement}
                                 });
         }
         else {

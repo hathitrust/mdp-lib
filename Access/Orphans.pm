@@ -40,8 +40,7 @@ sub institution_agreement {
     
     my $dbh = $C->get_object('Database')->get_DBH($C);
 
-    my $SELECT_clause = 
-      qq{(SELECT count(*) FROM orph_agree where inst='$inst'};
+    my $SELECT_clause = qq{SELECT count(*) FROM orph_agree where inst='$inst'};
     my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause);
     my $count = $sth->fetchrow_array();
     my $held = ($count > 0);

@@ -128,6 +128,8 @@ sub set_HathiTrust_debug_environment {
             $ENV{'AUTH_TYPE'} = 'shibboleth';
             $ENV{'affiliation'} = 'member@umich.edu';
             $ENV{'unscoped-affiliation'} = 'member';
+            $ENV{'entitlement'} = 'http://www.hathitrust.org/usability/1'
+              if (DEBUG('ssd'));
         }
     }
     elsif (DEBUG('nonhathi')) {
