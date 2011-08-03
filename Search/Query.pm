@@ -463,6 +463,7 @@ sub IsReserved {
     my $tok = shift;
     if (grep(/^\Q$tok\E$/, values(%Reserved))) {
         DEBUG('parse,all', sub {return qq{Reserved: $tok\n};});
+        return 1;
     }
 }
 
