@@ -10,10 +10,6 @@ Search::Query ((Q)
 This class represents the form of the Solr query as based on the
 user's query string.
 
-=head1 VERSION
-
-$Id: Query.pm,v 1.20 2010/01/26 21:57:49 tburtonw Exp $
-
 =head1 SYNOPSIS
 
 my $Q = new Search::Query($query_string, [[1,234,4,456,563456,43563,3456345634]]);
@@ -25,13 +21,6 @@ $Q->get_Solr_query_string();
 =over 8
 
 =cut
-
-BEGIN {
-    if ($ENV{'HT_DEV'}) {
-        require "strict.pm";
-        strict::import();
-    }
-}
 
 use Utils;
 use Utils::Time;
@@ -221,7 +210,7 @@ sub get_processed_user_query_string {
     my $query_string = shift;
 
     my $user_query_string;
-    
+
     if (defined ($query_string))
     {
         $user_query_string= $query_string;
@@ -230,7 +219,7 @@ sub get_processed_user_query_string {
     {
         $user_query_string = $self->get_query_string();
     }
-    
+
 
     # Replace sequences of 2 or more double-quotes (") with a single
     # double-quote
@@ -277,7 +266,7 @@ sub get_processed_user_query_string {
            # Solr ICUTokenizer will remove it anyway and current code that displays processed
            # query string assumes &amp; and blows up with unescaped &
            # Need to work through code and determine just where and when to change &amp; to & and
-           #vice versa
+           # vice versa
            $user_query_string =~ s/\&/ /g;
 
 
@@ -289,11 +278,16 @@ sub get_processed_user_query_string {
     # spaces.
     my @tokens = parse_preprocess($user_query_string);
 
-    # Attempt to parse the query as a boolean expression.
-    my $valid = valid_boolean_expression(@tokens);
+    # If user is not attempting a boolean query skip the parse here
+    my $valid = 1;
+    if (grep(/^(AND|OR)$/, @tokens)) {
+        # Attempt to parse the query as a boolean expression.
+        $valid = valid_boolean_expression(@tokens);
+    }
+
     if (! $valid) {
         $self->set_well_formed(0);
-        
+
         # The parse fails. remove parentheses and lower case _all_
         # occurrences of AND|OR and compose a default AND query.
         my @final_tokens = ();
@@ -306,8 +300,8 @@ sub get_processed_user_query_string {
     else {
         $self->set_well_formed(1);
     }
+
     $self->set_processed_query_string($user_query_string);
-    
     DEBUG('parse,all', sub {return qq{Final processed user query: $user_query_string}});
 
     return $user_query_string;
@@ -412,7 +406,7 @@ sub log_query {
 =item Boolean Expression Validation Routines
 
 expression ::= term [ OR term ]
-term       ::= factor [ AND factor ] 
+term       ::= factor [ AND factor ]
 factor     ::= literal | ( expression )
 
 =cut
@@ -473,8 +467,10 @@ sub parse_preprocess {
 sub IsReserved {
     my $tok = shift;
     if (grep(/^\Q$tok\E$/, values(%Reserved))) {
-        print qq{Reserved: $tok\n};
+        DEBUG('parse,all', sub {return qq{Reserved: $tok\n};});
+        return 1;
     }
+    return 0;
 }
 
 
@@ -510,35 +506,39 @@ sub IsEmpty() {
 
 sub GetToken {
     my $token = '';
-    
+
     if (IsEmpty()) {
         %ParsedToken = ( 'type' => 'ENDTOK',
                          'token' => 'ENDTOK' );
         DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
         return;
     }
-        
+
     while (1) {
         if (IsEmpty()) {
             return;
         }
 
         my $tok = shift @Tokens;
-        print qq{token="$tok" };
         DEBUG('parse,all', sub {return qq{Get: token="$tok"};});
+
+        if ($token) {
+            die unless(IsReserved($tok));
+        }
+
         if (IsReserved($tok)) {
             if ($token) {
                 unshift(@Tokens, $tok);
                 return;
             }
             else {
-                HandleReserved($tok); 
+                HandleReserved($tok);
                 return;
             }
         }
-        
+
         $token .= $tok;
-        
+
         %ParsedToken = ( 'type' => 'LITERAL',
                          'token' => $token );
         DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
