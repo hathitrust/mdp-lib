@@ -10,6 +10,13 @@ Search::Query ((Q)
 This class represents the form of the Solr query as based on the
 user's query string.
 
+<<<<<<< HEAD
+=======
+=head1 VERSION
+
+$Id: Query.pm,v 1.20 2010/01/26 21:57:49 tburtonw Exp $
+
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 =head1 SYNOPSIS
 
 my $Q = new Search::Query($query_string, [[1,234,4,456,563456,43563,3456345634]]);
@@ -22,14 +29,28 @@ $Q->get_Solr_query_string();
 
 =cut
 
+<<<<<<< HEAD
+=======
+BEGIN {
+    if ($ENV{'HT_DEV'}) {
+        require "strict.pm";
+        strict::import();
+    }
+}
+
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 use Utils;
 use Utils::Time;
 use Utils::Logger;
 use Debug::DUtils;
+<<<<<<< HEAD
 use Context;
 use Auth::Auth;
 use Access::Rights;
 use RightsGlobals;
+=======
+
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 
 sub new {
     my $class = shift;
@@ -152,6 +173,7 @@ sub set_processed_query_string {
 
 # ---------------------------------------------------------------------
 
+<<<<<<< HEAD
 =item get_Solr_no_fulltext_filter_query
 
 Construct a filter query informed by the authentication and holdings
@@ -234,6 +256,8 @@ sub XXX___get_Solr_fulltext_filter_query {
 
 # ---------------------------------------------------------------------
 
+=======
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 =item set_well_formed
 
 Description
@@ -284,9 +308,13 @@ the query will devolve to the default AND query.
 
 4) All other punctuation is _removed_
 
+<<<<<<< HEAD
 5) added code to allow query string as an argument for advanced search
 processing (tbw)
 
+=======
+5) added code to allow query string as an argument for advanced search processing (tbw)
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 =cut
 
 # ---------------------------------------------------------------------
@@ -295,7 +323,11 @@ sub get_processed_user_query_string {
     my $query_string = shift;
 
     my $user_query_string;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     if (defined ($query_string))
     {
         $user_query_string= $query_string;
@@ -304,7 +336,11 @@ sub get_processed_user_query_string {
     {
         $user_query_string = $self->get_query_string();
     }
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 
     # Replace sequences of 2 or more double-quotes (") with a single
     # double-quote
@@ -344,6 +380,7 @@ sub get_processed_user_query_string {
     # token whereas if we remove the punctuation, the query parser
     # will see 2 or more operands and perform a boolean AND which is
     # slow.
+<<<<<<< HEAD
     $user_query_string =~ s/[!:?\[\]\\^{~}]/ /g;
     $user_query_string =~ s/\|\|/ /g;
     $user_query_string =~ s/\&\&/ /g;
@@ -354,6 +391,9 @@ sub get_processed_user_query_string {
            # vice versa
            $user_query_string =~ s/\&/ /g;
 
+=======
+    $user_query_string =~ s/[!&:?\[\]\\^{|}~]/ /g;
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 
     # Remove leading and trailing whitespace
     Utils::trim_spaces(\$user_query_string);
@@ -363,6 +403,7 @@ sub get_processed_user_query_string {
     # spaces.
     my @tokens = parse_preprocess($user_query_string);
 
+<<<<<<< HEAD
     # If user is not attempting a boolean query skip the parse here
     my $valid = 1;
     if (grep(/^(AND|OR)$/, @tokens)) {
@@ -373,6 +414,13 @@ sub get_processed_user_query_string {
     if (! $valid) {
         $self->set_well_formed(0);
 
+=======
+    # Attempt to parse the query as a boolean expression.
+    my $valid = valid_boolean_expression(@tokens);
+    if (! $valid) {
+        $self->set_well_formed(0);
+        
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
         # The parse fails. remove parentheses and lower case _all_
         # occurrences of AND|OR and compose a default AND query.
         my @final_tokens = ();
@@ -385,9 +433,15 @@ sub get_processed_user_query_string {
     else {
         $self->set_well_formed(1);
     }
+<<<<<<< HEAD
 
     $self->set_processed_query_string($user_query_string);
     DEBUG('parse', sub {return qq{Final processed user query: $user_query_string}});
+=======
+    $self->set_processed_query_string($user_query_string);
+    
+    DEBUG('parse,all', sub {return qq{Final processed user query: $user_query_string}});
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 
     return $user_query_string;
 }
@@ -491,7 +545,11 @@ sub log_query {
 =item Boolean Expression Validation Routines
 
 expression ::= term [ OR term ]
+<<<<<<< HEAD
 term       ::= factor [ AND factor ]
+=======
+term       ::= factor [ AND factor ] | factor [factor]
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 factor     ::= literal | ( expression )
 
 =cut
@@ -502,12 +560,17 @@ my %Reserved =
      'lparen' => '(',
      'rparen' => ')',
      'and'    => 'AND',
+<<<<<<< HEAD
      'or'     => 'OR',
+=======
+     'or'     => 'OR'
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     );
 
 my @Tokens = ();
 my %ParsedToken = ();
 
+<<<<<<< HEAD
 sub suppress_boolean_in_phrase {
     my $s = shift;
     $s =~ s,([\(\)]), ,g;
@@ -562,6 +625,11 @@ sub IsReserved {
 sub HandleReserved {
     my $s = shift;
     my $rc = 1;
+=======
+sub HandleReserved {
+    my $s = shift;
+    my $rc = 1;    
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     if ($s eq $Reserved{'lparen'}) {
         %ParsedToken = ( 'type'  => 'LPAREN',
                          'token' => 'LPAREN' );
@@ -584,6 +652,7 @@ sub HandleReserved {
     return $rc;
 }
 
+<<<<<<< HEAD
 sub IsEmpty() {
     return (scalar @Tokens == 0);
 }
@@ -614,6 +683,35 @@ sub GetToken {
         if (IsReserved($tok)) {
             if ($token) {
                 unshift(@Tokens, $tok);
+=======
+sub GetToken {
+    my $token = '';
+    
+    while (1) {
+        my $tok = shift @Tokens;
+        if (! $tok) {
+            if ($token) {
+                if (! HandleReserved($token)) {
+                    %ParsedToken = ( 'type' => 'LITERAL',
+                                     'token' => $token );
+                    DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
+                }
+            }
+            else {
+                %ParsedToken = ( 'type' => 'ENDTOK',
+                                 'token' => 'ENDTOK' );
+                DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
+            }
+            return;
+        }
+
+        if (grep(/^\Q$tok\E$/, values(%Reserved))) {
+            if ($token) {
+                unshift @Tokens, $tok;
+                %ParsedToken = ( 'type' => 'LITERAL',
+                                 'token' => $token );
+                DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
                 return;
             }
             else {
@@ -621,6 +719,7 @@ sub GetToken {
                 return;
             }
         }
+<<<<<<< HEAD
 
         $token .= $tok;
 
@@ -637,6 +736,29 @@ sub Accept {
     if ($ParsedToken{'type'} eq $s) {
         DEBUG('parse', sub {return qq{Accept: } . $ParsedToken{'token'}});
         GetToken();
+=======
+        else {
+            $token .= qq{$tok};
+        }
+    }
+}
+
+sub EmptyBuffer {
+    return (! $Tokens[0]);
+}
+
+
+# expression ::= term [ OR term ]
+# term       ::= factor [ AND factor ] | factor [factor]
+# factor     ::= literal | ( expression )
+
+sub Accept {
+    my $s = shift;
+    if ($ParsedToken{'type'} eq $s) {
+        DEBUG('parse,all', sub {return qq{Accept: } . $ParsedToken{'token'}});
+        GetToken() 
+            unless ($ParsedToken{'type'} eq 'ENDTOK');
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
         return 1;
     }
     return 0;
@@ -644,7 +766,11 @@ sub Accept {
 
 sub Expect {
     my $s = shift;
+<<<<<<< HEAD
     DEBUG('parse', sub {return qq{Expect: } . $ParsedToken{'token'}});
+=======
+    DEBUG('parse,all', sub {return qq{Expect: } . $ParsedToken{'token'}});
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     if (Accept($s)) {
         return 1;
     }
@@ -652,15 +778,26 @@ sub Expect {
 }
 
 sub Term {
+<<<<<<< HEAD
     DEBUG('parse', sub {qq{Term}});
     Factor();
     while (Accept('AND')) {
+=======
+    DEBUG('parse,all', sub {qq{Term}});
+    Factor();
+    while ($ParsedToken{'type'} eq 'AND') {
+        GetToken();
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
         Factor();
     }
 }
 
 sub Factor {
+<<<<<<< HEAD
     DEBUG('parse', sub {return qq{Factor}});
+=======
+    DEBUG('parse,all', sub {return qq{Factor}});
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     if (Accept('LITERAL')) {
     }
     elsif (Accept('LPAREN')) {
@@ -674,28 +811,46 @@ sub Factor {
 
 
 sub Expression {
+<<<<<<< HEAD
     DEBUG('parse', sub {return qq{Expression\n}});
+=======
+    DEBUG('parse,all', sub {return qq{Expression\n}});
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     Term();
     while ($ParsedToken{'type'} eq 'OR') {
         GetToken();
         Term();
     }
+<<<<<<< HEAD
+=======
+    return 1;
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
 }
 
 sub valid_boolean_expression {
     my @toks = @_;
     @Tokens = @toks;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     eval {
         GetToken();
         Expression();
         Expect('ENDTOK');
     };
     if ($@) {
+<<<<<<< HEAD
         DEBUG('parse', qq{valid_boolean_expression: die: $@});
         return 0;
     }
     DEBUG('parse', sub {return qq{Valid boolean expression}});
+=======
+        return 0;
+    }
+    DEBUG('parse,all', sub {return qq{Valid boolean expression}}); 
+>>>>>>> Move Search/ and Document/ Document.pm to mdp-lib temporarily to facilitate rebase
     return 1;
 }
 
