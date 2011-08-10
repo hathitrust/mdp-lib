@@ -302,7 +302,7 @@ sub get_processed_user_query_string {
     }
 
     $self->set_processed_query_string($user_query_string);
-    DEBUG('parse,all', sub {return qq{Final processed user query: $user_query_string}});
+    DEBUG('parse', sub {return qq{Final processed user query: $user_query_string}});
 
     return $user_query_string;
 }
@@ -467,7 +467,7 @@ sub parse_preprocess {
 sub IsReserved {
     my $tok = shift;
     if (grep(/^\Q$tok\E$/, values(%Reserved))) {
-        DEBUG('parse,all', sub {return qq{Reserved: $tok\n};});
+        DEBUG('parse', sub {return qq{Reserved: $tok\n};});
         return 1;
     }
     return 0;
@@ -510,7 +510,7 @@ sub GetToken {
     if (IsEmpty()) {
         %ParsedToken = ( 'type' => 'ENDTOK',
                          'token' => 'ENDTOK' );
-        DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
+        DEBUG('parse', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
         return;
     }
 
@@ -520,7 +520,7 @@ sub GetToken {
         }
 
         my $tok = shift @Tokens;
-        DEBUG('parse,all', sub {return qq{Get: token="$tok"};});
+        DEBUG('parse', sub {return qq{Get: token="$tok"};});
 
         if ($token) {
             die unless(IsReserved($tok));
@@ -541,7 +541,7 @@ sub GetToken {
 
         %ParsedToken = ( 'type' => 'LITERAL',
                          'token' => $token );
-        DEBUG('parse,all', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
+        DEBUG('parse', sub {return q{Get: [} . $ParsedToken{'token'} . q{] } . join(' ', @Tokens)});
     }
 }
 
@@ -550,7 +550,7 @@ sub Accept {
     my $s = shift;
 
     if ($ParsedToken{'type'} eq $s) {
-        DEBUG('parse,all', sub {return qq{Accept: } . $ParsedToken{'token'}});
+        DEBUG('parse', sub {return qq{Accept: } . $ParsedToken{'token'}});
         GetToken();
         return 1;
     }
@@ -559,7 +559,7 @@ sub Accept {
 
 sub Expect {
     my $s = shift;
-    DEBUG('parse,all', sub {return qq{Expect: } . $ParsedToken{'token'}});
+    DEBUG('parse', sub {return qq{Expect: } . $ParsedToken{'token'}});
     if (Accept($s)) {
         return 1;
     }
@@ -567,7 +567,7 @@ sub Expect {
 }
 
 sub Term {
-    DEBUG('parse,all', sub {qq{Term}});
+    DEBUG('parse', sub {qq{Term}});
     Factor();
     while (Accept('AND')) {
         Factor();
@@ -575,7 +575,7 @@ sub Term {
 }
 
 sub Factor {
-    DEBUG('parse,all', sub {return qq{Factor}});
+    DEBUG('parse', sub {return qq{Factor}});
     if (Accept('LITERAL')) {
     }
     elsif (Accept('LPAREN')) {
@@ -589,7 +589,7 @@ sub Factor {
 
 
 sub Expression {
-    DEBUG('parse,all', sub {return qq{Expression\n}});
+    DEBUG('parse', sub {return qq{Expression\n}});
     Term();
     while ($ParsedToken{'type'} eq 'OR') {
         GetToken();
@@ -607,9 +607,10 @@ sub valid_boolean_expression {
         Expect('ENDTOK');
     };
     if ($@) {
+        DEBUG('parse', qq{valid_boolean_expression: die: $@});
         return 0;
     }
-    DEBUG('parse,all', sub {return qq{Valid boolean expression}});
+    DEBUG('parse', sub {return qq{Valid boolean expression}});
     return 1;
 }
 
