@@ -234,15 +234,21 @@ $HT_AFFILIATE           = 5;
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
             },
-     # OPB out-of-print and brittle (implies in-copyright).  As of Feb
-     # 2010, UM affiliates can view OPB without being in a library but
-     # only one such user is allowed to do so at a time. Exclusivity
-     # is enforced and access granted downstream.
+   # OPB out-of-print and brittle (implies in-copyright).
+   # ---------------------------------------------------------------
+   # 1) As of Feb 2010, UM affiliates can view OPB without being in a
+   # library but only one such user is allowed to do so at a
+   # time. Exclusivity is enforced and access granted downstream.  
+   #
+   # 2) Holding is implied @ Wed Aug 10 2011 for allow_by_lib_ipaddr,
+   # and allow_by_exclusivity because all OPB in database are held by
+   # uom. THIS WILL CHANGE WHEN WE HAVE CONDITION DATA IN Holdings
+   # databse FOR OTHER INSTITUTIONS.
      '3' => { 
              $ORDINARY_USER         => 'deny',
              $SSD_USER              => 'allow_by_holdings',
-             $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr', # holding is implied here
-             $UM_AFFILIATE          => 'allow_by_exclusivity', # holding is implied here
+             $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr',
+             $UM_AFFILIATE          => 'allow_by_exclusivity',
              $HT_AFFILIATE          => 'deny', 
             },
      # copyright-orphaned (implies in-copyright)
@@ -262,8 +268,8 @@ $HT_AFFILIATE           = 5;
              $HT_AFFILIATE          => 'deny',
             },
      # available to UM affiliates and UM walk-in patrons (all
-     # campuses), these moved to 7 (world) so make them equivalent to
-     # 7 if a volume appears as 6
+     # campuses), these moved to 7 (world) so then are equivalent to 7
+     # if a volume appears as 6
      '6' => { 
              $ORDINARY_USER         => 'allow',
              $SSD_USER              => 'allow',
@@ -357,6 +363,7 @@ $HT_AFFILIATE           = 5;
 # ---------------------------------------------------------------------
 # "Public domain"
 # ---------------------------------------------------------------------
+#
 @g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15);
 @g_public_domain_world_attribute_values = (1, 7, 9);
 @g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16);
@@ -384,10 +391,21 @@ $g_orphan_candidate_attribute_value = 16;
 @g_rights_attribute_values = keys %g_rights_matrix;
 
 # ---------------------------------------------------------------------
+# Orphan Agreements by institution - (will allow affiliated users to
+# see works with attr=4 (orph)
+# ---------------------------------------------------------------------
+#
+@g_orphan_agreement_institutions = (
+                                    'uom',
+                                    'wisc',
+                                   );
+
+# ---------------------------------------------------------------------
 # Geographic IP Information
 # ---------------------------------------------------------------------
 # Country codes used to determine public domain via the GeoIP database
 # for attribute number 9
+#
 @g_pdus_country_codes = 
     (
      'US', # United States

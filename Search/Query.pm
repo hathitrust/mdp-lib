@@ -158,10 +158,12 @@ Construct a filter query informed by the authentication and holdings
 environment for 'search-only'.  This is the negation of
 get_Solr_fulltext_filter_query() + attr 8
 
+WAITING FOR INSTITUTION DATA TO BE AVAILABLE IN Solr INDEX
+
 =cut
 
 # ---------------------------------------------------------------------
-sub get_Solr_no_fulltext_filter_query {
+sub XXX___get_Solr_no_fulltext_filter_query {
     my $self = shift;
     my $C = shift;
     
@@ -183,10 +185,12 @@ environment.
 Construct, given the users institution (inst):
    e.g. fq=(rights:1+OR+rights:7)+OR+(ht_holding_inst:inst+AND+attr:3)+OR+(ht_holding_inst:inst+AND+attr:4)
 
+WAITING FOR INSTITUTION DATA TO BE AVAILABLE IN Solr INDEX
+
 =cut
 
 # ---------------------------------------------------------------------
-sub get_Solr_fulltext_filter_query {
+sub XXX___get_Solr_fulltext_filter_query {
     my $self = shift;
     my $C = shift;
     

@@ -177,6 +177,8 @@ It is permissive of the attributes that equate to 'allow' in the
 CERTAIN KNOWLEDGE that these rights attribute values will be QUALIFIED
 BY THIS HOLDINGS TEST.
 
+WAITING FOR INSTITUTION DATA TO BE AVAILABLE IN Solr INDEX
+
 =cut
 
 # ---------------------------------------------------------------------
@@ -197,7 +199,12 @@ which rights attributes equate to 'search-only', i.e. no 'fulltext'.
 # ---------------------------------------------------------------------
 sub get_no_fulltext_attr_list {
     my $C = shift;
-    return _get_final_access_status_attr_list($C, 'deny');
+
+    my $deny_attr_list_ref = _get_final_access_status_attr_list($C, 'deny');
+    # Objects having attr=8 are denied but should never be exposed
+    @$deny_attr_list_ref = grep(! /^$RightsGlobals::g_available_to_no_one_attribute_value$/, @$deny_attr_list_ref);
+    
+    return $deny_attr_list_ref;
 }
 
 # ---------------------------------------------------------------------
@@ -643,7 +650,7 @@ The id is required to determine holdings. If the id is not available
 for just fulltext items), set access to 'allow'. Downstream code will
 have to filter records based on its holdings data over all items to
 determine which should appear in search results. There are two cases
-where holdings come into play:
+where holdings come into play in the absence of an id.
 
 (1) If the initial_access_status is 'allow_by_exclusivity' we set
 final_access_status to 'allow'. It is highly improbable that an item

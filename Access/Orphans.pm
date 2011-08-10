@@ -6,7 +6,7 @@ Access::Orphans
 
 =head1 DESCRIPTION
 
-This package provides an interface to the Orphans Agreement Database table (mdp.orph_agree)
+This package provides an interface to the list of institutions with Orphans Agreements
 
 =head1 SYNOPSIS
 
@@ -18,9 +18,7 @@ This package provides an interface to the Orphans Agreement Database table (mdp.
 
 use Context;
 use Utils;
-use DbUtils;
-
-my %agreement_cache = ();
+use RightsGlobals;
 
 # ---------------------------------------------------------------------
 
@@ -33,21 +31,9 @@ Description
 # ---------------------------------------------------------------------
 sub institution_agreement {
     my ($C, $inst) = @_;
-
-    if (defined $agreement_cache{$inst}) {
-        return  $agreement_cache{$inst};
-    }
     
-    my $dbh = $C->get_object('Database')->get_DBH($C);
-
-    my $SELECT_clause = qq{SELECT count(*) FROM orph_agree where inst='$inst'};
-    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause);
-    my $count = $sth->fetchrow_array();
-    my $held = ($count > 0);
-    
-    $agreement_cache{$inst} = $held;  
-
-    return $held;
+    my $agreed = grep(/^$inst$/, @RightsGlobals::g_orphan_agreement_institutions);
+    return $agreed;
 }
 
 
