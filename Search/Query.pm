@@ -569,7 +569,7 @@ sub Expect {
 sub Term {
     DEBUG('parse,all', sub {qq{Term}});
     Factor();
-    if (Accept('AND')) {
+    while (Accept('AND')) {
         Factor();
     }
 }
