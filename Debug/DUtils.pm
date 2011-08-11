@@ -127,9 +127,16 @@ sub set_HathiTrust_debug_environment {
         if (DEBUG('shib')) {
             $ENV{'AUTH_TYPE'} = 'shibboleth';
             $ENV{'affiliation'} = 'member@umich.edu';
-            $ENV{'unscoped-affiliation'} = 'member';
             $ENV{'entitlement'} = 'http://www.hathitrust.org/usability/1'
               if (DEBUG('ssd'));
+            $ENV{'REMOTE_USER'} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
+        }
+        else {
+            $ENV{'AUTH_TYPE'} = 'cosign';
+            $ENV{'affiliation'} = 'member@umich.edu';
+            $ENV{'entitlement'} = 'http://www.hathitrust.org/usability/1'
+              if (DEBUG('ssd'));
+            $ENV{'REMOTE_USER'} = 'pfarber';
         }
     }
     elsif (DEBUG('nonhathi')) {
@@ -138,16 +145,18 @@ sub set_HathiTrust_debug_environment {
         delete $ENV{'SDRLIB'};
         delete $ENV{'eppn'};
         delete $ENV{'affiliation'};
-        delete $ENV{'unscoped-affiliation'};
+        delete $ENV{'entitlement'};
+        delete $ENV{'REMOTE_USER'};
 
         $ENV{'REMOTE_ADDR'} = $non_HathiTrust_IP;
     }
-    elsif (DEBUG('notlogged')) {
+    
+    if (DEBUG('notlogged')) {
         delete $ENV{'REMOTE_USER'};
         delete $ENV{'AUTH_TYPE'};
         delete $ENV{'eppn'};
         delete $ENV{'affiliation'};
-        delete $ENV{'unscoped-affiliation'};
+        delete $ENV{'entitlement'};
     }
 
     if (DEBUG('nonlib')) {
@@ -156,7 +165,7 @@ sub set_HathiTrust_debug_environment {
     }
 
     DEBUG('hathi,nonhathi,nonlib,shib,notlogged',
-          qq{HathiTrust DEBUG: SDRINST='$ENV{'SDRINST'}' SDRLIB='$ENV{'SDRLIB'}' eduPersonAffiliation=$ENV{'unscoped-affiliation'} eduPersonScopedAffiliation=$ENV{'affiliation'} eduPersonPrincipalName=$ENV{'eppn'} displayName=$ENV{'displayName'} AUTH_TYPE=$ENV{'AUTH_TYPE'} REMOTE_ADDR='$ENV{'REMOTE_ADDR'}'});
+          qq{HathiTrust DEBUG: SDRINST='$ENV{'SDRINST'}' SDRLIB='$ENV{'SDRLIB'}' eduPersonScopedAffiliation=$ENV{'affiliation'} eduPersonPrincipalName=$ENV{'eppn'} displayName=$ENV{'displayName'} AUTH_TYPE=$ENV{'AUTH_TYPE'} REMOTE_ADDR='$ENV{'REMOTE_ADDR'}'});
 }
 
 

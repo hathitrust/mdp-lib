@@ -571,7 +571,7 @@ sub _determine_initial_access_status {
     my $initial_access_status =
         $RightsGlobals::g_rights_matrix{$rights_attribute}{$access_type};
 
-    DEBUG('pt,auth,all', qq{<h4>InitialAccessStatus="$initial_access_status"</h4>});
+    DEBUG('pt,auth,all', qq{<h4>attr="$rights_attribute" InitialAccessStatus="$initial_access_status"</h4>});
 
     return $initial_access_status;
 }
