@@ -236,16 +236,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
       },
 
    # Minnesota CRMS
-   'v-dudl@umn.edu'
-   => {
-       'displayname' => 'Dudley, Virginia',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^160\.94\.224\.200$',
-                        ],
-      },
    'dewey002@umn.edu'
    => {
        'displayname' => 'Urban, Carla Dewey',
@@ -256,16 +246,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^160\.94\.15\.154$',
                          '^160\.94\.15\.188$',
                          '^160\.94\.20\.253$',
-                        ],
-      },
-   'linto001@umn.edu'
-   => {
-       'displayname' => 'Linton, David',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^160\.94\.15\.131$',
                         ],
       },
    's-zuri@umn.edu'
