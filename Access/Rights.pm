@@ -201,8 +201,8 @@ sub get_no_fulltext_attr_list {
     my $C = shift;
 
     my $deny_attr_list_ref = _get_final_access_status_attr_list($C, 'deny');
-    # Objects having attr=8 are denied but should never be exposed
-    @$deny_attr_list_ref = grep(! /^$RightsGlobals::g_available_to_no_one_attribute_value$/, @$deny_attr_list_ref);
+    # Objects having attr=8 are denied but whether to expose them is undecided.  Expose them for now.
+    # @$deny_attr_list_ref = grep(! /^$RightsGlobals::g_available_to_no_one_attribute_value$/, @$deny_attr_list_ref);
     
     return $deny_attr_list_ref;
 }
