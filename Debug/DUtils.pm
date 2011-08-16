@@ -115,57 +115,66 @@ not in a library building.
 
 # ---------------------------------------------------------------------
 sub set_HathiTrust_debug_environment {
+    # Tests in priority order. Later tests can stomp earlier ones.
     if (DEBUG('hathi')){
+        # Appear to be from the IP range of a Hathi institution
         foreach my $inst_code (keys %HathiTrust_IP_hash) {
             if (DEBUG($inst_code)) {
-                $ENV{'SDRINST'} = $inst_code;
-                delete $ENV{'SDRLIB'};
-                $ENV{'REMOTE_ADDR'} = $HathiTrust_IP_hash{$inst_code};
+                $ENV{SDRINST} = $inst_code;
+                delete $ENV{SDRLIB};
+                $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{$inst_code};
                 last;
             }
         }
-        if (DEBUG('shib')) {
-            $ENV{'AUTH_TYPE'} = 'shibboleth';
-            $ENV{'affiliation'} = 'member@umich.edu';
-            $ENV{'entitlement'} = 'http://www.hathitrust.org/usability/1'
-              if (DEBUG('ssd'));
-            $ENV{'REMOTE_USER'} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
-        }
-        else {
-            $ENV{'AUTH_TYPE'} = 'cosign';
-            $ENV{'affiliation'} = 'member@umich.edu';
-            $ENV{'entitlement'} = 'http://www.hathitrust.org/usability/1'
-              if (DEBUG('ssd'));
-            $ENV{'REMOTE_USER'} = 'pfarber';
-        }
     }
-    elsif (DEBUG('nonhathi')) {
-        delete $ENV{'AUTH_TYPE'};
-        delete $ENV{'SDRINST'};
-        delete $ENV{'SDRLIB'};
-        delete $ENV{'eppn'};
-        delete $ENV{'affiliation'};
-        delete $ENV{'entitlement'};
-        delete $ENV{'REMOTE_USER'};
+    
+    if (DEBUG('shib')) {
+        # Appear to be a shib login at whatever IP you are at
+        $ENV{AUTH_TYPE} = 'shibboleth';
+        $ENV{affiliation} = 'member@umich.edu';
+        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
+    }
 
-        $ENV{'REMOTE_ADDR'} = $non_HathiTrust_IP;
+    if (DEBUG('cosign')) {
+        # Stomp shib. Appear to be a cosign login at whatever IP you are at
+        $ENV{AUTH_TYPE} = 'cosign';
+        $ENV{affiliation} = 'member@umich.edu';
+        $ENV{REMOTE_USER} = 'pfarber';
+    }
+
+    if (DEBUG('ssd')) {
+        $ENV{entitlement} = 'http://www.hathitrust.org/usability/1'
+          if (defined $ENV{REMOTE_USER});
+    }
+
+    if (DEBUG('nonhathi')) {
+        # Superset of 'notlogged'. Equivalent to man-on-the-street
+        delete $ENV{AUTH_TYPE};
+        delete $ENV{SDRINST};
+        delete $ENV{SDRLIB};
+        delete $ENV{eppn};
+        delete $ENV{affiliation};
+        delete $ENV{entitlement};
+        delete $ENV{REMOTE_USER};
+
+        $ENV{REMOTE_ADDR} = $non_HathiTrust_IP;
     }
     
     if (DEBUG('notlogged')) {
-        delete $ENV{'REMOTE_USER'};
-        delete $ENV{'AUTH_TYPE'};
-        delete $ENV{'eppn'};
-        delete $ENV{'affiliation'};
-        delete $ENV{'entitlement'};
+        delete $ENV{REMOTE_USER};
+        delete $ENV{AUTH_TYPE};
+        delete $ENV{eppn};
+        delete $ENV{affiliation};
+        delete $ENV{entitlement};
     }
 
     if (DEBUG('nonlib')) {
-        delete $ENV{'SDRLIB'};
-        $ENV{'REMOTE_ADDR'} = $non_HathiTrust_IP;
+        delete $ENV{SDRLIB};
+        $ENV{REMOTE_ADDR} = $non_HathiTrust_IP;
     }
 
-    DEBUG('hathi,nonhathi,nonlib,shib,notlogged',
-          qq{HathiTrust DEBUG: SDRINST='$ENV{'SDRINST'}' SDRLIB='$ENV{'SDRLIB'}' eduPersonScopedAffiliation=$ENV{'affiliation'} eduPersonPrincipalName=$ENV{'eppn'} displayName=$ENV{'displayName'} AUTH_TYPE=$ENV{'AUTH_TYPE'} REMOTE_ADDR='$ENV{'REMOTE_ADDR'}'});
+    DEBUG('auth',
+          qq{HathiTrust: SDRINST=$ENV{SDRINST} SDRLIB=$ENV{SDRLIB} affiliation=$ENV{affiliation} eppn=$ENV{eppn} entitlement=$ENV{entitlement} displayName=$ENV{displayName} AUTH_TYPE=$ENV{AUTH_TYPE} REMOTE_ADDR=$ENV{REMOTE_ADDR}});
 }
 
 
