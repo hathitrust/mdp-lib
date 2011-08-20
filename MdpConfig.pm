@@ -45,17 +45,6 @@ use Config::Tiny;
 use Utils;
 use Debug::DUtils;
 
-
-
-# ---------------------------------------------------------------------
-
-=item new ($config_file_name)
-
-Constructor. Calls Config::Auto::parse() and creates MdpConfig object.
-
-=cut
-
-# ---------------------------------------------------------------------
 sub new {
     my $package = shift;
     my $primary_config_filename = shift;
@@ -109,6 +98,25 @@ sub new {
 }
 
 
+# ---------------------------------------------------------------------
+
+=item merge($config)
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub merge {
+    my $self = shift;
+    my $M_config = shift;
+
+    ASSERT((ref $M_config eq 'MdpConfig'), qq{"Invalid atgument});
+
+    foreach my $key (keys %{$M_config->{'config'}{_}} ) {
+        $self->{'config'}->{_}{$key} = $M_config->{'config'}->{_}{$key};
+    }
+}
 
 # ---------------------------------------------------------------------
 

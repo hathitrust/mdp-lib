@@ -84,7 +84,7 @@ sub ASSERT_core
         if (Debug::DUtils::under_server() && (! $development || $force))
         {
             require Debug::Email;
-            Debug::Email::send_debug_email($msg);
+            Debug::Email::buffer_debug_email($msg);
         }
     }
 
@@ -457,6 +457,16 @@ sub remove_nonprinting_chars
 {
     my $s_ref = shift;
     $$s_ref =~ s,[\n\r\t\f\e], ,g;
+
+    # Kill characters that are invalid in XML data. Valid XML
+    # characters and ranges are:
+
+    #  (c == 0x9) || (c == 0xA) || (c == 0xD)
+    #             || ((c >= 0x20) && (c <= 0xD7FF))
+    #             || ((c >= 0xE000) && (c <= 0xFFFD))
+    #             || ((c >= 0x10000) && (c <= 0x10FFFF))
+
+    $$s_ref =~ s,[\000-\010\013-\014\016-\037]+, ,gs;
 }
 
 # ---------------------------------------------------------------------
@@ -485,6 +495,7 @@ sub clean_cgi_params
                 remove_nonprinting_chars(\$v);
                 remove_truncated_cers(\$v);
                 map_chars_to_cers(\$v, [qq{"}, qq{'}]);
+                trim_spaces(\$v);
 
                 push(@newvals, $v);
             }

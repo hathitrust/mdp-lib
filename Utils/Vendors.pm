@@ -32,13 +32,10 @@ sub init {
 
     if ( -d "$Bin/../vendor" ) {
         opendir(VENDOR, "$Bin/../vendor");
-        foreach my $repo ( readdir(VENDOR) ) {
+        foreach my $repo ( grep(! /^(\.|\.\.)$/, readdir(VENDOR)) ) {
             if ( -d "$Bin/../vendor/$repo/lib" ) {
                 if ($local_switch){
-                    my ($local_repo) = ($repo =~ m,(^[^-]+)-lib$,);
-                    if (-d "$Bin/../../$local_repo/lib") {
-                        push(@my_inc, "$Bin/../../$local_repo/lib");
-                    } elsif ( -d "$Bin/../../$repo") {
+                    if ( -d "$Bin/../../$repo") {
                         push(@my_inc, "$Bin/../../$repo");
                     }
                 }
@@ -49,8 +46,7 @@ sub init {
         }
     }
 
-    unshift(@INC, @my_inc);
-    
+    unshift(@INC, @my_inc);    
 }
 
 1;
