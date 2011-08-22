@@ -43,8 +43,6 @@ BEGIN
 use Utils;
 use Action::Bind;
 use Context;
-use CollectionSet;
-
 
 sub new
 {
