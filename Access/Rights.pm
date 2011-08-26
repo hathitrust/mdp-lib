@@ -999,7 +999,7 @@ sub _resolve_access_by_held_and_agreement {
 
     my $status = 'deny';
     
-    my $inst = $C->get_object('Auth')->get_institution();
+    my $inst = $C->get_object('Auth')->get_institution($C);
     if (Access::Orphans::institution_agreement($C, $inst)) {
         if (Access::Holdings::id_is_held($C, $id, $inst)) {
             $status = 'allow';
@@ -1023,7 +1023,7 @@ sub _resolve_access_by_held {
 
     my $status = 'deny';
     
-    my $inst = $C->get_object('Auth')->get_institution();
+    my $inst = $C->get_object('Auth')->get_institution($C);
     if (Access::Holdings::id_is_held($C, $id, $inst)) {
         $status = 'allow';
     }
@@ -1043,7 +1043,7 @@ Description
 sub _institution_has_orphan_agreement {
     my $C = shift;
 
-    my $inst = $C->get_object('Auth')->get_institution();
+    my $inst = $C->get_object('Auth')->get_institution($C);
     return Access::Orphans::institution_agreement($C, $inst);
 }
 
