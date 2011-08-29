@@ -29,15 +29,49 @@ use Mail::Mailer;
 use Debug::DUtils;
 
 #
-# Addresses
+# Addresses NOTE: Must coordinate with mdp-misc/bin/email-monitor.pl
 #
 my $g_assert_email_to_addr   = q{dlxs-system@umich.edu};
 my $g_assert_email_from_addr = q{"UMDL Mailer" <dlps-help@umich.edu>};
+my $g_email_file             = q{/tmp/hathitrust-email-file.eml};
 
 #
 # Switch to enable email reports
 #
 my $g_email_enabled = (! defined($ENV{'UNAVAILABLE'}));
+
+
+# ---------------------------------------------------------------------
+
+=item __email_msg_core
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __email_msg_core {
+    my $msg = shift;
+
+    return (undef, undef) if (! $g_email_enabled );
+
+    # Limit client message to 2K.
+    $msg = substr($msg, 0, 2048);
+
+    my $hostname = Utils::get_hostname();
+    ($hostname) = ($hostname =~ m,^(.*?)\..*$,);
+
+    my $email_subject = qq{[MAFR] HathiTrust assert fail ($hostname)};
+    my $email_body = Carp::longmess(qq{ASSERTION FAILURE: $msg});
+
+    # CGI params
+    $email_body .= qq{\n\nCGI:\n} . CGI::self_url();
+
+    # Environment
+    $email_body .= qq{\n\nEnvironment:\n} . Debug::DUtils::print_env();
+
+    return ($email_subject, $email_body);
+}
 
 # ---------------------------------------------------------------------
 
@@ -49,35 +83,50 @@ environment, the cgi parameters, with a client-supplied message.
 =cut
 
 # ---------------------------------------------------------------------
-sub send_debug_email
-{
+sub send_debug_email {
+    my $msg = shift;
+
+    my $return if (! $g_email_enabled );
+
+    my ($email_subject, $email_body) = __email_msg_core($msg);
+    if (defined($email_body)) {
+        my $mailer = new Mail::Mailer('sendmail');
+        $mailer->open({
+                       'To'      => $g_assert_email_to_addr,
+                       'From'    => $g_assert_email_from_addr,
+                       'Subject' => $email_subject,
+                      });
+        print $mailer($email_body);
+        $mailer->close;
+    }
+}
+
+
+# ---------------------------------------------------------------------
+
+=item buffer_debug_email
+
+Buffer email consisting of the output of Carp::longmess, the
+environment, the cgi parameters, with a client-supplied message.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub buffer_debug_email {
     my $msg = shift;
 
     return if (! $g_email_enabled );
 
-    my $hostname = Utils::get_hostname();
-    ($hostname) = ($hostname =~ m,^(.*?)\..*$,);
+    my ($email_subject, $email_body) = __email_msg_core($msg);
+    if (defined($email_body)) {
+        my $e = $email_subject . "\n\n" . $email_body . "\n";
 
-    my $email_subject = qq{[MAFR] MBooks assertion failure ($hostname)};
-    my $email_body = Carp::longmess(qq{ASSERTION FAILURE: $msg});
-
-    # CGI params
-    $email_body .= qq{\n\nCGI:\n} . CGI::self_url();
-
-    # Environment
-    $email_body .= qq{\n\nEnvironment:\n} . Debug::DUtils::print_env();
-
-    my $mailer = new Mail::Mailer('sendmail');
-    $mailer->open({
-                   'To'      => $g_assert_email_to_addr,
-                   'From'    => $g_assert_email_from_addr,
-                   'Subject' => $email_subject,
-                  });
-    print $mailer($email_body);
-    $mailer->close;
+        if (open(OUTFILE, ">>:utf8", $g_email_file)) {
+            print OUTFILE $e;
+            close(OUTFILE);
+        }
+    }
 }
-
-
 
 
 1;
@@ -90,7 +139,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-11 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

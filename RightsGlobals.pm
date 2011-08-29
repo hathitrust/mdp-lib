@@ -12,6 +12,7 @@ package RightsGlobals;
  6         umn            University of Minnesota
  7         mhs            Minnesota Historical Society
  8         usu            Utah State University
+ 9         ucm            Universidad Complutense de Madrid
 
  ATTRIBUTES
  id        name        type      dscr
@@ -35,6 +36,11 @@ package RightsGlobals;
  14        cc-by-nc-sa copyright  cc-by-nc + ccby-sa
  15        cc-by-sa    copyright  cc-by + same license upon redistribution
 
+ (Orphan works project)
+
+ id        name        type        dscr
+ 16        orphcand    copyright   orphan candidate - in 90-day holding period (implies in-copyright)
+
  STATEMENT KEYS
  pd
  pd-google
@@ -50,6 +56,7 @@ package RightsGlobals;
  cc-by-nc
  cc-by-nc-sa
  cc-by-sa
+ orphcand
 
 =cut
 
@@ -103,6 +110,7 @@ $HT_AFFILIATE           = 5;
    '13' => 'copyright cc-by +  only non-commercial use only',
    '14' => 'copyright cc-by-nc + ccby-sa',
    '15' => 'copyright cc-by + same license upon redistribution',
+   '16' => 'in-copyright orphan candidate',
   );
 
 %g_attribute_keys =
@@ -121,7 +129,8 @@ $HT_AFFILIATE           = 5;
    12 => 'cc-by-nc-nd',
    13 => 'cc-by-nc',
    14 => 'cc-by-nc-sa',
-   15 => 'cc-by-sa'
+   15 => 'cc-by-sa',
+   16 => 'orphcand',
   );
 
 %g_source_names = 
@@ -134,6 +143,7 @@ $HT_AFFILIATE           = 5;
    '6'  => 'umn',
    '7'  => 'mhs',
    '8'  => 'usu',
+   '9'  => 'ucm',
   );
 
 @g_stmt_fields = 
@@ -198,6 +208,12 @@ $HT_AFFILIATE           = 5;
                       'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
                       'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
                      },
+   'candidates'   => {
+                      'stmt_icon' => '',
+                     },
+   'orphans'      => {
+                      'stmt_icon' => '',
+                     },
   );
 
 %g_rights_matrix =
@@ -213,45 +229,53 @@ $HT_AFFILIATE           = 5;
      # in-copyright
      '2' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
+             $SSD_USER              => 'allow_by_holdings',
              $LIBRARY_IPADDR_USER   => 'deny',
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
             },
-     # OPB out-of-print and brittle (implies in-copyright).  As of Feb
-     # 2010, UM affiliates can view OPB without being in a library but
-     # only one such user is allowed to do so at a time. Exclusivity
-     # is enforced and access granted downstream.
+   # OPB out-of-print and brittle (implies in-copyright).
+   # ---------------------------------------------------------------
+   # 1) As of Feb 2010, UM affiliates can view OPB without being in a
+   # library but only one such user is allowed to do so at a
+   # time. Exclusivity is enforced and access granted downstream.  
+   #
+   # 2) Holding is implied @ Wed Aug 10 2011 for allow_by_lib_ipaddr,
+   # and allow_by_exclusivity because all OPB in database are held by
+   # uom. THIS WILL CHANGE WHEN WE HAVE CONDITION DATA IN Holdings
+   # databse FOR OTHER INSTITUTIONS.
      '3' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
+             $SSD_USER              => 'allow_by_holdings',
              $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr',
-             $UM_AFFILIATE          => 'allow_by_exclusivity', 
+             $UM_AFFILIATE          => 'allow_by_exclusivity',
              $HT_AFFILIATE          => 'deny', 
             },
      # copyright-orphaned (implies in-copyright)
      '4' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'deny',
-             $UM_AFFILIATE          => 'deny',
-             $HT_AFFILIATE          => 'deny',
+             $SSD_USER              => 'allow_by_holdings_by_agreement',
+             $LIBRARY_IPADDR_USER   => 'allow_by_holdings_by_agreement',
+             $UM_AFFILIATE          => 'allow_by_holdings_by_agreement',
+             $HT_AFFILIATE          => 'allow_by_holdings_by_agreement',
             },
      # undetermined copyright status
      '5' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow',
+             $SSD_USER              => 'allow_by_holdings',
              $LIBRARY_IPADDR_USER   => 'deny',
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
             },
-     # available to UM affiliates and UM walk-in patrons (all campuses)
+     # available to UM affiliates and UM walk-in patrons (all
+     # campuses), these moved to 7 (world) so then are equivalent to 7
+     # if a volume appears as 6
      '6' => { 
-             $ORDINARY_USER         => 'deny',
+             $ORDINARY_USER         => 'allow',
              $SSD_USER              => 'allow',
              $LIBRARY_IPADDR_USER   => 'allow',
              $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'deny',
+             $HT_AFFILIATE          => 'allow',
             },
      # available to everyone in the world
      '7' => { 
@@ -326,14 +350,27 @@ $HT_AFFILIATE           = 5;
               $UM_AFFILIATE          => 'allow',
               $HT_AFFILIATE          => 'allow',
              },
+     # orphan candidate (implied in-copyright)
+     '16' => { 
+              $ORDINARY_USER         => 'deny',
+              $SSD_USER              => 'allow_by_holdings',
+              $LIBRARY_IPADDR_USER   => 'deny',
+              $UM_AFFILIATE          => 'deny',
+              $HT_AFFILIATE          => 'deny',
+            },
     );
 
 # ---------------------------------------------------------------------
 # "Public domain"
 # ---------------------------------------------------------------------
+#
 @g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15);
 @g_public_domain_world_attribute_values = (1, 7, 9);
+@g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16);
+
+$g_available_to_no_one_attribute_value = 8;
 $g_public_domain_US_attribute_value = 9;
+$g_orphan_candidate_attribute_value = 16;
 
 # ---------------------------------------------------------------------
 # Source values authorized for full book PDF download.
@@ -344,6 +381,7 @@ $g_public_domain_US_attribute_value = 9;
                                            4, # ia
                                            5, # yale
                                            8, # usu
+                                           9, # ucm
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
@@ -353,10 +391,21 @@ $g_public_domain_US_attribute_value = 9;
 @g_rights_attribute_values = keys %g_rights_matrix;
 
 # ---------------------------------------------------------------------
+# Orphan Agreements by institution - (will allow affiliated users to
+# see works with attr=4 (orph)
+# ---------------------------------------------------------------------
+#
+@g_orphan_agreement_institutions = (
+                                    'uom',
+                                    'wisc',
+                                   );
+
+# ---------------------------------------------------------------------
 # Geographic IP Information
 # ---------------------------------------------------------------------
 # Country codes used to determine public domain via the GeoIP database
 # for attribute number 9
+#
 @g_pdus_country_codes = 
     (
      'US', # United States

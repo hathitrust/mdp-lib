@@ -130,7 +130,14 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'usertype'    => 'staff',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-
+   'azaytsev'
+   => {
+       'displayname' => 'Zaytsev, Angelina',
+       'supervisor'  => 'jjyork',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
 
    # Michigan CRMS - Anne Karle-Zenith
    'jaheim'
@@ -229,16 +236,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
       },
 
    # Minnesota CRMS
-   'v-dudl@umn.edu'
-   => {
-       'displayname' => 'Dudley, Virginia',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^160\.94\.224\.200$',
-                        ],
-      },
    'dewey002@umn.edu'
    => {
        'displayname' => 'Urban, Carla Dewey',
@@ -249,16 +246,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^160\.94\.15\.154$',
                          '^160\.94\.15\.188$',
                          '^160\.94\.20\.253$',
-                        ],
-      },
-   'linto001@umn.edu'
-   => {
-       'displayname' => 'Linton, David',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^160\.94\.15\.131$',
                         ],
       },
    's-zuri@umn.edu'
@@ -331,7 +318,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Michaels, Sherri',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-05-25 23:59:59',
+       'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.85$',
@@ -342,7 +329,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'McClamroch, Jo',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-05-25 23:59:59',
+       'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.88$',
@@ -353,7 +340,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Black, Janet',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-05-25 23:59:59',
+       'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.86$',
@@ -364,7 +351,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Cameron, Lisa',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-05-25 23:59:59',
+       'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.87$',

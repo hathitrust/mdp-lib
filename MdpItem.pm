@@ -612,6 +612,9 @@ sub SetCurrentRequestInfo {
 
     $self->SetRequestedPageSequence( $seq, $num, $user);
     my $requestedSequence = $self->GetRequestedPageSequence();
+    # Update CGI object with seq that is correct for requested seq.
+    # Requested seq can be influenced by user entered page num.
+    $cgi->param('seq', $requestedSequence);
 
     # The idea here is that only the "rotate clockwise" and "rotate
     # counterclockwise" links will put an orientation param on the URL

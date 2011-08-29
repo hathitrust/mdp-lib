@@ -1,60 +1,47 @@
-package Search::Document::ISO8859_1_Map;
-
+package Access::Holdings;
 
 =head1 NAME
 
-Search::Document::ISO8859_1_Map
+Access::Holdings;
 
 =head1 DESCRIPTION
 
-This package defines a hash to map Latin1 ligatures and characters
-like LATIN SMALL LETTER SHARP S (ß) to two characters on input of OCR
-for XPAT indexing and of the users qusry string.  Solr/Lucene performs
-this mapping using the ISOLatin1AccentFilter.  XPAT cannot map a
-single character to to characters.
+This package provides an interface to the Holdings Database tables (mdp-holdings.)
 
-The map is taken from ISOLatin1AccentFilter.java.
- 
 =head1 SYNOPSIS
+
+=head1 METHODS
 
 =over 8
 
 =cut
 
-my %mapH =
-(
- "\x{00C6}" => 'AE', # Æ
- "\x{0132}" => 'IJ', # Ĳ
- "\x{0152}" => 'OE', # Œ
- "\x{00DE}" => 'TH', # Þ
- "\x{0133}" => 'ij', # ĳ
- "\x{0153}" => 'oe', # œ
- "\x{00DF}" => 'ss', # ß
- "\x{00FE}" => 'th', # þ
- "\x{FB00}" => 'ff', # ﬀ
- "\x{FB01}" => 'fi', # ﬁ
- "\x{FB02}" => 'fl', # ﬂ
- "\x{FB05}" => 'ft', # ﬅ
- "\x{FB06}" => 'st', # ﬆ
-);
-
+use Context;
+use Utils;
+use DbUtils;
 
 # ---------------------------------------------------------------------
 
-=item iso8859_1_mapping
+=item id_is_held
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub iso8859_1_mapping {
-    my $s_ref = shift;
+sub id_is_held {
+    my ($C, $id, $inst) = @_;
 
-    foreach my $char (keys %mapH) {
-        $$s_ref =~ s,\Q$char\E,$mapH{$char},g;
-    }
+    my $dbh = $C->get_object('Database')->get_DBH($C);
+
+    my $SELECT_clause = 
+      qq{SELECT count(*) FROM mdp_holdings.htitem_htmember_jn WHERE member_id='$inst' AND volume_id='$id'};
+    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause);
+    my $count = $sth->fetchrow_array();
+
+    return ($count > 0);
 }
+
 
 1;
 
@@ -67,7 +54,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2008-9 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2011 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

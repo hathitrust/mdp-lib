@@ -134,6 +134,8 @@ sub __Log_simple {
         close(LOG);
         chmod(0666, $logfile_path) if (-o $logfile_path);
     }
+    
+    return $logfile_path;
 }
 
 1;

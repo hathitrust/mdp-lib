@@ -513,6 +513,7 @@ sub set_transient_subkey
 {
     my $self = shift;
     my ($key, $subkey, $item) = @_;
+    $self->{'transient_data'} = {} unless ( ref($self->{'transient_data'}) );
     my $session_ref = $self->{'transient_data'};
     ${$session_ref}{$key}{$subkey} = $item;
 }
