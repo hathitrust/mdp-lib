@@ -78,7 +78,7 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/usability/(1|2)$,ios;
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
 use constant MICH_SSD_LIST => qw
   (
@@ -582,13 +582,14 @@ http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-2008
 
 The values follow the URL-type scheme:
 
-http://www.hathitrust.org/usability/N
-
+http://www.hathitrust.org/access/standard
+http://www.hathitrust.org/access/enhancedText
+http://www.hathitrust.org/access/enhancedTextProxy
 where N can be:
 
-0 - no special privs
-1 - print disabled
-2 - assist print disabled
+standard - no special privs
+enhancedText - print disabled
+enhancedTextProxy - assist print disabled
 
 =cut
 

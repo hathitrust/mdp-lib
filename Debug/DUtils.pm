@@ -143,7 +143,7 @@ sub set_HathiTrust_debug_environment {
     }
 
     if (DEBUG('ssd')) {
-        $ENV{entitlement} = 'http://www.hathitrust.org/usability/1'
+        $ENV{entitlement} = 'http://www.hathitrust.org/access/enhancedText'
           if (defined $ENV{REMOTE_USER});
     }
 
