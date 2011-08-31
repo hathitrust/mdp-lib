@@ -168,7 +168,7 @@ sub get_pairtree_id_with_namespace {
     my $namespace = the_namespace($id);
     $id =~ s,^$namespace\.,,;
 
-    return qq{$namespace.} . s2ppchars($id);
+    return qq{$namespace.} . File::Pairtree::s2ppchars($id);
 }
 
 # ---------------------------------------------------------------------
@@ -189,7 +189,7 @@ sub get_pairtree_id_wo_namespace {
     my $namespace = the_namespace($id);
     $id =~ s,^$namespace\.,,;
 
-    return s2ppchars($id);
+    return File::Pairtree::s2ppchars($id);
 }
 
 # ---------------------------------------------------------------------
