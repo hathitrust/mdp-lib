@@ -202,7 +202,10 @@ sub __load_institutions_xml {
     
     foreach my $inst ($xml_instMap->get_nodelist) {
         my $domain = $inst->getAttribute('domain');
-        $inst_map->{$domain} = $inst->getAttribute('sdrinst');
+        $inst_map->{$domain} = {
+            'sdrinst' => $inst->getAttribute('sdrinst'),
+            'name'    => $inst->textContent
+        };
     }
 
     return $inst_map;
@@ -455,12 +458,37 @@ sub get_institution {
     
     if ($aff) {    
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain};
+        $inst = $map_ref->{$domain}->{sdrinst};
     }
 
     return $inst;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_institution_name
+
+Note this maps users eduPersonScopedAffiliation to the institution name. 
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_name {
+    my $self = shift;
+    my $C = shift;
+    
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
+    my $map_ref = $self->get_institution_map();
+    
+    my $inst;
+    
+    if ($aff) {    
+        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+        $inst = $map_ref->{$domain}->{name};
+    }
+
+    return $inst;
+}
 
 # ---------------------------------------------------------------------
 
