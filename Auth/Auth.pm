@@ -67,6 +67,9 @@ browser is closed or else after between 6 months and one year.
 
 =cut
 
+use File::Basename;
+use XML::LibXML;
+
 use Utils;
 use Debug::DUtils;
 use Session;
@@ -75,7 +78,7 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/usability/(1|2)$,ios;
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
 use constant MICH_SSD_LIST => qw
   (
@@ -135,6 +138,8 @@ sub _initialize {
     my $self = shift;
     my $C = shift;
 
+    $self->{institution_map} = __load_institutions_xml($C);
+    
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
         my $was_logged_in_via = __get_auth_sys($ses);
@@ -153,9 +158,10 @@ sub _initialize {
                             . q{ newlogin=} . $self->isa_new_login()
                               . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
                                 . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                                  . q{ is_umich=} . $self->affiliation_is_umich($C)
-                                    . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                      . q{ entitlement=} . $ENV{entitlement}
+                                  . q{ institution=} . $self->get_institution($C)
+                                    . q{ is_umich=} . $self->affiliation_is_umich($C)
+                                      . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                        . q{ entitlement=} . $ENV{entitlement}
                                 });
         }
         else {
@@ -168,6 +174,52 @@ sub _initialize {
             # POSSIBLY NOTREACHED
         }
     }
+}
+
+# ---------------------------------------------------------------------
+
+=item __load_institutions_xml
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __load_institutions_xml {
+    my $C = shift;
+
+    my $app = $C->get_object('App')->get_app_name($C);
+    my $institution_file = qq{$ENV{SDRROOT}/$app/web/common-web/institutions.xml};
+    
+    my $xml_ref = Utils::read_file($institution_file);
+    my $parser = XML::LibXML->new();
+    my $tree = $parser->parse_string($$xml_ref);
+    my $root = $tree->getDocumentElement();
+
+    my $xpath = q{/Institutions/Inst};
+    my $xml_instMap = $root->findnodes($xpath);
+    my $inst_map = {};
+    
+    foreach my $inst ($xml_instMap->get_nodelist) {
+        my $domain = $inst->getAttribute('domain');
+        $inst_map->{$domain} = $inst->getAttribute('sdrinst');
+    }
+
+    return $inst_map;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_map
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_map {
+    my $self = shift;
+    return $self->{institution_map}    
 }
 
 # ---------------------------------------------------------------------
@@ -370,16 +422,43 @@ sub login_realm_is_friend {
 
 # ---------------------------------------------------------------------
 
+=item get_institution_by_ip_address
+
+Note this associates the REMOTE_ADDR via a list of institutions codes
+maintained by Core Services for Apache.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_by_ip_address {
+    my $self = shift;
+    return $ENV{'SDRINST'};
+}
+
+# ---------------------------------------------------------------------
+
 =item get_institution
 
-Note this associates the REMOTE_ADDR with a list of institutions.
+Note this maps users eduPersonScopedAffiliation to the institution code. 
 
 =cut
 
 # ---------------------------------------------------------------------
 sub get_institution {
     my $self = shift;
-    return $ENV{'SDRINST'};
+    my $C = shift;
+    
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
+    my $map_ref = $self->get_institution_map();
+    
+    my $inst;
+    
+    if ($aff) {    
+        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+        $inst = $map_ref->{$domain};
+    }
+
+    return $inst;
 }
 
 
@@ -396,7 +475,7 @@ did, we could consult the Holdings database for book's condition.
 # ---------------------------------------------------------------------
 sub is_in_library {
     my $self = shift;
-    my $institution = $self->get_institution();
+    my $institution = $self->get_institution_by_ip_address();
     return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
 }
 
@@ -503,13 +582,14 @@ http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-2008
 
 The values follow the URL-type scheme:
 
-http://www.hathitrust.org/usability/N
-
+http://www.hathitrust.org/access/standard
+http://www.hathitrust.org/access/enhancedText
+http://www.hathitrust.org/access/enhancedTextProxy
 where N can be:
 
-0 - no special privs
-1 - print disabled
-2 - assist print disabled
+standard - no special privs
+enhancedText - print disabled
+enhancedTextProxy - assist print disabled
 
 =cut
 

@@ -119,7 +119,7 @@ sub buffer_debug_email {
 
     my ($email_subject, $email_body) = __email_msg_core($msg);
     if (defined($email_body)) {
-        my $e = $email_subject . "\n\n" . $email_body . n
+        my $e = $email_subject . "\n\n" . $email_body . "\n";
 
         if (open(OUTFILE, ">>:utf8", $g_email_file)) {
             print OUTFILE $e;

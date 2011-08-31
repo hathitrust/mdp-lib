@@ -344,11 +344,10 @@ sub PT_HREF_helper {
     $temp_cgi->param('id', $extern_id);
     $temp_cgi->param('debug', CGI::param('debug'));
 
-    if ($which eq 'pt_search') {
-        my $cgi = $C->get_object('CGI');
-        my $q1 = $cgi->param('q1');
-        $temp_cgi->param('q1', $q1);
-    }
+    my $cgi = $C->get_object('CGI');
+    my $q1 = $cgi->param('q1');
+    $temp_cgi->param('q1', $q1);
+
 
     my $config = $C->get_object('MdpConfig');
     my $key;

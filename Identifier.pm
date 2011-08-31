@@ -257,7 +257,7 @@ sub id_to_mdp_path {
     $File::Pairtree::root = $root;
 
     my $barcode = get_id_wo_namespace($id);
-    my $path = id2ppath($barcode) . s2ppchars($barcode);
+    my $path = File::Pairtree::id2ppath($barcode) . File::Pairtree::s2ppchars($barcode);
 
     return $path;
 }
