@@ -107,7 +107,6 @@ use Utils;
 use DbUtils;
 use CollectionSet;
 use Debug::DUtils;
-use Search::Constants;  # for index status constants
 
 sub new
 {
