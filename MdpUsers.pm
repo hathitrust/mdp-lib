@@ -358,6 +358,33 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                         ],
 
       },
+      
+   # Orphan works review
+   'adamsn'
+   => {
+       'displayname' => 'Adams, Neena',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.173\.204$',
+                         '^141\.211\.173\.205$',
+                        ],
+
+      },
+   
+   'bryanbir'
+   => {
+       'displayname' => 'Birchmeier, Bryan',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.173\.204$',
+                         '^141\.211\.173\.205$',
+                        ],
+
+      },
 
    # Digitization
    'lwentzel'
