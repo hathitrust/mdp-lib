@@ -367,6 +367,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
+                         '^141\.211\.173\.203$',
                          '^141\.211\.173\.204$',
                          '^141\.211\.173\.205$',
                         ],
@@ -380,11 +381,41 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
+                         '^141\.211\.173\.203$',
                          '^141\.211\.173\.204$',
                          '^141\.211\.173\.205$',
                         ],
 
       },
+
+   'monicats'
+   => {
+       'displayname' => 'Tsuneishi, Monica',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.173\.203$',
+                         '^141\.211\.173\.204$',
+                         '^141\.211\.173\.205$',
+                        ],
+
+      },
+
+   'kujalak'
+   => {
+       'displayname' => 'Kujala, Katie',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.173\.203$',
+                         '^141\.211\.173\.204$',
+                         '^141\.211\.173\.205$',
+                        ],
+
+      },
+
 
    # Digitization
    'lwentzel'
