@@ -110,9 +110,12 @@ use constant MICH_SSD_LIST => qw
       rokapur
       rubind
       shanorwo
-      ssutaria
       ijohns
  );
+ 
+### EXCLUDED
+# ssutaria - alumni, no other affiliations
+
 
 sub new {
     my $class = shift;
