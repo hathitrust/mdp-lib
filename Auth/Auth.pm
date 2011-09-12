@@ -81,42 +81,41 @@ use constant FRIEND => 'friend';
 my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
   qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
-use constant MICH_SSD_LIST => qw
-  (
-      brekac
-      caone
-      cboyer
-      ccarpey
-      cherisht
-      dgoraya
-      echols
-      ekderus
-      gsheena
-      hkanter
-      jlfr
-      jrcarmon
-      jrmorak
-      kimjiy
-      kmbally
-      kqread
-      krausant
-      longcane
-      mrmarsh
-      mshoe
-      msschmit
-      nicolejg
-      noahw
-      orodrigu
-      rdorian
-      rokapur
-      rubind
-      shanorwo
-      ijohns
- );
+use constant UMICH_SSD_LIST => 
+  qw (
+         brekac
+         caone
+         cboyer
+         ccarpey
+         cherisht
+         dgoraya
+         echols
+         ekderus
+         gsheena
+         hkanter
+         jlfr
+         jrcarmon
+         jrmorak
+         kimjiy
+         kmbally
+         kqread
+         krausant
+         longcane
+         mrmarsh
+         mshoe
+         msschmit
+         nicolejg
+         noahw
+         orodrigu
+         rdorian
+         rokapur
+         rubind
+         shanorwo
+         ijohns
+    );
  
 ### EXCLUDED
 # ssutaria - alumni, no other affiliations
-
 
 sub new {
     my $class = shift;
