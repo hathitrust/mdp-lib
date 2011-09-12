@@ -81,39 +81,42 @@ use constant FRIEND => 'friend';
 my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
   qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
-use constant UMICH_SSD_LIST => 
-  qw (
-         brekac
-         caone
-         cboyer
-         ccarpey
-         cherisht
-         dgoraya
-         echols
-         ekderus
-         gsheena
-         hkanter
-         jlfr
-         jrcarmon
-         jrmorak
-         kimjiy
-         kmbally
-         kqread
-         krausant
-         longcane
-         mrmarsh
-         mshoe
-         msschmit
-         nicolejg
-         noahw
-         orodrigu
-         rdorian
-         rokapur
-         rubind
-         shanorwo
-         ssutaria
-         ijohns
-    );
+use constant MICH_SSD_LIST => qw
+  (
+      brekac
+      caone
+      cboyer
+      ccarpey
+      cherisht
+      dgoraya
+      echols
+      ekderus
+      gsheena
+      hkanter
+      jlfr
+      jrcarmon
+      jrmorak
+      kimjiy
+      kmbally
+      kqread
+      krausant
+      longcane
+      mrmarsh
+      mshoe
+      msschmit
+      nicolejg
+      noahw
+      orodrigu
+      rdorian
+      rokapur
+      rubind
+      shanorwo
+      ijohns
+ );
+ 
+### EXCLUDED
+# ssutaria - alumni, no other affiliations
+
 
 sub new {
     my $class = shift;
@@ -204,7 +207,10 @@ sub __load_institutions_xml {
     
     foreach my $inst ($xml_instMap->get_nodelist) {
         my $domain = $inst->getAttribute('domain');
-        $inst_map->{$domain} = $inst->getAttribute('sdrinst');
+        $inst_map->{$domain} = {
+            'sdrinst' => $inst->getAttribute('sdrinst'),
+            'name'    => $inst->textContent
+        };
     }
 
     return $inst_map;
@@ -457,12 +463,37 @@ sub get_institution {
     
     if ($aff) {    
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain};
+        $inst = $map_ref->{$domain}->{sdrinst};
     }
 
     return $inst;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_institution_name
+
+Note this maps users eduPersonScopedAffiliation to the institution name. 
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_name {
+    my $self = shift;
+    my $C = shift;
+    
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
+    my $map_ref = $self->get_institution_map();
+    
+    my $inst;
+    
+    if ($aff) {    
+        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+        $inst = $map_ref->{$domain}->{name};
+    }
+
+    return $inst;
+}
 
 # ---------------------------------------------------------------------
 

@@ -849,7 +849,7 @@ sub GetFullTitle
     push @tmp, ($varfield =~ m,<subfield label="c">(.*?)</subfield>,g);
     
     $title = join(' ', @tmp);
-    $title =~ s,\s+,' ',gsm;
+    $title =~ s,\s+, ,gsm;
     
     my $dataRef = $self->GetVolumeData();
     my $frag = $$dataRef{$id}{'vol'};
@@ -938,7 +938,7 @@ sub GetPublisher
     push @tmp, ($varfield =~ m,<subfield label="d">(.*?)</subfield>,g);
     
     $text = join(' ', @tmp);
-    $text =~ s,\s+,' ',gsm;
+    $text =~ s,\s+, ,gsm;
     
     return $text;
 }
