@@ -78,41 +78,42 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
+  qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
-use constant MICH_SSD_LIST => qw
-  (
-      brekac
-      caone
-      cboyer
-      ccarpey
-      cherisht
-      dgoraya
-      echols
-      ekderus
-      gsheena
-      hkanter
-      jlfr
-      jrcarmon
-      jrmorak
-      kimjiy
-      kmbally
-      kqread
-      krausant
-      longcane
-      mrmarsh
-      mshoe
-      msschmit
-      nicolejg
-      noahw
-      orodrigu
-      rdorian
-      rokapur
-      rubind
-      shanorwo
-      ssutaria
-      ijohns
- );
+use constant UMICH_SSD_LIST => 
+  qw (
+         brekac
+         caone
+         cboyer
+         ccarpey
+         cherisht
+         dgoraya
+         echols
+         ekderus
+         gsheena
+         hkanter
+         jlfr
+         jrcarmon
+         jrmorak
+         kimjiy
+         kmbally
+         kqread
+         krausant
+         longcane
+         mrmarsh
+         mshoe
+         msschmit
+         nicolejg
+         noahw
+         orodrigu
+         rdorian
+         rokapur
+         rubind
+         shanorwo
+         ssutaria
+         ijohns
+    );
 
 sub new {
     my $class = shift;
@@ -162,6 +163,7 @@ sub _initialize {
                                     . q{ is_umich=} . $self->affiliation_is_umich($C)
                                       . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
                                         . q{ entitlement=} . $ENV{entitlement}
+                                          . q{ print-disabled=} . $self-> get_eduPersonEntitlement_print_disabled($C);
                                 });
         }
         else {
