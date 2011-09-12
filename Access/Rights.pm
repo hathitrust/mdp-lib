@@ -1005,7 +1005,8 @@ sub _resolve_access_by_held_and_agreement {
             $status = 'allow';
         }
     }
-    
+    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+
     return $status;
 }
 
@@ -1027,6 +1028,7 @@ sub _resolve_access_by_held {
     if (Access::Holdings::id_is_held($C, $id, $inst)) {
         $status = 'allow';
     }
+    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
     
     return $status;
 }
