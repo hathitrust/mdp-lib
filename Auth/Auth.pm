@@ -85,14 +85,15 @@ use constant UMICH_SSD_LIST =>
   qw (
          brekac
          caone
-         cboyer
          ccarpey
          cherisht
+         crwils
          dgoraya
          echols
          ekderus
          gsheena
          hkanter
+         ijohns
          jlfr
          jrcarmon
          jrmorak
@@ -100,7 +101,6 @@ use constant UMICH_SSD_LIST =>
          kmbally
          kqread
          krausant
-         longcane
          mrmarsh
          mshoe
          msschmit
@@ -108,10 +108,11 @@ use constant UMICH_SSD_LIST =>
          noahw
          orodrigu
          rdorian
-         rokapur
+         rgottfri
+         rparten
          rubind
          shanorwo
-         ijohns
+         sydfried
     );
  
 ### EXCLUDED
