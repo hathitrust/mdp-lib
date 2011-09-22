@@ -83,36 +83,37 @@ my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
 
 use constant UMICH_SSD_LIST => 
   qw (
-         brekac
-         caone
-         ccarpey
-         cherisht
-         crwils
-         dgoraya
-         echols
-         ekderus
+         ijohns
+         rubind
          gsheena
          hkanter
-         ijohns
-         jlfr
-         jrcarmon
          jrmorak
-         kimjiy
          kmbally
-         kqread
-         krausant
-         mrmarsh
-         mshoe
-         msschmit
-         nicolejg
-         noahw
          orodrigu
-         rdorian
-         rgottfri
-         rparten
-         rubind
+         kimjiy
+         kqread
+         jrcarmon
+         jlfr
          shanorwo
+         caone
+         mrmarsh
+         brekac
+         nicolejg
+         rdorian
+         msschmit
+         noahw
+         ccarpey
+         ekderus
+         echols
+         cherisht
+         mshoe
+         dgoraya
+         krausant
+         rparten
+         crwils
          sydfried
+         rgottfri
+         benmb
     );
  
 ### EXCLUDED
