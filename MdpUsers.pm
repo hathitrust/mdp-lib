@@ -433,7 +433,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
-                         '^141\.211\.172\.141$',
+                         '^141\.211\.173\.207$',
                          '^141\.211\.173\.208$',
                         ],
 
@@ -446,7 +446,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
-                         '^141\.211\.172\.141$',
+                         '^141\.211\.173\.207$',
                          '^141\.211\.173\.208$',
                         ],
 
@@ -459,7 +459,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'iprestrict'  => [
-                         '^141\.211\.172\.141$',
+                         '^141\.211\.173\.207$',
                          '^141\.211\.173\.208$',
                         ],
 
