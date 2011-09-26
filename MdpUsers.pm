@@ -425,6 +425,45 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
       },
 
+   # Visual Validation of Publication Year
+    'jonesse'
+   => {
+       'displayname' => 'Jones, Sarah',
+       'supervisor'  => 'bronick',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.172\.141$',
+                         '^141\.211\.173\.208$',
+                        ],
+
+      },
+
+    'jennywri'
+   => {
+       'displayname' => 'Wright, Jennifer',
+       'supervisor'  => 'bronick',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.172\.141$',
+                         '^141\.211\.173\.208$',
+                        ],
+
+      },
+  
+    'smhelm'
+   => {
+       'displayname' => 'Helm, Sarah',
+       'supervisor'  => 'bronick',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^141\.211\.172\.141$',
+                         '^141\.211\.173\.208$',
+                        ],
+
+      },
 
    # Digitization
    'lwentzel'
