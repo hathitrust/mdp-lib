@@ -114,6 +114,7 @@ use constant UMICH_SSD_LIST =>
          sydfried
          rgottfri
          benmb
+         mikenuss
     );
  
 ### EXCLUDED
