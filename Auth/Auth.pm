@@ -403,7 +403,7 @@ sub auth_sys_is_SHIBBOLETH {
         $is = ($ses->get_persistent('authenticated_via') eq SHIBBOLETH);
     }
 
-    return 1;
+    return $is;
     
 }
 
