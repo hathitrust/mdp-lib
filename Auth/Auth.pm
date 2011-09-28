@@ -78,8 +78,14 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
+# eduPersonENtitlement attribute values that qualify as print disabled
 my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
   qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
+
+# Which eduPersonScopedAffiliation attribute values can be considered
+# for print disabled status
+my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
+  qr,^(member|faculty|staff|student)$,ios;
 
 use constant UMICH_SSD_LIST => 
   qw (
@@ -397,7 +403,8 @@ sub auth_sys_is_SHIBBOLETH {
         $is = ($ses->get_persistent('authenticated_via') eq SHIBBOLETH);
     }
 
-    return $is;
+    return 1;
+    
 }
 
 # ---------------------------------------------------------------------
@@ -548,6 +555,24 @@ sub __get_prioritized_scoped_affiliation {
 
 # ---------------------------------------------------------------------
 
+=item __get_prioritized_unscoped_affiliation
+
+Parse $ENV{affiliation} into its components and strips the @foo.edu part.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_prioritized_unscoped_affiliation {
+    my $self = shift;
+
+    my $scoped_aff = $self->__get_prioritized_scoped_affiliation();
+    my ($unscoped_aff) = ($scoped_aff =~ m,^(.*?)@.*$,);
+
+    return $unscoped_aff;
+}
+
+# ---------------------------------------------------------------------
+
 =item get_eduPersonScopedAffiliation
 
 This is the full eduPersonScopedAffiliation, e.g. member@umich.edu
@@ -636,8 +661,11 @@ sub get_eduPersonEntitlement_print_disabled {
     my $is_print_disabled = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
-        $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+        my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
+        if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
+            my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+            $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+        }
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         $is_print_disabled = grep(/^$ENV{REMOTE_USER}$/, UMICH_SSD_LIST) || DEBUG('ssd');
