@@ -7,51 +7,57 @@ Auth::Exclusive
 
 =head1 DESCRIPTION
 
-This package provides an API to manage exclusive access for a given
-user to an item for some period of time to meet the legal requirement
-of one simultaneous user for certain kinds of material.
+This package provides an API to manage QUASI-exclusive access to a
+digital item if one or more print copies are held by the user's
+institution according to the Print Holdings Database (PHDB). 
 
-This is currently just for in-copyright out-of-print brittle (OPB)
-volumes.
+The access is granted for some period of time to meet the requirement
+to allow as many simultaneous users of a digital object as there are
+print copies held by the institution with which those users are
+affiliated.
 
 The caller must ensure that the volume rights and user
 authentication/authorization is such that the user is entitled to gain
 time-limited exclusive access to the volume. This package only
-enforces exclusive access once there determinations haev been made.
+enforces exclusive access once there determinations have been made.
 
 ALGORITHM
 
-If the rights attribute for a volume is opb and the user is a Shib
-authenticated affiliate of UM (not a friend account!), then full view
-access is granted, subject to the "one simultaneous user" requirement.
+Definition of "M simultaneous users"
 
-Definition of "one simultaneous user"
+If for a given digital object, where institutions i1, i2, ..., iN that
+hold number of print copies c1, c2, ..., cN of that object, then the
+number M of simultaneous users over institutions is
 
-1) User A has exclusive access to the opb book for 24 hours dated from
-his/her first access, i.e. repeated accesses within this 24 hour period
-do not extend exclusivity beyond 24 hours from A's first access.
+i1*c1 + i2*c2 + ... + iN*cN
 
-2) User A's first access _after_ 24 hours extends exclusivity for
-another 24 hours UNLESS user B accessed the book before A accesses the
-book after the initial 24 hours to gain another 24 hours of
-exclusivity. Now B has 24 hours of exclusivity and A loses access. And
-so on.
+subject to the constraint that for users at a given institution ij
+holding cj print copies, no more than cj users from ij are allowed at
+once.
+
+1) User A has access to the digital item if there is at least one
+unconsumed print-holdings slot for the book for 24 hours dated from
+his/her first access, i.e. repeated accesses within this 24 hour
+period do not extend exclusivity beyond 24 hours from A's first
+access.
+
+2) User A's first access _after_ 24 hours extends access for another
+24 hours UNLESS all remaining slots are consumed, e.g. user B accessed
+the book before A accesses the book after the initial 24 hours to gain
+another 24 hours of access. Now B has 24 hours of access and A loses
+access. And so on.
 
 The idea is to prevent one user gaining perpetual full view access to
 the exclusion of all other users.
 
 SCHEMA
 
-CREATE TABLE `n_exclusivity` (
-        `item_id`  varchar(32)  NOT NULL default '',
-        `owner`    varchar(256) NULL,
-        `expires`  timestamp    NOT NULL default '0000-00-00 00::00::00',
-  PRIMARY KEY (`item_id`, `owner`));
-
-
-=head1 VERSION
-
-$Id: Exclusive.pm,v 1.2 2010/04/28 18:13:54 pfarber Exp $
+ CREATE TABLE `n_exclusivity` (
+  `item_id`     varchar(32)  NOT NULL DEFAULT '',
+  `owner`       varchar(256) NOT NULL DEFAULT '',
+  `affiliation` varchar(128) NOT NULL DEFAULT '',
+  `expires`     timestamp    NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`item_id`,`owner`,`affiliation`);
 
 =head1 SYNOPSIS
 
@@ -69,6 +75,7 @@ use Utils;
 use Utils::Time;
 use Debug::DUtils;
 use DbUtils;
+use Access::Holdings;
 
 use constant EXCLUSIVITY_LIMIT => 86400; # 24 hours in seconds
 
@@ -88,11 +95,11 @@ the former user for another EXCLUSIVITY_LIMIT.
 
 # ---------------------------------------------------------------------
 sub acquire_exclusive_access {
-    my ($C, $item_id, $identity, $affiliation) = @_;
+    my ($C, $item_id) = @_;
 
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
-    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, $identity, $affiliation, 1);
+    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 1);
 
     return ($granted, $owner, $expires);
 }
@@ -109,14 +116,15 @@ of exclusive acquisition but does not assert exclusivity.
 
 # ---------------------------------------------------------------------
 sub check_exclusive_access {
-    my ($C, $item_id, $identity) = @_;
+    my ($C, $item_id) = @_;
 
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
-    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, $identity, 0);
+    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 0);
 
     return ($granted, $owner, $expires);
 }
+
 
 # ---------------------------------------------------------------------
 
@@ -125,82 +133,117 @@ sub check_exclusive_access {
 An item can be owned by more than one user if their affiliations are
 different.
 
+Note: 'affiliation is the Shib sdrinst institution code, e.g. 'uom' not 'umich.edu'.
+
 =cut
 
 # ---------------------------------------------------------------------
 sub __grant_access {
-    my ($C, $dbh, $id, $identity, $affiliation, $assert_ownership) = @_;
+    my ($C, $dbh, $id, $assert_ownership) = @_;    
 
     my $granted = 0;
     my $grant_owner;
     my $expires;
-    
-    # Failsafe
-    if ((! $identity) || (! $affiliation)) {
-        return ($granted, $grant_owner, $expires);
-    }
-        
-    my ($sth, $statement);
 
+    my $auth = $C->get_object('Auth');
+    my $inst_code = $auth->get_institution($C);
+    my $identity = $auth->get_user_name($C);
+
+    my $num_held = Access::Holdings::id_is_held($C, $id, $inst_code);
+
+    if (
+        (! $identity) 
+        || 
+        (! $inst_code)
+        ||
+        ($num_held == 0)
+       ) {
+        return ($granted, $grant_owner, $expires);
+    }        
+
+    my ($sth, $statement);
     $statement = qq{LOCK TABLES n_exclusivity WRITE};
     DEBUG('auth', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-    # Get all rows matching id in affiliation-namespace of identity 
-    $statement = qq{SELECT * FROM n_exclusivity WHERE item_id='$id' AND affiliation='$affiliation'};
+    # Get all rows matching id in institution-namespace of identity 
+    $statement = qq{SELECT * FROM n_exclusivity WHERE item_id='$id' AND affiliation='$inst_code'};
     DEBUG('auth', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     my $id_arr_hashref = $sth->fetchall_arrayref({});
-    if (! defined($id_arr_hashref)) {
-        # item not owned in this affiliation-namespace. grant
-        # ownership to identity
+    my $occupied_inst_slots = scalar(@$id_arr_hashref);
+
+    # for number available slots, see who owns the slots and for how
+    # much longer to yield $num_held owners per institution-namespace.
+
+    my $identity_has_slot = 0;
+    my $identity_expire_date = '0000-00-00 00:00:00';
+    foreach my $hashref (@$id_arr_hashref) {
+        if ($identity eq $hashref->{owner}) {
+            $identity_has_slot = 1;
+            $identity_expire_date = $hashref->{expires};
+            last;
+        }
+    }
+
+    # identity occupies a slot
+    if ($identity_has_slot) {
         $granted = 1;
         $grant_owner = $identity;
-
+        
         if ($assert_ownership) {
-            $expires = ___grant($C, $dbh, $id, $grant_owner, $affiliation);
+            if (Utils::Time::expired($identity_expire_date)) {  
+                # renew item for this owner,affiliation only after
+                # last grant has expired.
+                $expires = ___renew($C, $dbh, $item_id, $identity, $inst_code);
+            }
+            else {
+                $expires = $identity_expire_date;
+            }
         }
         else {
             $expires = ___get_expiration_date();
         }
     }
     else {
-        # item exists in affiliation-namespace of identity, see who
-        # owns it and for how much longer. Note only one owner per
-        # namespace by design.
-        my $curr_owner = $id_arr_hashref->[0]->{'owner'};
-        my $expiration_date = $id_arr_hashref->[0]->{'expires'};
-
-        # identity is current owner
-        if ($curr_owner eq $identity) {
+        # identity does not occupy a slot. Acquire access if the
+        # there's an empty slot
+        if ($occupied_inst_slots < $num_held) {
+            # acquire
             $granted = 1;
-            $grant_owner = $curr_owner;
-
+            $grant_owner = $identity;
+            
             if ($assert_ownership) {
-                if (Utils::Time::expired($expiration_date)) {
-                    # renew item for this affiliation only after last
-                    # grant has expired.
-                    $expires = ___renew($C, $dbh, $item_id, $affiliation);
-                }
-                else {
-                    $expires = $expiration_date;
-                }
+                $expires = ___grant($C, $dbh, $id, $identity, $inst_code);
             }
             else {
                 $expires = ___get_expiration_date();
             }
         }
         else {
-            # identity is someone else. Acquire access if the
-            # current owner's grant has expired
-            if (Utils::Time::expired($expiration_date)) {
-                # acquire
+            # All slots are occupied -- identity is not an occupier. Try
+            # for an expired slot owner's slot
+            my $some_owner;
+            my $some_expire_date;
+
+            my $expired_owner;
+            foreach my $hashref (@$id_arr_hashref) {
+                $some_owner = $hashref->{owner};
+                $some_expire_date = $hashref->{expires};
+                if (Utils::Time::expired($some_expire_date)) {
+                    $expired_owner = $some_owner;
+                    last;
+                }
+            }
+            
+            if ($expired_owner) {
+                # acquire this owner's slot
                 $granted = 1;
                 $grant_owner = $identity;
                 
                 if ($assert_ownership) {
-                    $expires = ___acquire($C, $dbh, $id, $grant_owner, $affiliation);
+                    $expires = ___acquire_from($C, $dbh, $id, $expired_owner, $identity, $inst_code);
                 }
                 else {
                     $expires = ___get_expiration_date();
@@ -209,11 +252,10 @@ sub __grant_access {
             else {
                 # deny
                 $granted = 0;
-                $grant_owner = $curr_owner;
-                $expires = $expiration_date;
+                $grant_owner = $some_owner;
+                $expires = $some_expire_date;
             }
         }
-        
     }
 
     # clean up expired grants for access that were not renewed or acquired by
@@ -247,21 +289,21 @@ sub ___get_expiration_date {
     
 # ---------------------------------------------------------------------
 
-=item ___acquire
+=item ___acquire_from
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub ___acquire {
-    my ($C, $dbh, $id, $new_owner, $affiliation) = @_;
+sub ___acquire_from {
+    my ($C, $dbh, $id, $old_owner, $new_owner, $inst_code) = @_;
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE item_id='$id' AND affiliation='$affiliation'};
+    my $statement = qq{DELETE FROM n_exclusivity WHERE item_id='$id' AND owner='$old_owner' AND affiliation='$inst_code'};
     DEBUG('auth', qq{DEBUG: $statement});
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-    return ___grant($C, $dbh, $id, $new_owner, $affiliation);
+    return ___grant($C, $dbh, $id, $new_owner, $inst_code);
 }
 
 # ---------------------------------------------------------------------
@@ -274,12 +316,12 @@ Description
 
 # ---------------------------------------------------------------------
 sub ___grant {
-    my ($C, $dbh, $id, $identity, $affiliation) = @_;
+    my ($C, $dbh, $id, $identity, $inst_code) = @_;
 
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{INSERT INTO n_exclusivity SET item_id='$id', owner='$identity', affiliation='$affiliation', expires='$expiration_date'};
+        qq{INSERT INTO n_exclusivity SET item_id='$id', owner='$identity', affiliation='$inst_code', expires='$expiration_date'};
     DEBUG('auth', qq{DEBUG: $statement});
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
 
@@ -296,12 +338,12 @@ Same item may be exclusively owned by users with different affiliations.
 
 # ---------------------------------------------------------------------
 sub ___renew {
-    my ($C, $dbh, $id, $affiliation) = @_;
+    my ($C, $dbh, $id, $identity, $inst_code) = @_;
 
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{UPDATE n_exclusivity SET expires='$expiration_date' WHERE item_id='$id' AND affiliation='$affiliation'};
+        qq{UPDATE n_exclusivity SET expires='$expiration_date' WHERE item_id='$id' AND owner='$identity' AND affiliation='$inst_code'};
     DEBUG('auth', qq{DEBUG: $statement});
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
 

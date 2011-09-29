@@ -628,12 +628,13 @@ sub _Assert_final_access_status {
         $final_access_status = 'allow';
     }
     elsif
-      ($initial_access_status eq 'allow_by_holdings_by_agreement') {
-        $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+      ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
+        ($final_access_status, $granted, $owner, $expires) = 
+          _resolve_access_by_held_and_agreement($C, $id, 1);
     }
     elsif 
-      ($initial_access_status eq 'allow_by_holdings') {
-        $final_access_status = _resolve_access_by_held($C, $id);
+      ($initial_access_status eq 'allow_ssd_by_holdings') {
+        $final_access_status = _resolve_ssd_access_by_held($C, $id);
     }
 
     ___final_access_status_check($final_access_status);
@@ -659,7 +660,7 @@ that the user viewing results filtered by the 'fulltext' Facet.  The
 anomaly here is a 'search-only' link to pageturner in the search
 results for 'fulltext' only.
 
-(2) If the initial_access_status is 'allow_by_holdings_by_agreement' we set 
+(2) If the initial_access_status is 'allow_orph_by_holdings_by_agreement' we set 
 final_access_status to 'allow'.
 
 =cut
@@ -688,9 +689,9 @@ sub _Check_final_access_status {
         }
     }
     elsif 
-      ($initial_access_status eq 'allow_by_holdings_by_agreement') {
+      ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
         if (defined($id)) {
-            $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+            $final_access_status = _resolve_access_by_held_and_agreement($C, $id, 0);
         }
         else {
             # downstream must filter on holdings if $final_access_status = 'allow'
@@ -698,9 +699,9 @@ sub _Check_final_access_status {
         }
     }
     elsif 
-      ($initial_access_status eq 'allow_by_holdings') {
+      ($initial_access_status eq 'allow_ssd_by_holdings') {
         if (defined($id)) {
-            $final_access_status = _resolve_access_by_held($C, $id);
+            $final_access_status = _resolve_ssd_access_by_held($C, $id);
         }
         else {
             # downstream must filter on holdings
@@ -971,9 +972,8 @@ sub _check_access_exclusivity {
     my $status = 'deny';
 
     if (defined($id)) {
-        my $identity = $C->get_object('Auth')->get_user_name($C);
         my ($granted, $owner, $expires) =
-            Auth::Exclusive::check_exclusive_access($C, $id, $identity);
+            Auth::Exclusive::check_exclusive_access($C, $id);
         if ($granted) {
             $status = 'allow';
         }
@@ -995,14 +995,20 @@ Description
 
 # ---------------------------------------------------------------------
 sub _resolve_access_by_held_and_agreement {
-    my ($C, $id) = @_;
+    my ($C, $id, $assert_ownership) = @_;
 
-    my $status = 'deny';
-    
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+
     my $inst = $C->get_object('Auth')->get_institution($C);
     if (Access::Orphans::institution_agreement($C, $inst)) {
         if (Access::Holdings::id_is_held($C, $id, $inst)) {
-            $status = 'allow';
+            if ($assert_ownership) {
+                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+
+            }
+            else {
+                $status = _check_access_exclusivity($C, $id);
+            }
         }
     }
     DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
@@ -1012,14 +1018,14 @@ sub _resolve_access_by_held_and_agreement {
 
 # ---------------------------------------------------------------------
 
-=item _resolve_access_by_held
+=item _resolve_ssd_access_by_held
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub _resolve_access_by_held {
+sub _resolve_ssd_access_by_held {
     my ($C, $id) = @_;
 
     my $status = 'deny';
@@ -1028,7 +1034,7 @@ sub _resolve_access_by_held {
     if (Access::Holdings::id_is_held($C, $id, $inst)) {
         $status = 'allow';
     }
-    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+    DEBUG('pt,auth,all', qq{<h5>SSD Holdings institution=$inst held=$status"</h5>});
     
     return $status;
 }
@@ -1063,12 +1069,8 @@ sub _assert_access_exclusivity {
 
     my $status;
 
-    my $auth = $C->get_object('Auth');
-    my $identity = $auth->get_user_name($C);
-    my $affiliation = $auth->get_eduPersonScopedAffiliation($C);
-
     my ($granted, $owner, $expires) =
-        Auth::Exclusive::acquire_exclusive_access($C, $id, $identity, $affiliation);
+        Auth::Exclusive::acquire_exclusive_access($C, $id);
     if ($granted) {
         $status = 'allow';
     }
