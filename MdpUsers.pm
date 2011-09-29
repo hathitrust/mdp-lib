@@ -223,15 +223,16 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
 
-   # Minnesota temp
-   'c-hend@umn.edu'
+   # Columbia CRMS
+   'zl2114@columbia.edu'
    => {
-       'displayname' => 'Hendrick, Constance',
+       'displayname' => 'Lane, Zack',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-08-12 23:59:59',
+       'expires'     => '2011-11-30 23:59:59',
        'usertype'    => 'onetime',
        'iprestrict'  => [
-                         '^134\.84\.113\.10$',
+                         '^128\.59\.154\.122$',
+                         '^128\.59\.154\.21$',
                         ],
       },
 
@@ -344,17 +345,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.86$',
-                        ],
-
-      },
-   'cameron3@indiana.edu'
-   => {
-       'displayname' => 'Cameron, Lisa',
-       'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
-       'usertype'    => 'onetime',
-       'iprestrict'  => [
-                         '^129\.79\.35\.87$',
                         ],
 
       },
