@@ -612,7 +612,7 @@ sub _Assert_final_access_status {
     my ($C, $initial_access_status, $id) = @_;
 
     my ($final_access_status, $granted, $owner, $expires) =
-        ($initial_access_status, undef, undef, undef);
+        ($initial_access_status, 0, undef, '0000-00-00 00:00:00');
 
     if 
       ($initial_access_status eq 'allow_by_geo_ipaddr') {
@@ -682,7 +682,8 @@ sub _Check_final_access_status {
     elsif 
       ($initial_access_status eq 'allow_by_exclusivity') {
         if (defined($id)) {
-            $final_access_status = _check_access_exclusivity($C, $id);
+            ($final_access_status, $granted, $owner, $expires) = 
+              _check_access_exclusivity($C, $id);
         }
         else {
             $final_access_status = 'allow';
@@ -691,7 +692,8 @@ sub _Check_final_access_status {
     elsif 
       ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
         if (defined($id)) {
-            $final_access_status = _resolve_access_by_held_and_agreement($C, $id, 0);
+            ($final_access_status, $granted, $owner, $expires) = 
+              _resolve_access_by_held_and_agreement($C, $id, 0);
         }
         else {
             # downstream must filter on holdings if $final_access_status = 'allow'
@@ -969,11 +971,11 @@ Description
 sub _check_access_exclusivity {
     my ($C, $id) = @_;
 
-    my $status = 'deny';
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
 
     if (defined($id)) {
-        my ($granted, $owner, $expires) =
-            Auth::Exclusive::check_exclusive_access($C, $id);
+        ($granted, $owner, $expires) =
+          Auth::Exclusive::check_exclusive_access($C, $id);
         if ($granted) {
             $status = 'allow';
         }
@@ -982,14 +984,17 @@ sub _check_access_exclusivity {
         }
     }
 
-    return $status;
+    return ($status, $granted, $owner, $expires);
 }
 
 # ---------------------------------------------------------------------
 
 =item _resolve_access_by_held_and_agreement
 
-Description
+Orphan users must be "US soil" authed affiliates of a HT institution,
+the user's institution must hold the work and agree to allow orphan
+access and no more simultaneous users from that institution than
+number of print copies held by that institution.
 
 =cut
 
@@ -998,16 +1003,19 @@ sub _resolve_access_by_held_and_agreement {
     my ($C, $id, $assert_ownership) = @_;
 
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
-
-    my $inst = $C->get_object('Auth')->get_institution($C);
-    if (Access::Orphans::institution_agreement($C, $inst)) {
-        if (Access::Holdings::id_is_held($C, $id, $inst)) {
-            if ($assert_ownership) {
-                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
-
-            }
-            else {
-                $status = _check_access_exclusivity($C, $id);
+    my $inst = 'not defined';
+    
+    my $US_status = _resolve_access_by_GeoIP($C);
+    if ($US_status eq 'allow') {
+        $inst = $C->get_object('Auth')->get_institution($C);
+        if (Access::Orphans::institution_agreement($C, $inst)) {
+            if (Access::Holdings::id_is_held($C, $id, $inst)) {
+                if ($assert_ownership) {
+                    ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+                }
+                else {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+                }
             }
         }
     }
