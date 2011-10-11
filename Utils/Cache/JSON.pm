@@ -56,7 +56,7 @@ sub instantiate
     {
         local $RS = undef;
         my $fh;
-        croak "Cannot open $keyFileName" if not open($fh, '<', $keyFileName, ":utf8");
+        croak "Cannot open $keyFileName" if not open($fh, '<:utf8', $keyFileName);
         $data = <$fh>;
         croak "Cannot close $keyFileName" if not close($fh);
     }
