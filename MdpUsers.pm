@@ -504,7 +504,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
       },
    'roger'
    => {
-       'displayname' => 'Espinoza, Roger',
+       'displayname' => 'Espinosa, Roger',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
        'usertype'    => 'superuser',

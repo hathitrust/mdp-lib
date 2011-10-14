@@ -121,6 +121,7 @@ use constant UMICH_SSD_LIST =>
          rgottfri
          benmb
          mikenuss
+         nlcp
     );
  
 ### EXCLUDED
