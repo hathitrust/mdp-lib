@@ -237,8 +237,8 @@ sub change_owner
     $new_user_id = $dbh->quote($new_user_id);
     $user_display_name = $dbh->quote($user_display_name);
     
-    my $statement = qq{UPDATE $coll_table SET owner=$new_user_id, owner_name=$user_display_name WHERE owner=$old_user_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{UPDATE $coll_table SET owner=?, owner_name=? WHERE owner=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $new_user_id, $user_display_name, $old_user_id);
 }
 
 # ---------------------------------------------------------------------
@@ -260,8 +260,8 @@ sub get_coll_data_from_user_id
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
 
-    my $statement = qq{SELECT collname, MColl_ID FROM $coll_table WHERE owner='$user_id' ORDER BY collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT collname, MColl_ID FROM $coll_table WHERE owner=? ORDER BY collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
     my $coll_data_ref = $sth->fetchall_arrayref({});
 
     # array of hashrefs
@@ -289,19 +289,19 @@ sub exists_coll_name_for_owner
     my $coll_item_table_name = $self->get_coll_item_table_name;
     my $dbh = $self->{'dbh'};
 
-    my $quoted_coll_name = DbUtils::quote($dbh, $coll_name);
+    # my $quoted_coll_name = DbUtils::quote($dbh, $coll_name);
 
-    my $statement = qq{SELECT count(*) FROM $coll_table_name WHERE collname=$quoted_coll_name};
-    $statement .= qq{ AND owner='$owner'};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT count(*) FROM $coll_table_name WHERE collname=?};
+    $statement .= qq{ AND owner=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_name, $owner);
     my $result = scalar($sth->fetchrow_array);
     # check for case changes
     if ($result > 0)
     {
         # get collname and compare
-        $statement = qq{SELECT collname FROM $coll_table_name WHERE collname=$quoted_coll_name};
-        $statement .= qq{ AND owner='$owner'};
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $statement = qq{SELECT collname FROM $coll_table_name WHERE collname=?};
+        $statement .= qq{ AND owner=?};
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_name, $owner);
         my $name_in_db=$sth->fetchrow_array;
         return ($coll_name eq $name_in_db);
         
@@ -332,9 +332,9 @@ sub exists_coll_id
     my $coll_table_name = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
 
-    my $statement = qq{SELECT count(*) FROM $coll_table_name WHERE MColl_id='$coll_id'};
+    my $statement = qq{SELECT count(*) FROM $coll_table_name WHERE MColl_id=?};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $result = scalar($sth->fetchrow_array);
 
     return ($result > 0);
@@ -372,13 +372,13 @@ sub delete_all_colls_for_user
     $statement  = qq{ DELETE $coll_item_table };
     $statement .= qq{from $coll_item_table,$coll_table};
     $statement .= qq{  WHERE $coll_item_table.MColl_ID = $coll_table.MColl_ID};
-    $statement .= qq{ and $coll_table.owner = $user_id };
+    $statement .= qq{ and $coll_table.owner = ? };
 
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
 
     # XXX check for errors ?
-    $statement = qq{DELETE from $coll_table WHERE owner = $user_id\;};
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $statement = qq{DELETE from $coll_table WHERE owner = ?\;};
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
     # XXX check for errors ?
 
     $statement = qq{UNLOCK TABLES};
@@ -422,7 +422,7 @@ sub list_colls
 
     my $SELECT = qq{SELECT } . $fields;
     my $FROM = qq{FROM $coll_table_name};
-    my $WHERE = $self->_get_where($coll_type);
+    my ($WHERE, @params) = $self->_get_where($coll_type);
 
     if ($direction eq 'a')
     {
@@ -446,7 +446,7 @@ sub list_colls
     DEBUG('dbcoll', qq{sql statement="$statement"});
 
     my $dbh = $self->{'dbh'};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @params);
     my $array_ref = $sth->fetchall_arrayref({});
 
     $sth->finish;
@@ -469,6 +469,7 @@ sub _get_where
     my $coll_type = shift;
     my $where = "WHERE ";
     my $user_id = $self->get_user_id;
+    my @params;
 
     ASSERT(($coll_type eq 'my_colls') || ($coll_type eq 'pub_colls') || ($coll_type eq 'all_colls') || ($coll_type eq 'featured_colls'),
            qq{CollectionSet::list_colls(coll_type) is $coll_type.  Should be my_colls or pub_colls});
@@ -480,7 +481,8 @@ sub _get_where
     }
     elsif ($coll_type eq "all_colls")
     {
-        $where .= qq{(shared = 1 AND num_items > 0) OR (owner = '$user_id')};
+        $where .= qq{(shared = 1 AND num_items > 0) OR (owner = ?)};
+        push @params, $user_id;
     }
     elsif ($coll_type eq "featured_colls")
     {
@@ -488,10 +490,11 @@ sub _get_where
     }
     else
     {
-        $where .= qq{owner = "$user_id"};
+        $where .= qq{owner = ?};
+        push @params, $user_id;
     }
 
-    return $where;
+    return ($where, @params);
 }
 
 

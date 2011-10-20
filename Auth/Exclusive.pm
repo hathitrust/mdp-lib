@@ -167,9 +167,9 @@ sub __grant_access {
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     # Get all rows matching id in institution-namespace of identity 
-    $statement = qq{SELECT * FROM n_exclusivity WHERE item_id='$id' AND affiliation='$inst_code'};
+    $statement = qq{SELECT * FROM n_exclusivity WHERE item_id=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement});
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $inst_code);
 
     my $id_arr_hashref = $sth->fetchall_arrayref({});
     my $occupied_inst_slots = scalar(@$id_arr_hashref);
@@ -299,9 +299,9 @@ Description
 sub ___acquire_from {
     my ($C, $dbh, $id, $old_owner, $new_owner, $inst_code) = @_;
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE item_id='$id' AND owner='$old_owner' AND affiliation='$inst_code'};
+    my $statement = qq{DELETE FROM n_exclusivity WHERE item_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement});
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $old_owner, $inst_code);
 
     return ___grant($C, $dbh, $id, $new_owner, $inst_code);
 }
@@ -321,9 +321,9 @@ sub ___grant {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{INSERT INTO n_exclusivity SET item_id='$id', owner='$identity', affiliation='$inst_code', expires='$expiration_date'};
+        qq{INSERT INTO n_exclusivity SET item_id='$id', owner=?, affiliation=?, expires=?};
     DEBUG('auth', qq{DEBUG: $statement});
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $identity, $inst_code, $expiration_date);
 
     return $expiration_date;
 }
@@ -343,9 +343,9 @@ sub ___renew {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{UPDATE n_exclusivity SET expires='$expiration_date' WHERE item_id='$id' AND owner='$identity' AND affiliation='$inst_code'};
+        qq{UPDATE n_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement});
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $id, $identity, $inst_code);
 
     return $expiration_date;
 }

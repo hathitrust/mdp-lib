@@ -96,9 +96,9 @@ sub get_coll_ids_for_id {
     my $coll_id_arr_ref = [];
     
     eval {
-        $statement = qq{SELECT MColl_id FROM $coll_item_table_name WHERE extern_item_id='$id'};
+        $statement = qq{SELECT MColl_id FROM $coll_item_table_name WHERE extern_item_id=?};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
         my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
         if (scalar(@$ref_to_arr_of_arr_ref)) {
@@ -155,13 +155,14 @@ sub enqueue_item_ids {
 
         my @values;
         foreach my $v (@$id_arr_ref) {
-            push(@values, q{(} . $dbh->quote($v) . q{,NOW()} . q{)});
+            # push(@values, q{(} . $dbh->quote($v) . q{,NOW()} . q{)});
+            push(@values, qq{(?, NOW())});
         }
         my $values_str = join(qq{,}, @values);
 
         $statement = qq{REPLACE INTO j_shared_queue (`id`, `time`) VALUES $values_str};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
 
         $statement = qq{UNLOCK TABLES};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
@@ -202,10 +203,10 @@ sub enqueue_all_ids {
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
         
-        my $SELECT_clause = qq{SELECT extern_item_id AS `id`, NOW() AS `time` FROM $coll_item_table_name WHERE MColl_id=$coll_id};
+        my $SELECT_clause = qq{SELECT extern_item_id AS `id`, NOW() AS `time` FROM $coll_item_table_name WHERE MColl_id=?};
         $statement = qq{REPLACE INTO j_shared_queue ($SELECT_clause)};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
 
         $statement = qq{UNLOCK TABLES};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
@@ -250,13 +251,14 @@ sub dequeue_item_ids {
 
             my @values;
             foreach my $v (@$id_arr_ref) {
-                push(@values, $dbh->quote($v));
+                # push(@values, $dbh->quote($v));
+                push @values, '?';
             }
             my $values_str = join(qq{,}, @values);
 
             $statement = qq{DELETE FROM j_shared_queue WHERE id IN ($values_str)};
             DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-            $sth = DbUtils::prep_n_execute($dbh, $statement);
+            $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
         }
 
         $statement = qq{UNLOCK TABLES};
@@ -290,9 +292,9 @@ sub Delete_id_from_j_shared_queue {
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{DELETE FROM j_shared_queue WHERE id='$id'};
+        $statement = qq{DELETE FROM j_shared_queue WHERE id=?};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
         $statement = qq{UNLOCK TABLES};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});

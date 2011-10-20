@@ -300,10 +300,9 @@ sub coll_owned_by_user
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
 
-    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id = };
-    $statement .= "\'" . $coll_id . "\' \;";
+    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id = ?};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my @ary = $sth->fetchrow_array;
     my $owner = $ary[0];
 
@@ -337,9 +336,9 @@ sub get_coll_owner_display_name
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
 
-    my $statement = qq{SELECT owner_name FROM $coll_table_name WHERE MColl_id='$coll_id'};
+    my $statement = qq{SELECT owner_name FROM $coll_table_name WHERE MColl_id=?};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my @ary = $sth->fetchrow_array;
     my $owner_display_name = $ary[0];
 
@@ -484,8 +483,8 @@ sub delete_items {
 
     my $id_string = $self->arr_ref2SQL_in_string($id_arr_ref);
 
-    my $statement = qq{DELETE FROM $coll_item_table_name WHERE extern_item_id IN $id_string AND MColl_ID=$coll_id};
-    DbUtils::prep_n_execute ($dbh, $statement);
+    my $statement = qq{DELETE FROM $coll_item_table_name WHERE extern_item_id IN $id_string AND MColl_ID=?};
+    DbUtils::prep_n_execute ($dbh, $statement, @$id_arr_ref, $coll_id);
 
     # update item count int collection table!
     $self->update_item_count($coll_id);
@@ -572,7 +571,7 @@ sub list_items {
 
     # XXX do we need to do a left join and then do something if there
     # is an item without metadata?
-    my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=$coll_id};
+    my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=?};
     if (defined ($id_arr_ref)) {
         my $IN_clause = $self->arr_ref2SQL_in_string($id_arr_ref);
         $WHERE .= qq{ AND $item_table.extern_item_id IN $IN_clause };
@@ -583,7 +582,7 @@ sub list_items {
         my $AND = qq{ AND } . '( ';
 
         foreach my $rights (@{$rights_ref}) {
-            $AND .= qq{$item_table.rights=$rights OR };
+            $AND .= qq{$item_table.rights=? OR };
         }
         # remove last "OR" and insert closing paren
         $AND =~ s,OR\s*$, \) ,;
@@ -610,7 +609,7 @@ sub list_items {
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
     my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_arr_ref, @$rights_ref);
     my $array_ref = $sth->fetchall_arrayref({});
 
     return $array_ref;
@@ -633,8 +632,9 @@ sub arr_ref2SQL_in_string {
     my $id_string = "";
 
     foreach my $id (@$id_arr_ref) {
-        my $quoted_id = $dbh->quote($id);
-        $id_string .= $quoted_id . ", ";
+        # my $quoted_id = $dbh->quote($id);
+        # $id_string .= $quoted_id . ", ";
+        $id_string .= '?, ';
     }
 
     $id_string =~ s,\,\s*$,,;
@@ -671,8 +671,8 @@ sub get_shared_status {
     my $coll_table_name = $self->get_coll_table_name;
     my $status_string = "";
 
-    my $statement = qq{SELECT shared from $coll_table_name WHERE MColl_ID=$coll_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT shared from $coll_table_name WHERE MColl_ID=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my @ary = $sth->fetchrow_array;
     my $status = $ary[0];
 
@@ -707,8 +707,8 @@ sub get_description {
 
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
-    my $statement = qq{SELECT description from $coll_table_name WHERE MColl_ID=$coll_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT description from $coll_table_name WHERE MColl_ID=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my @ary = $sth->fetchrow_array;
     my $description = $ary[0];
 
@@ -731,8 +731,8 @@ sub get_coll_name {
 
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
-    my $statement = qq{SELECT collname from $coll_table_name WHERE MColl_ID=$coll_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT collname from $coll_table_name WHERE MColl_ID=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my @ary = $sth->fetchrow_array;
     my $coll_name = $ary[0];
 
@@ -766,9 +766,8 @@ sub _edit_metadata {
     # XXX Insert any anti SQL injection processing here
     # $value=&cleanit($value);
 
-    my $q_value = DbUtils::quote($dbh, $value);
-    my $statement = qq{UPDATE $coll_table_name SET $field=$q_value  WHERE MColl_ID=$coll_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
 }
 
 
@@ -887,11 +886,11 @@ sub item_in_collection {
 
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
-    my $q_id = $dbh->quote($id);
+    # my $q_id = $dbh->quote($id);
 
-    my $statement = qq{SELECT count(*) FROM $coll_item_table WHERE MColl_ID=$coll_id AND extern_item_id=$q_id};
+    my $statement = qq{SELECT count(*) FROM $coll_item_table WHERE MColl_ID=? AND extern_item_id=?};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, $id);
     my $result = scalar($sth->fetchrow_array);
 
     return ($result > 0);
@@ -916,10 +915,10 @@ sub item_exists {
     if ($id) {
         my $item_table = $self->get_item_table_name;
         my $dbh = $self->get_dbh;
-        my $q_id = $dbh->quote($id);
+        # my $q_id = $dbh->quote($id);
 
-        my $statement = qq{SELECT count(*) FROM $item_table WHERE extern_item_id=$q_id};
-        my $sth = DbUtils::prep_n_execute($dbh, $statement);
+        my $statement = qq{SELECT count(*) FROM $item_table WHERE extern_item_id=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
         $result = scalar($sth->fetchrow_array);
     }
@@ -943,10 +942,10 @@ sub get_coll_ids_for_item {
 
     my $coll_item_table = $self->get_coll_item_table_name();
     my $dbh = $self->get_dbh;
-    my $q_id = $dbh->quote($id);
+    # my $q_id = $dbh->quote($id);
 
-    my $statement = qq{SELECT MColl_ID FROM $coll_item_table WHERE extern_item_id=$q_id};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT MColl_ID FROM $coll_item_table WHERE extern_item_id=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
     my $coll_ids_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
 
@@ -969,11 +968,11 @@ sub get_collnames_for_item {
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
-    my $q_id = $dbh->quote($id);
+    # my $q_id = $dbh->quote($id);
 
-    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=$q_id ORDER BY $coll_table.collname};
+    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
     my $collnames_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
 
@@ -998,11 +997,11 @@ sub get_collnames_for_item_and_user {
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
-    my $q_id = $dbh->quote($id);
+    # my $q_id = $dbh->quote($id);
     
-    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner='$user_id' AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=$q_id ORDER BY $coll_table.collname};
+    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
     my $collnames_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
 
@@ -1025,12 +1024,12 @@ sub get_coll_id_for_collname_and_user {
 
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->get_dbh;
-    my $q_collname = $dbh->quote($collname);
-    my $q_user_id = $dbh->quote($user_id);
+    # my $q_collname = $dbh->quote($collname);
+    # my $q_user_id = $dbh->quote($user_id);
     
-    my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner_name=$q_user_id AND collname=$q_collname};
+    my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner_name=? AND collname=?};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $collname);
     my $MColl_ID = $sth->fetchrow_array();
 
     return $MColl_ID;
@@ -1054,10 +1053,10 @@ sub get_coll_data_for_item_and_user {
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
-    my $q_id = $dbh->quote($id);
+    # my $q_id = $dbh->quote($id);
 
-    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner='$user_id' AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=$q_id ORDER BY $coll_table.collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_ary_of_hashref;
@@ -1086,7 +1085,7 @@ sub count_full_text {
 
     my $SELECT = qq{SELECT count($item_table.extern_item_id) } ;
     my $FROM = qq{FROM $item_table, $coll_item_table};
-    my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=$coll_id};
+    my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=?};
 
     if (defined ($id_array_ref)) {
         my $id_string = $self->arr_ref2SQL_in_string($id_array_ref);
@@ -1096,7 +1095,7 @@ sub count_full_text {
     my $AND = qq{ AND } . '( ';
 
     foreach my $rights (@$rights_ref) {
-        $AND .= qq{$item_table.rights = $rights OR };
+        $AND .= qq{$item_table.rights = ? OR };
     }
     # remove last "OR" and insert closing paren
     $AND =~ s,OR\s*$, \) ,;
@@ -1108,7 +1107,7 @@ sub count_full_text {
     DEBUG('dbcoll', qq{count_full_text sql=$statement});
 
     my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_array_ref, @$rights_ref);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
 
@@ -1148,12 +1147,12 @@ sub count_all_items_for_coll {
     my $coll_id = shift;
 
     my $coll_table = $self->get_coll_table_name;
-    my $statement = qq{SELECT num_items from $coll_table WHERE MColl_ID=$coll_id};
+    my $statement = qq{SELECT num_items from $coll_table WHERE MColl_ID=?};
 
     DEBUG('dbcoll', qq{count_all_items_for_coll sql=$statement});
 
     my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
 
@@ -1175,12 +1174,12 @@ sub get_ids_for_coll {
     my $coll_id = shift;
 
     my $coll_item_table = $self->get_coll_item_table_name();
-    my $statement = qq{SELECT extern_item_id FROM $coll_item_table WHERE MColl_ID=$coll_id};
+    my $statement = qq{SELECT extern_item_id FROM $coll_item_table WHERE MColl_ID=?};
 
     DEBUG('dbcoll', qq{get_item_ids_for_coll sql=$statement});
 
     my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $ids_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
 
     my $ids_ary_ref = [ map {$_->[0]} @$ids_ary_of_ary_ref ];
@@ -1225,7 +1224,7 @@ sub get_metadata_for_item_ids {
     my $statement = $SELECT . $FROM  .  $WHERE;
     DEBUG('dbcoll', qq{get_metadata_for_item_ids sql=$statement});
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_ary_of_hashref;
@@ -1252,7 +1251,7 @@ sub get_metadata_for_item {
     push(@metadata_fields, 'sort_title');
 
     my $dbh = $self->get_dbh();
-    my $q_id = $dbh->quote($id);
+    # my $q_id = $dbh->quote($id);
 
     # qualify field names: "$item_table.fieldname" and join in comma
     # delimited string
@@ -1260,13 +1259,13 @@ sub get_metadata_for_item {
     my $fields = join (", ", @metadata_fields);
 
     my $SELECT = qq{SELECT } . $fields;
-    my $WHERE = qq{ WHERE extern_item_id=$q_id};
+    my $WHERE = qq{ WHERE extern_item_id=?};
     my $FROM = qq{ FROM $item_table };
 
     my $statement = $SELECT . $FROM  .  $WHERE;
     DEBUG('dbcoll', qq{get_metadata_for_item sql=$statement});
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
     my $id_hashref = $ref_to_ary_of_hashref->[0];
 
@@ -1290,13 +1289,13 @@ sub count_all_items_for_coll_from_coll_items {
 
     my $SELECT = qq{SELECT count(extern_item_id) } ;
     my $FROM = qq{FROM $coll_item_table_name};
-    my $WHERE = qq{WHERE MColl_ID=$coll_id};
+    my $WHERE = qq{WHERE MColl_ID=?};
 
     my $statement = join (' ', qq{$SELECT $FROM $WHERE});
     DEBUG('dbcoll', qq{count_all_items_for_coll_from_coll_items sql=$statement});
 
     my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
 
@@ -1333,9 +1332,9 @@ sub update_item_count {
 
     my $coll_item_count = $self->count_all_items_for_coll_from_coll_items($coll_id);
 
-    $statement = qq{UPDATE $coll_table SET num_items=$coll_item_count WHERE MColl_ID=$coll_id};
+    $statement = qq{UPDATE $coll_table SET num_items=? WHERE MColl_ID=?};
     DEBUG('dbcoll', qq{DEBUG: $statement});
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_item_count, $coll_id);
     
     my $collection_table_count = $self->count_all_items_for_coll($coll_id);
 
@@ -1372,7 +1371,7 @@ sub get_full_text_ids {
     my $AND = qq{ AND } . '( ';
 
     foreach my $rights (@{$rights_ref}) {
-        $AND .= qq{ rights = $rights OR };
+        $AND .= qq{ rights = ? OR };
     }
     # remove last "OR" and insert closing paren
     $AND =~ s,OR\s*$, \) ,;
@@ -1381,7 +1380,7 @@ sub get_full_text_ids {
     $WHERE .= $AND;
 
     my $statement = qq{SELECT extern_item_id FROM $item_table $WHERE};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_ary_ref, @$rights_ref);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
 
     my $ids_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
@@ -1409,8 +1408,8 @@ sub one_or_more_items_in_coll {
 
     my $IN_clause = $self->arr_ref2SQL_in_string($id_arr_ref);
 
-    my $statement = qq{SELECT count(*) from $coll_item_table WHERE MColl_ID=$coll_id AND extern_item_id IN $IN_clause };
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT count(*) from $coll_item_table WHERE MColl_ID=? AND extern_item_id IN $IN_clause };
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_arr_ref);
     my @ary = $sth->fetchrow_array;
     my $count = $ary[0];
 

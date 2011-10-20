@@ -46,9 +46,9 @@ sub enqueue_metadata_item_id {
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{INSERT INTO j_metadata_update_queue SET id='$id', time=NOW()};
+        $statement = qq{INSERT INTO j_metadata_update_queue SET id=?, time=NOW()};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
         $statement = qq{UNLOCK TABLES};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
@@ -121,9 +121,9 @@ sub dequeue_id_from_metadata_queue {
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{DELETE FROM j_metadata_update_queue WHERE id='$id'};
+        $statement = qq{DELETE FROM j_metadata_update_queue WHERE id=?};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
         $statement = qq{UNLOCK TABLES};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});

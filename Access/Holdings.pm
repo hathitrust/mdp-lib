@@ -35,8 +35,8 @@ sub id_is_held {
     my $dbh = $C->get_object('Database')->get_DBH($C);
 
     my $SELECT_clause = 
-      qq{SELECT copy_count FROM mdp_holdings.htitem_htmember_jn WHERE volume_id='$id' AND member_id='$inst'};
-    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause);
+      qq{SELECT copy_count FROM mdp_holdings.htitem_htmember_jn WHERE volume_id=? AND member_id=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
     my $count = $sth->fetchrow_array();
 
     return $count;

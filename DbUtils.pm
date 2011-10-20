@@ -47,10 +47,24 @@ Description
 # ---------------------------------------------------------------------
 sub prep_n_execute
 {
-    my ($dbh, $statement, $count_ref) = @_;
+    my ($dbh, $statement, @params) = @_;
 
     # Ensure connection for long running jobs
     $dbh->ping();
+    
+    my $count_ref;
+    if ( ref($params[-1]) ) {
+        $count_ref = pop @params;
+    }
+    
+    # my $statement;
+    # my @params;
+    # unless(ref($statement_n_params)) {
+    #     $statement = $statement_n_params;
+    # } else {
+    #     $statement = shift @$statement_n_params;
+    #     @params = @$statement_n_params;
+    # }
     
     my $ct;
     my $sth;
@@ -63,11 +77,11 @@ sub prep_n_execute
 
     eval
     {
-        $ct = $sth->execute();
+        $ct = $sth->execute(@params);
     };
     ASSERT((! $@), qq{DBI error on statement=$statement: $@});
     ASSERT($ct, qq{Could not execute statement=$statement } . $sth->errstr);
-    $$count_ref = $ct if (defined($count_ref));
+    $$count_ref = $ct if (ref($count_ref));
     
     return $sth;
 }
@@ -133,8 +147,8 @@ sub get_cell_by_key
     my $limit_clause = qq{LIMIT $limit}
         if ( $limit =~ m,^\d+$, );
 
-    my $statement = qq{SELECT $cell_name FROM $table_name WHERE $key_col_name='$key_col_val' $limit_clause;};
-    my $sth = prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT $cell_name FROM $table_name WHERE $key_col_name=? $limit_clause;};
+    my $sth = prep_n_execute($dbh, $statement, $key_col_val);
     my @row = $sth->fetchrow_array();
     $sth->finish;
 
@@ -164,8 +178,8 @@ sub update_row_by_key
     my ($dbh, $table_name, $row_hashref, $key_col_name, $key_col_val) = @_;
     my $set_string;
 
-    my $where = qq{WHERE $key_col_name\=\'$key_col_val\'};
-    update_row_where($dbh, $table_name, $row_hashref, $where);
+    my $where = qq{WHERE $key_col_name\=\?};
+    update_row_where($dbh, $table_name, $row_hashref, $where, $key_col_name);
 }
 
 
@@ -195,20 +209,24 @@ database will handle them.
 # ---------------------------------------------------------------------
 sub update_row_where
 {
-    my ($dbh, $table_name, $row_hashref, $where) = @_;
+    my ($dbh, $table_name, $row_hashref, $where, @params) = @_;
     my $set_string;
 
+    # unshift values onto @params
+    my @tmp;
     foreach my $col_name (keys %$row_hashref)
     {
-	my $val = quote($dbh, $$row_hashref{$col_name});
-	$set_string .= $col_name . qq{=} . $val . qq{, };
+        push @tmp, $$row_hashref{$col_name};        
+	    $set_string .= $col_name . qq{=?, };
     }
     # strip the trailing comma and space off the end of the setString
     chop($set_string);
     chop($set_string);
+    
+    unshift @params, @tmp;
 
     my $statement = qq{UPDATE $table_name SET $set_string $where;};
-    my $sth = prep_n_execute($dbh, $statement);
+    my $sth = prep_n_execute($dbh, $statement, @params);
     $sth->finish;
 }
 
@@ -225,8 +243,8 @@ Description
 sub del_row_by_key
 {
     my ($dbh, $table_name, $key_colname, $key_colval) = @_;
-    my $statement = qq{DELETE FROM $table_name WHERE $key_colname = '$key_colval' LIMIT 1;};
-    my $sth = prep_n_execute($dbh, $statement);
+    my $statement = qq{DELETE FROM $table_name WHERE $key_colname = ? LIMIT 1;};
+    my $sth = prep_n_execute($dbh, $statement, $key_colval);
     $sth->finish;
 }
 
@@ -270,9 +288,9 @@ Description
 sub del_one_or_more_rows_by_key
 {
     my ($dbh, $table_name, $key_col_name, $key_col_val) = @_;
-    my $quotedKeyValue = quote( $dbh, $key_col_val );
-    my $statement = qq{DELETE FROM $table_name WHERE $key_col_name=$quotedKeyValue;};
-    my $sth = prep_n_execute($dbh, $statement);
+    # my $quotedKeyValue = quote( $dbh, $key_col_val );
+    my $statement = qq{DELETE FROM $table_name WHERE $key_col_name=?;};
+    my $sth = prep_n_execute($dbh, $statement, $key_col_val);
     $sth->finish;
 }
 
@@ -297,15 +315,17 @@ sub insert_new_row
     # get row values and join them in a comma delimited string, making
     # sure that they are in the same order as column names.
     my @col_vals;
+    my @col_params;
     foreach my $col_name (@col_names)
     {
-	push(@col_vals, quote($dbh, $$row_hashref{$col_name}));
+        push @col_vals, "?";
+        push @col_params, $$row_hashref{$col_name};
     }
 
     my $col_vals_str = join(qq{, }, @col_vals);
 
     my $statement = qq{INSERT INTO $table_name ($col_names_str) VALUES($col_vals_str);};
-    my $sth = prep_n_execute($dbh, $statement);
+    my $sth = prep_n_execute($dbh, $statement, @col_params);
     $sth->finish;
 }
 
@@ -341,26 +361,31 @@ sub insert_one_or_more_rows
 
     my $col_names_str = qq{\`} . join (qq{\`\, \`}, @$col_names_array_ref) . qq{\`};
     my @array_of_row_strings;
+    my @array_of_row_params;
 
     foreach my $one_row_array_ref (@$rows_array_ref)
     {
 	my $one_row_str;
-	my @one_row_quoted;
+	my @one_row_vals;
+	my @one_row_params;
 	my $c;
 
 	foreach my $colname (@$col_names_array_ref)
 	{
-	    push @one_row_quoted, quote($dbh, $$one_row_array_ref[$c]);
+	    push @one_row_vals, '?';
+	    push @one_row_params, $$one_row_array_ref[$c];
+	    # push @one_row_quoted, quote($dbh, $$one_row_array_ref[$c]);
 	    $c++;
 	}
-	$one_row_str = join(qq{\, }, @one_row_quoted);
+	$one_row_str = join(qq{\, }, @one_row_vals);
 	push (@array_of_row_strings, $one_row_str);
+	push (@array_of_row_params, @one_row_params);
     }
 
     my $all_rows_string = join qq{\)\, \(}, @array_of_row_strings;
 
     my $statement = qq{$method INTO $table_name \($col_names_str\) VALUES \($all_rows_string\)\;};
-    my $sth = prep_n_execute($dbh, $statement);
+    my $sth = prep_n_execute($dbh, $statement, @array_of_row_params);
     $sth->finish;
 }
 
