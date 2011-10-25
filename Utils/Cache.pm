@@ -72,7 +72,7 @@ sub Set
 {
     my $self = shift;
     my ( $id, $key, $value, $force ) = @_;
-    my $keyFileName = $self->BuildKeyFileName($id, $key);
+    my $keyFileName = $self->BuildKeyFileName($id, $key, 1);
 
     # serialize data to a temporary file as a cheap way of 
     # avoiding file collisions.
@@ -176,12 +176,15 @@ sub BuildKeyFileName
     my $self = shift;
     my $id   = shift;
     my $key  = shift;
+    my $create_if_missing = shift;
     my $escaped_key = CGI::escape($key);
 
     my $keydir = $self->{cacheDir};
     $keydir .= Identifier::id_to_mdp_path($id);
     
-    Utils::mkdir_path( $keydir, undef );
+    if ( ! -d $keydir && $create_if_missing ) {
+        Utils::mkdir_path( $keydir, undef );
+    }
     
     return $keydir . "/$escaped_key" . $self->suffix();
     
