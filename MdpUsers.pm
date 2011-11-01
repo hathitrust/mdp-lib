@@ -504,7 +504,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
       },
 
-   'XXXurn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!iTREOzgpcvTgbUHYieNp9G+bc/c='
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!QIGnQ2cDs/bK7+p7MA/m7Y3FDuA='
    => {
        'displayname' => 'Farb, Sharon',
        'supervisor'  => 'jalovett',
