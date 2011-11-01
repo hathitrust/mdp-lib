@@ -168,7 +168,7 @@ sub __grant_access {
 
     # Get all rows matching id in institution-namespace of identity 
     $statement = qq{SELECT * FROM n_exclusivity WHERE item_id=? AND affiliation=?};
-    DEBUG('auth', qq{DEBUG: $statement});
+    DEBUG('auth', qq{DEBUG: $statement : $id $inst_code});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $inst_code);
 
     my $id_arr_hashref = $sth->fetchall_arrayref({});
@@ -300,7 +300,7 @@ sub ___acquire_from {
     my ($C, $dbh, $id, $old_owner, $new_owner, $inst_code) = @_;
 
     my $statement = qq{DELETE FROM n_exclusivity WHERE item_id=? AND owner=? AND affiliation=?};
-    DEBUG('auth', qq{DEBUG: $statement});
+    DEBUG('auth', qq{DEBUG: $statement : $id : $old_owner : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $old_owner, $inst_code);
 
     return ___grant($C, $dbh, $id, $new_owner, $inst_code);
@@ -321,8 +321,8 @@ sub ___grant {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{INSERT INTO n_exclusivity SET item_id='$id', owner=?, affiliation=?, expires=?};
-    DEBUG('auth', qq{DEBUG: $statement});
+        qq{INSERT INTO n_exclusivity SET item_id=?, owner=?, affiliation=?, expires=?};
+    DEBUG('auth', qq{DEBUG: $statement : $id : $identity : $inst_code : $expiration_date});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $identity, $inst_code, $expiration_date);
 
     return $expiration_date;
@@ -344,7 +344,7 @@ sub ___renew {
 
     my $statement =
         qq{UPDATE n_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
-    DEBUG('auth', qq{DEBUG: $statement});
+    DEBUG('auth', qq{DEBUG: $statement : $expiration_date : $id : $identity : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $id, $identity, $inst_code);
 
     return $expiration_date;
@@ -364,11 +364,11 @@ sub ___cleanup_expired_grants {
 
     my $now = Utils::Time::iso_Time();
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE expires < '$now'};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{DELETE FROM n_exclusivity WHERE expires < ?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $now);
 
     Utils::map_chars_to_cers(\$statement, [q{"}, q{'}]);
-    DEBUG('auth', qq{DEBUG: $statement});
+    DEBUG('auth', qq{DEBUG: $statement : $now});
 }
 
 
