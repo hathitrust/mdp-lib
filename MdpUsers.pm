@@ -454,6 +454,67 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                         ],
 
       },
+      
+   # UCLA Team - see Julia Lovett <jalovett@umich.edu>
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6Y58l1vYOIiEQbLvz2OBKJUnnjA='
+   => {
+       'displayname' => 'Riggio, Angela',
+       'supervisor'  => 'jalovett',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^164\.67\.19\.54$',
+                        ],
+
+      },
+
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!2imW9Uc3XmQ1EmHiJfyBKpuP7EA='
+   => {
+       'displayname' => 'Gurman, Diane',
+       'supervisor'  => 'jalovett',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^164\.67\.19\.50$',
+                        ],
+
+      },
+
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!oe10HzWIUQBr5f+j+3BxfxL2otk='
+   => {
+       'displayname' => 'Brennan, Martin J.',
+       'supervisor'  => 'jalovett',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^164\.67\.19\.49$',
+                        ],
+
+      },
+
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!iTREOzgpcvTgbUHYieNp9G+bc/c='
+   => {
+       'displayname' => 'McMichael, Leslie',
+       'supervisor'  => 'jalovett',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^164\.67\.17\.18$',
+                        ],
+
+      },
+
+   'XXXurn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!iTREOzgpcvTgbUHYieNp9G+bc/c='
+   => {
+       'displayname' => 'Farb, Sharon',
+       'supervisor'  => 'jalovett',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'iprestrict'  => [
+                         '^164\.67\.17\.19$',
+                        ],
+
+      },
 
    # Digitization
    'lwentzel'
