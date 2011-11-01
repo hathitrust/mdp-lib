@@ -765,8 +765,11 @@ Construct $SDRROOT/{cache|cache-full}/$key
 sub get_true_cache_dir {
     my $C = shift;
     my $cache_dir_key = shift;
+    
+    # polymorphic : allow MdpConfig or Context as parameter
+    my $config = ref($C) eq 'Context' ? $C->get_object('MdpConfig') : $C;
 
-    my $cache_dir = $ENV{SDRROOT} . $C->get_object('MdpConfig')->get($cache_dir_key);
+    my $cache_dir = $ENV{SDRROOT} . $config->get($cache_dir_key);
     my $true_cache_component = ($ENV{SDRVIEW} eq 'full') ? 'cache-full' : 'cache';
     
     $cache_dir =~ s,___CACHE___,$true_cache_component,;
