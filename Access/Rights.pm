@@ -200,7 +200,7 @@ volumes we still need to assert that 8 is denied here.
 # ---------------------------------------------------------------------
 sub get_no_fulltext_attr_list {
     my $C = shift;
-    return = _get_final_access_status_attr_list($C, 'deny');
+    return _get_final_access_status_attr_list($C, 'deny');
 }
 
 # ---------------------------------------------------------------------
