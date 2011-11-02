@@ -456,11 +456,11 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
       },
       
    # UCLA Team - see Julia Lovett <jalovett@umich.edu>
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6Y58l1vYOIiEQbLvz2OBKJUnnjA='
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6y58l1vyoiieqblvz2obkjunnja='
    => {
        'displayname' => 'Riggio, Angela',
        'supervisor'  => 'jalovett',
-       'expires'     => $gStaffExpireDate,
+       'expires'     => '2012-01-31 23:59:59',
        'usertype'    => 'staff',
        'iprestrict'  => [
                          '^164\.67\.19\.54$',
@@ -468,11 +468,11 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
       },
 
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!2imW9Uc3XmQ1EmHiJfyBKpuP7EA='
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!2imw9uc3xmq1emhijfybkpup7ea='
    => {
        'displayname' => 'Gurman, Diane',
        'supervisor'  => 'jalovett',
-       'expires'     => $gStaffExpireDate,
+       'expires'     => '2012-01-31 23:59:59',
        'usertype'    => 'staff',
        'iprestrict'  => [
                          '^164\.67\.19\.50$',
@@ -480,11 +480,11 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
       },
 
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!oe10HzWIUQBr5f+j+3BxfxL2otk='
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!oe10hzwiuqbr5f+j+3bxfxl2otk='
    => {
        'displayname' => 'Brennan, Martin J.',
        'supervisor'  => 'jalovett',
-       'expires'     => $gStaffExpireDate,
+       'expires'     => '2012-01-31 23:59:59',
        'usertype'    => 'staff',
        'iprestrict'  => [
                          '^164\.67\.19\.49$',
@@ -492,11 +492,11 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
       },
 
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!iTREOzgpcvTgbUHYieNp9G+bc/c='
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!itreozgpcvtgbuhyienp9g+bc/c='
    => {
        'displayname' => 'McMichael, Leslie',
        'supervisor'  => 'jalovett',
-       'expires'     => $gStaffExpireDate,
+       'expires'     => '2012-01-31 23:59:59',
        'usertype'    => 'staff',
        'iprestrict'  => [
                          '^164\.67\.17\.18$',
@@ -504,11 +504,11 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
 
       },
 
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!QIGnQ2cDs/bK7+p7MA/m7Y3FDuA='
+   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!qignq2cds/bk7+p7ma/m7y3fdua='
    => {
        'displayname' => 'Farb, Sharon',
        'supervisor'  => 'jalovett',
-       'expires'     => $gStaffExpireDate,
+       'expires'     => '2012-01-31 23:59:59',
        'usertype'    => 'staff',
        'iprestrict'  => [
                          '^164\.67\.17\.19$',
