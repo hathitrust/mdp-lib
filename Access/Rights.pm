@@ -177,8 +177,6 @@ It is permissive of the attributes that equate to 'allow' in the
 CERTAIN KNOWLEDGE that these rights attribute values will be QUALIFIED
 BY THIS HOLDINGS TEST.
 
-WAITING FOR INSTITUTION DATA TO BE AVAILABLE IN Solr INDEX
-
 =cut
 
 # ---------------------------------------------------------------------
@@ -194,17 +192,15 @@ sub get_fulltext_attr_list {
 For this user (assuming user is authenticated) for user's institution,
 which rights attributes equate to 'search-only', i.e. no 'fulltext'.
 
+This includes attr=8 (nobody).  Even though we don't index those
+volumes we still need to assert that 8 is denied here.  
+
 =cut
 
 # ---------------------------------------------------------------------
 sub get_no_fulltext_attr_list {
     my $C = shift;
-
-    my $deny_attr_list_ref = _get_final_access_status_attr_list($C, 'deny');
-    # Objects having attr=8 are denied but whether to expose them is undecided.  Expose them for now.
-    # @$deny_attr_list_ref = grep(! /^$RightsGlobals::g_available_to_no_one_attribute_value$/, @$deny_attr_list_ref);
-    
-    return $deny_attr_list_ref;
+    return = _get_final_access_status_attr_list($C, 'deny');
 }
 
 # ---------------------------------------------------------------------
