@@ -90,7 +90,10 @@ sub ASSERT_core
 
     if ($die)
     {
-        Debug::DUtils::set_error_template($msg);
+        # route around weird conflict between Plack and HTML::Template
+        unless ( exists($ENV{'psgi.version'}) ) {
+            Debug::DUtils::set_error_template($msg);
+        }
         croak('ASSERT_FAIL: '. $msg)
     }
 }
