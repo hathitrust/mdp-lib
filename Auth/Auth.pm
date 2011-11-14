@@ -122,6 +122,7 @@ use constant UMICH_SSD_LIST =>
          benmb
          mikenuss
          nlcp
+         jweise
     );
  
 ### EXCLUDED
