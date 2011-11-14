@@ -232,10 +232,6 @@ sub change_owner
     
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
-
-    $old_user_id = $dbh->quote($old_user_id);
-    $new_user_id = $dbh->quote($new_user_id);
-    $user_display_name = $dbh->quote($user_display_name);
     
     my $statement = qq{UPDATE $coll_table SET owner=?, owner_name=? WHERE owner=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $new_user_id, $user_display_name, $old_user_id);
@@ -359,8 +355,6 @@ sub delete_all_colls_for_user
     my $dbh = $self->{'dbh'};
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
-
-    $user_id = $dbh->quote($user_id);
     
     my ($statement, $sth);
     
