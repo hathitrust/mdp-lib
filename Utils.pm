@@ -1137,6 +1137,15 @@ sub sort_uniquify_list
     }
 }
 
+# ---------------------------------------------------------------------
+
+=item add_header
+
+add HTTP response header to HTTP::Headers object in Config.
+
+=cut
+
+# ---------------------------------------------------------------------
 sub add_header
 {
     my ($C, $key, $value) = @_;
@@ -1153,16 +1162,6 @@ sub add_header
     } else {
         $headers_ref->header($key => $value);
     }
-}
-
-sub set_header_cookie
-{
-    my ($C, $cookie) = @_;
-    my $headers_ref = ( ref($C) eq 'Context' ) ? $C->get_object('HTTP::Headers') : $C;
-    
-    my @header_cookies = $headers_ref->header('Set-Cookie');
-    push @header_cookies, $cookie;
-    $headers_ref->header('Set-Cookie' => \@header_cookies);
 }
 
 1;
