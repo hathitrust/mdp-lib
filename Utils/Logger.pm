@@ -81,7 +81,6 @@ sub __Log_string {
     my $logfile = $config->get($logfile_key);
     my $date = Utils::Time::iso_Time('date');
     $logfile =~ s,___DATE___,-$date,;
-    print STDERR "LOGGING: $logdir/$logfile\n";
     
     Utils::mkdir_path($logdir);
 
