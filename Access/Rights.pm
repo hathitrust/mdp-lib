@@ -630,7 +630,7 @@ sub _Assert_final_access_status {
     }
     elsif 
       ($initial_access_status eq 'allow_ssd_by_holdings') {
-        $final_access_status = _resolve_ssd_access_by_held($C, $id);
+        $final_access_status = _resolve_ssd_access_by_held($C, $id, 1);
     }
 
     ___final_access_status_check($final_access_status);
@@ -699,7 +699,7 @@ sub _Check_final_access_status {
     elsif 
       ($initial_access_status eq 'allow_ssd_by_holdings') {
         if (defined($id)) {
-            $final_access_status = _resolve_ssd_access_by_held($C, $id);
+            $final_access_status = _resolve_ssd_access_by_held($C, $id, 0);
         }
         else {
             # downstream must filter on holdings
@@ -1024,22 +1024,33 @@ sub _resolve_access_by_held_and_agreement {
 
 =item _resolve_ssd_access_by_held
 
-Description
+As of Tue Nov 29 13:17:04 2011, access is limited to one simultaneous
+ssd user on US soil
 
 =cut
 
 # ---------------------------------------------------------------------
 sub _resolve_ssd_access_by_held {
-    my ($C, $id) = @_;
+    my ($C, $id, $assert_ownership) = @_;
 
-    my $status = 'deny';
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+    my $inst = 'not defined';
     
-    my $inst = $C->get_object('Auth')->get_institution($C);
-    if (Access::Holdings::id_is_held($C, $id, $inst)) {
-        $status = 'allow';
+    my $US_status = _resolve_access_by_GeoIP($C);
+    if ($US_status eq 'allow') {
+        $inst = $C->get_object('Auth')->get_institution($C);
+        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+            if ($assert_ownership) {
+                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+            }
+            else {
+                ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+            }
+        }
     }
-    DEBUG('pt,auth,all', qq{<h5>SSD Holdings institution=$inst held=$status"</h5>});
-    
+
+    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+
     return $status;
 }
 
