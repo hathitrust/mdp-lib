@@ -1137,6 +1137,34 @@ sub sort_uniquify_list
     }
 }
 
+sub add_header
+{
+    my ($C, $key, $value) = @_;
+    my $headers_ref = $C->get_object('HTTP::Headers', 1);
+    unless(ref($headers_ref)) {
+        $headers_ref = HTTP::Headers->new;
+        $C->set_object('HTTP::Headers', $headers_ref);
+    }
+    if ( lc $key eq 'cookie' ) {
+        $key = 'Set-Cookie';
+        my @values = $headers_ref->header($key);
+        push @values, $value;
+        $headers_ref->header($key => \@values);
+    } else {
+        $headers_ref->header($key => $value);
+    }
+}
+
+sub set_header_cookie
+{
+    my ($C, $cookie) = @_;
+    my $headers_ref = ( ref($C) eq 'Context' ) ? $C->get_object('HTTP::Headers') : $C;
+    
+    my @header_cookies = $headers_ref->header('Set-Cookie');
+    push @header_cookies, $cookie;
+    $headers_ref->header('Set-Cookie' => \@header_cookies);
+}
+
 1;
 
 __END__

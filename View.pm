@@ -60,6 +60,8 @@ use Utils::XSLT;
 
 use Operation::Status;
 
+use Utils;
+use HTTP::Headers;
 
 sub new {
     my $class = shift;
@@ -538,26 +540,19 @@ sub P_output_data_HTTP {
     $content_type = 'text/html'
         if (! $content_type);
 
-    my $header_vals_ref;
-
     my $charset = 'UTF-8';
+    
+    Utils::add_header($C, 'Content-type' => qq{$content_type; charset=$charset});
+    
     my $ses = $C->get_object('Session', 1);
     if ($ses) {
         my $cookie = $ses->get_cookie();
-        $header_vals_ref =
-            {-type    => $content_type,
-             -charset => $charset,
-             -cookie  => $cookie,
-            };
+        Utils::add_header($C, 'Cookie' => $cookie);
     }
-    else {
-        $header_vals_ref =
-            {-type    => $content_type,
-             -charset => $charset,
-            };
-    }
-
-    print STDOUT CGI::header($header_vals_ref);
+    
+    my $headers_ref = $C->get_object('HTTP::Headers');
+    print STDOUT "Status: 200" . $CGI::CRLF;
+    print STDOUT $headers_ref->as_string($CGI::CRLF);
     print STDOUT $$data_ref;
 }
 
