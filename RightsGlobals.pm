@@ -391,16 +391,6 @@ $g_orphan_candidate_attribute_value = 16;
 @g_rights_attribute_values = keys %g_rights_matrix;
 
 # ---------------------------------------------------------------------
-# Orphan Agreements by institution - (will allow affiliated users to
-# see works with attr=4 (orph)
-# ---------------------------------------------------------------------
-#
-@g_orphan_agreement_institutions = (
-                                    'uom',
-                                    'wisc',
-                                   );
-
-# ---------------------------------------------------------------------
 # Geographic IP Information
 # ---------------------------------------------------------------------
 # Country codes used to determine public domain via the GeoIP database

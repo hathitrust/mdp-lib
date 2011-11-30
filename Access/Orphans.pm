@@ -20,6 +20,8 @@ use Context;
 use Utils;
 use RightsGlobals;
 
+my @ORPHAN_AGREEMENT_INSTITUTIONS = ();
+
 # ---------------------------------------------------------------------
 
 =item institution_agreement
@@ -32,8 +34,22 @@ Description
 sub institution_agreement {
     my ($C, $inst) = @_;
     
-    my $agreed = grep(/^$inst$/, @RightsGlobals::g_orphan_agreement_institutions);
+    # lazy
+    if (! scalar(@ORPHAN_AGREEMENT_INSTITUTIONS)) {
+        __load_agreed_institutions($C);
+    }
+    
+    my $agreed = grep(/^$inst$/, @ORPHAN_AGREEMENT_INSTITUTIONS);
     return $agreed;
+}
+
+sub __load_agreed_institutions {
+    my $C = shift;
+
+    my $ag_institution_file = qq{$ENV{SDRROOT}/common/web/orphan-agreement-inst-list.txt};
+    my $txt_ref = Utils::read_file($ag_institution_file);
+    @ORPHAN_AGREEMENT_INSTITUTIONS = split(/\n/, $$txt_ref);
+    @ORPHAN_AGREEMENT_INSTITUTIONS = grep(! /^\s*$/, @ORPHAN_AGREEMENT_INSTITUTIONS)
 }
 
 
