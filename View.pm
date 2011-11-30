@@ -551,8 +551,10 @@ sub P_output_data_HTTP {
     }
     
     my $headers_ref = $C->get_object('HTTP::Headers');
+    
     print STDOUT "Status: 200" . $CGI::CRLF;
     print STDOUT $headers_ref->as_string($CGI::CRLF);
+    print STDOUT $CGI::CRLF . $CGI::CRLF;
     print STDOUT $$data_ref;
 }
 
