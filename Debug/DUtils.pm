@@ -273,7 +273,7 @@ sub ___determine_app {
     # or /cgi/pt/search or /pt/cgi/pt/search namely: anyting after
     # /cgi/ that is followed by a slash but not the slash or
     # everything after /cgi/
-    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,/cgi/((.*)(?=/)|(.*)),);
+    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,/(?:shcgi|cgi)/((.*)(?=/)|(.*)),);
     return $appname;
 }
 
