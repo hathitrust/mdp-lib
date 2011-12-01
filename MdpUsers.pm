@@ -37,9 +37,11 @@ $gStaffSubnetRangesRef =
   ];
 
 # Superuser access expires on date:
-$gSuperuserExpireDate = '2011-12-31 23:59:59';
+$gSuperuserExpireDate = '2012-12-31 23:59:59';
 # Staff, student,friend access expires on date:
-$gStaffExpireDate = '2011-12-31 23:59:59';
+$gStaffExpireDate = '2012-12-31 23:59:59';
+# CRMS users
+$gCRMS_ExpireDate = '2012-12-1 23:59:59';
 
 # Send warnings of inpending expiration to supervisors this many days
 # from the end
@@ -68,14 +70,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    'bronick'
    => {
        'displayname' => 'Bronicki, Jackie',
-       'supervisor'  => 'jpwilkin',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'grossmei'
-   => {
-       'displayname' => 'Grossmei, Greg',
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
@@ -228,7 +222,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Lane, Zack',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^128\.59\.154\.122$',
@@ -241,7 +235,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Urban, Carla Dewey',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^160\.94\.15\.154$',
@@ -253,7 +247,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Zuriff, Sue',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^160\.94\.224\.166$',
@@ -265,7 +259,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Rattunde, Karen',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^128\.104\.61\.15$',
@@ -275,7 +269,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Nachreiner, Lisa',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^128\.104\.61\.101$',
@@ -285,7 +279,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Roemer, Rita',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^128\.104\.61\.41$',
@@ -295,7 +289,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Seeger, Al',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^128\.104\.61\.100$',
@@ -308,7 +302,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Marlett, Kathy',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.84$',
@@ -319,7 +313,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Michaels, Sherri',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.85$',
@@ -330,7 +324,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'McClamroch, Jo',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.88$',
@@ -341,7 +335,7 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
    => {
        'displayname' => 'Black, Janet',
        'supervisor'  => 'pfarber',
-       'expires'     => '2011-11-30 23:59:59',
+       'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'onetime',
        'iprestrict'  => [
                          '^129\.79\.35\.86$',
@@ -363,7 +357,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.212$',
                          '^141\.211\.173\.138$',
                         ],
-
       },
    
    'bryanbir'
@@ -379,7 +372,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.212$',
                          '^141\.211\.173\.138$',
                         ],
-
       },
 
    'monicats'
@@ -395,7 +387,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.212$',
                          '^141\.211\.173\.138$',
                         ],
-
       },
 
    'kujalak'
@@ -412,7 +403,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.212$',
                          '^141\.211\.173\.138$',
                         ],
-
       },
 
    # Visual Validation of Publication Year
@@ -426,7 +416,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.207$',
                          '^141\.211\.173\.208$',
                         ],
-
       },
 
     'jennywri'
@@ -439,7 +428,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.207$',
                          '^141\.211\.173\.208$',
                         ],
-
       },
   
     'smhelm'
@@ -452,7 +440,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
                          '^141\.211\.173\.207$',
                          '^141\.211\.173\.208$',
                         ],
-
       },
       
    # UCLA Team - see Julia Lovett <jalovett@umich.edu>
@@ -465,7 +452,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => [
                          '^164\.67\.19\.54$',
                         ],
-
       },
 
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!2imw9uc3xmq1emhijfybkpup7ea='
@@ -477,7 +463,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => [
                          '^164\.67\.19\.50$',
                         ],
-
       },
 
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!oe10hzwiuqbr5f+j+3bxfxl2otk='
@@ -489,7 +474,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => [
                          '^164\.67\.19\.49$',
                         ],
-
       },
 
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!itreozgpcvtgbuhyienp9g+bc/c='
@@ -501,7 +485,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => [
                          '^164\.67\.17\.18$',
                         ],
-
       },
 
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!qignq2cds/bk7+p7ma/m7y3fdua='
@@ -513,7 +496,6 @@ $gStaffExpireDate = '2011-12-31 23:59:59';
        'iprestrict'  => [
                          '^164\.67\.17\.19$',
                         ],
-
       },
 
    # Digitization
