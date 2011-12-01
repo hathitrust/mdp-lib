@@ -41,7 +41,7 @@ $gSuperuserExpireDate = '2012-12-31 23:59:59';
 # Staff, student,friend access expires on date:
 $gStaffExpireDate = '2012-12-31 23:59:59';
 # CRMS users
-$gCRMS_ExpireDate = '2012-12-1 23:59:59';
+$gCRMS_ExpireDate = '2012-12-01 23:59:59';
 
 # Send warnings of inpending expiration to supervisors this many days
 # from the end
