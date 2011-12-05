@@ -21,7 +21,7 @@ $data2 = $cache->Get($id, $key);
 
 =cut
 
-use Storable qw(freeze retrieve store);
+use Storable qw(freeze retrieve nstore);
 use Carp;
 
 use Utils::Cache;
@@ -39,7 +39,7 @@ sub serialize
     my $tmpfilename = shift;
     
     # return freeze($value);
-    store($value, $tmpfilename);
+    nstore($value, $tmpfilename);
 }
 
 sub instantiate
