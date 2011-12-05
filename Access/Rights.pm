@@ -703,7 +703,7 @@ sub _Check_final_access_status {
         }
         else {
             # downstream must filter on holdings
-            $final_access_status = 'deny';
+            $final_access_status = 'allow';
         }
     }
     
