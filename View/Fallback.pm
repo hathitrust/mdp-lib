@@ -82,6 +82,7 @@ my %g_coll_id_map =
      '1874608773' => 'aadl:moaa',
      '0000000000' => 'umhistmath',
      '781708252'  => 'keanuniv:NJ_History_Project',
+     '247770968'  => 'estc:estc',
     );
 
 # Map permanent collection name to web directory path
@@ -92,6 +93,7 @@ my %g_collection_map =
      'umpress:UM_Press'            => '/mb/web/u/umpress',
      'umhistmath'                  => '',
      'keanuniv:NJ_History_Project' => '/mb/web/k/kean',
+     'estc:estc'                   => '/mb/web/e/estc',
     );
 
 
