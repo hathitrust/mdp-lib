@@ -1146,7 +1146,7 @@ add HTTP response header to HTTP::Headers object in Config.
 =cut
 
 # ---------------------------------------------------------------------
-sub add_header
+sub add_header 
 {
     my ($C, $key, $value) = @_;
     my $headers_ref = $C->get_object('HTTP::Headers', 1);

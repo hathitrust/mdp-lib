@@ -44,20 +44,26 @@ sub log_incopyright_access  {
     my $ar = $C->get_object('Access::Rights');
     if ( $ar->check_final_access_status($C, $id) eq 'allow' ) {
         # ... serving something
-        if (Access::Rights::in_copyright_suppress_debug_switches($C, $id)) {
+        my ($in_copyright, $attr) = Access::Rights::in_copyright_suppress_debug_switches($C, $id);
+        my $access_type = $ar->get_access_type($C, 'as_string');
+
+        if ($in_copyright) {
             # ... that is in-copyright 
             my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
            
             if (defined $usertype) {
                 my $role = Auth::ACL::a_GetUserAttributes('role');
-                Utils::add_header($C, $Header_Key, "user=$usertype,$role");
+                Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attr;access=$access_type");
             }
             else {
-                # Better have SSD credentials
+                # Better have SSD credentials, or be OPB with proper authorization
                 my $is_ssd = $C->get_object('Auth')->get_eduPersonEntitlement_print_disabled($C);
-                ASSERT($is_ssd, qq{Unknown user identity requesting in_copyright material id=$id});
-
-                Utils::add_header($C, $Header_Key, "user=ssd");
+                if ($is_ssd) {
+                    Utils::add_header($C, $Header_Key, "user=ssd;attr=$attr;access=$access_type");
+                }
+                else {
+                    Utils::add_header($C, $Header_Key, "user=other;attr=$attr;access=$access_type");
+                }
             }
         }
     }
