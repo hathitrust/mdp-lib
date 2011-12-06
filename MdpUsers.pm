@@ -52,6 +52,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
 #
 # WARNING: keys to this hash must be lower-case to work vs. ACL.pm
 #
+# NOTE: usertypes are 'staff' (UM), 'external' (non-UM)
+#       roles are (currently) 'superuser', 'misc', 'crms', 'orphan', 'digitization'
 %gAccessControlList =
   (
    # Shibboleth development e.g. persistent-id=...
@@ -60,7 +62,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
   'displayname' => 'Farber, Phillip Shibboleth development',
   'supervisor'  => 'pfarber',
   'expires'     => $gSuperuserExpireDate,
-  'usertype'    => 'superuser',
+  'usertype'    => 'staff',
+  'role'        => 'superuser',
   'iprestrict'  => [
                     '^141\.211\.43\.195$',
                    ],
@@ -73,6 +76,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'rglushko'
@@ -81,6 +85,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'mslevine'
@@ -89,6 +94,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'bentobey'
@@ -97,6 +103,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'melamber'
@@ -105,15 +112,16 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-
    'chisli'
    => {
        'displayname' => 'Li, Chisheng',
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'lhardman'
@@ -122,6 +130,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jpwilkin',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'azaytsev'
@@ -130,6 +139,52 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jjyork',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'misc',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'ekflanag'
+   => {
+       'displayname' => 'Campbell, Emily',
+       'supervisor'  => 'jaheim',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'misc',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'amuro'
+   => {
+       'displayname' => 'Knott, Martin ',
+       'supervisor'  => 'amuro',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'misc',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'cmcguire'
+   => {
+       'displayname' => 'McGuire, Connie',
+       'supervisor'  => 'amuro',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'misc',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'emustard'
+   => {
+       'displayname' => 'Mustard, Liz',
+       'supervisor'  => 'jaheim',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'misc',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'ellenkw'
+   => {
+       'displayname' => 'Wilson, Ellen',
+       'supervisor'  => 'layers',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
 
@@ -140,6 +195,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'gnichols'
@@ -148,6 +204,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'cwilcox'
@@ -156,6 +213,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'dfulmer'
@@ -164,6 +222,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
    'dmcw'
@@ -172,50 +231,10 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
 
-   # Other Staff
-   'ekflanag'
-   => {
-       'displayname' => 'Campbell, Emily',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'amuro'
-   => {
-       'displayname' => 'Knott, Martin ',
-       'supervisor'  => 'amuro',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'cmcguire'
-   => {
-       'displayname' => 'McGuire, Connie',
-       'supervisor'  => 'amuro',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'emustard'
-   => {
-       'displayname' => 'Mustard, Liz',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'ellenkw'
-   => {
-       'displayname' => 'Wilson, Ellen',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
 
    # Columbia CRMS
    'zl2114@columbia.edu'
@@ -223,7 +242,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Lane, Zack',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^128\.59\.154\.122$',
                          '^128\.59\.154\.21$',
@@ -236,7 +256,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Urban, Carla Dewey',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^160\.94\.15\.154$',
                          '^160\.94\.15\.188$',
@@ -248,7 +269,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Zuriff, Sue',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^160\.94\.224\.166$',
                         ],
@@ -260,7 +282,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Rattunde, Karen',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^128\.104\.61\.15$',
                         ],
@@ -270,7 +293,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Nachreiner, Lisa',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^128\.104\.61\.101$',
                         ],
@@ -280,7 +304,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Roemer, Rita',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^128\.104\.61\.41$',
                         ],
@@ -290,12 +315,12 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Seeger, Al',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^128\.104\.61\.100$',
                         ],
       },
-
 
    # Indiana CRMS
    'marlett@indiana.edu'
@@ -303,7 +328,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Marlett, Kathy',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^129\.79\.35\.84$',
                         ],
@@ -314,7 +340,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Michaels, Sherri',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^129\.79\.35\.85$',
                          '^129\.79\.35\.89$',
@@ -325,7 +352,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'McClamroch, Jo',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^129\.79\.35\.88$',
                         ],
@@ -336,7 +364,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Black, Janet',
        'supervisor'  => 'pfarber',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'onetime',
+       'usertype'    => 'external',
+       'role'        => 'crms',
        'iprestrict'  => [
                          '^129\.79\.35\.86$',
                         ],
@@ -350,6 +379,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^141\.211\.173\.203$',
                          '^141\.211\.173\.204$',
@@ -365,6 +395,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^141\.211\.173\.203$',
                          '^141\.211\.173\.204$',
@@ -380,6 +411,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^141\.211\.173\.203$',
                          '^141\.211\.173\.204$',
@@ -395,6 +427,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^141\.211\.173\.203$',
                          '^141\.211\.173\.204$',
@@ -404,51 +437,15 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^141\.211\.173\.138$',
                         ],
       },
-
-   # Visual Validation of Publication Year
-    'jonesse'
-   => {
-       'displayname' => 'Jones, Sarah',
-       'supervisor'  => 'bronick',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => [
-                         '^141\.211\.173\.207$',
-                         '^141\.211\.173\.208$',
-                        ],
-      },
-
-    'jennywri'
-   => {
-       'displayname' => 'Wright, Jennifer',
-       'supervisor'  => 'bronick',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => [
-                         '^141\.211\.173\.207$',
-                         '^141\.211\.173\.208$',
-                        ],
-      },
-  
-    'smhelm'
-   => {
-       'displayname' => 'Helm, Sarah',
-       'supervisor'  => 'bronick',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'iprestrict'  => [
-                         '^141\.211\.173\.207$',
-                         '^141\.211\.173\.208$',
-                        ],
-      },
       
-   # UCLA Team - see Julia Lovett <jalovett@umich.edu>
+   # UCLA Team orphan - see Julia Lovett <jalovett@umich.edu>
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6y58l1vyoiieqblvz2obkjunnja='
    => {
        'displayname' => 'Riggio, Angela',
        'supervisor'  => 'jalovett',
        'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'staff',
+       'usertype'    => 'external',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^164\.67\.19\.54$',
                         ],
@@ -459,7 +456,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Gurman, Diane',
        'supervisor'  => 'jalovett',
        'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'staff',
+       'usertype'    => 'external',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^164\.67\.19\.50$',
                         ],
@@ -470,7 +468,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Brennan, Martin J.',
        'supervisor'  => 'jalovett',
        'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'staff',
+       'usertype'    => 'external',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^164\.67\.19\.49$',
                         ],
@@ -481,7 +480,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'McMichael, Leslie',
        'supervisor'  => 'jalovett',
        'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'staff',
+       'usertype'    => 'external',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^164\.67\.17\.18$',
                         ],
@@ -492,7 +492,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Farb, Sharon',
        'supervisor'  => 'jalovett',
        'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'staff',
+       'usertype'    => 'external',
+       'role'        => 'orphan',
        'iprestrict'  => [
                          '^164\.67\.17\.19$',
                         ],
@@ -505,6 +506,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'digitization',
        'iprestrict'  => [
                          '^141\.211\.84\.36$',
                         ],
@@ -515,6 +517,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'supervisor'  => 'pfarber',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
+       'role'        => 'digitization',
        'iprestrict'  => [
                          '^141\.211\.84\.27$',
                         ],
@@ -526,7 +529,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Burton-West, Tom',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'suzchap'
@@ -534,7 +538,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Chapman, Suzanne',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'pfarber'
@@ -542,7 +547,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Farber, Phillip',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'roger'
@@ -550,7 +556,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Espinosa, Roger',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'pulintz'
@@ -558,7 +565,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Ulintz, Peter',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'khage'
@@ -566,7 +574,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Hagedorn, Kat',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'moseshll'
@@ -574,7 +583,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Hall, Brian',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'annekz'
@@ -582,7 +592,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Karle-Zenith, Anne',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'annekz@puddlemedia.com'
@@ -590,7 +601,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Karle-Zenith, Anne - friend',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'skorner'
@@ -598,7 +610,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Korner, Sebastien',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'jalovett'
@@ -606,7 +619,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Lovett, Julia',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'sooty'
@@ -614,7 +628,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Powell, Chris',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'timothy'
@@ -622,7 +637,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Prettyman, Tim',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'csnavely'
@@ -630,7 +646,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Snavely, Cory',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'jweise'
@@ -638,7 +655,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Weise, John',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'jpwilkin'
@@ -646,7 +664,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Wilkin, John',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'jjyork'
@@ -654,7 +673,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'York, Jeremy',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'aelkiss'
@@ -662,7 +682,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Elkiss, Aaron',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'rrotter'
@@ -670,7 +691,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Rotter, Ryan',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'tmooney'
@@ -678,7 +700,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Mooney, Thomas',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'ezbrooks'
@@ -686,7 +709,8 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'displayname' => 'Brooks, Ezra',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'superuser',
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
   );

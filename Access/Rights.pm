@@ -432,6 +432,61 @@ sub public_domain_world {
 
 # ---------------------------------------------------------------------
 
+=item in_copyright
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub in_copyright {
+    my $self = shift;
+    my ($C, $id) = @_;
+    
+    if ($self->public_domain_world_creative_commons($C, $id)) {
+        return 0;
+    }
+    return 1;
+}
+
+# ---------------------------------------------------------------------
+
+=item CLASS PUBLIC: in_copyright_suppress_debug_switches
+
+Get the true ic value independent of debugging switches.  Required for
+IC security logging.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub in_copyright_suppress_debug_switches {
+    my ($C, $id) = @_;
+    
+    my ($attribute, $rc) = _determine_rights_attribute($C, $id, 1);
+    $attribute = RightsGlobals::NOOP_ATTRIBUTE if ($rc != RightsGlobals::OK_ID);
+
+    # pessimistic
+    my $in_copyright = 1;
+    
+    if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
+        $in_copyright = (_resolve_access_by_GeoIP($C) eq 'deny');
+    }
+    else {
+        my @freely_available = 
+          (
+           @RightsGlobals::g_creative_commons_attribute_values, 
+           @RightsGlobals::g_public_domain_world_attribute_values
+          );
+    
+        $in_copyright = (! grep(/^$attribute$/, @freely_available));        
+    }
+
+    return $in_copyright;
+}
+
+
+# ---------------------------------------------------------------------
+
 =item PUBLIC: orphan_candidate
 
 Description: is this id an orphand candidate?
@@ -728,23 +783,26 @@ If institution is not known return mdp.rights_current.attr
 
 # ---------------------------------------------------------------------
 sub _determine_rights_attribute {
-    my ($C, $id) = @_;
+    my ($C, $id, $skip_debug_test) = @_;
 
     my ($attr, $rc) = (undef, RightsGlobals::OK_ID);
-    my $cgi = $C->get_object('CGI');
 
     # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-    if (defined($cgi->param('attr')) && Debug::DUtils::debugging_enabled()) {
-        $attr = $cgi->param('attr');
-        ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
-                qq{Invalid attribute value for 'attr' parameter: } . $attr);
+    if (! $skip_debug_test) {
+        my $cgi = $C->get_object('CGI');
+        if (defined($cgi->param('attr')) && Debug::DUtils::debugging_enabled()) {
+            $attr = $cgi->param('attr');
+            ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
+                   qq{Invalid attribute value for 'attr' parameter: } . $attr);
+        }
     }
-    else {
+
+    if (! defined($attr)) {
         ($attr, $rc) = _get_rights_attribute($C, $id);
     }
 
     DEBUG('db,auth,all',
-          qq{<h4>id="$id", attr="$attr" desc="$RightsGlobals::g_attribute_names{$attr}"</h4>});
+          qq{<h4>id="$id", attr=$attr (DEBUG SUPPRESSED="$skip_debug_test") desc=$RightsGlobals::g_attribute_names{$attr}</h4>});
 
     return ($attr, $rc);
 }

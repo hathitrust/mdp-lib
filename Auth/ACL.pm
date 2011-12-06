@@ -30,6 +30,40 @@ use Utils::Time;
 
 # ---------------------------------------------------------------------
 
+=item a_GetUserAttributes
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub a_GetUserAttributes {
+    my $req_attribute = shift;
+    
+    my $attr;    
+    my $user = lc($ENV{'REMOTE_USER'});
+
+    if ($req_attribute eq 'usertype') {
+        $attr = $MdpUsers::gAccessControlList{$user}{'usertype'};
+    }
+    elsif ($req_attribute eq 'iprestrict') {
+        $attr = $MdpUsers::gAccessControlList{$user}{'iprestrict'};
+    }
+    elsif ($req_attribute eq 'expires') {
+        $attr = $MdpUsers::gAccessControlList{$user}{'expires'};
+    }
+    elsif ($req_attribute eq 'role') {
+        $attr = $MdpUsers::gAccessControlList{$user}{'role'};
+    }
+    elsif ($req_attribute eq 'displayname') {
+        $attr = $MdpUsers::gAccessControlList{$user}{'displayname'};
+    }
+    
+    return $attr;
+}
+
+# ---------------------------------------------------------------------
+
 =item a_Authorized
 
 Description
@@ -38,13 +72,14 @@ Description
 
 # ---------------------------------------------------------------------
 sub a_Authorized {
-    my $usertype_req = shift;
+    my $role_req = shift;
     my $authorized = 0;
 
     my $user = lc($ENV{'REMOTE_USER'});
     my $ipaddr = $ENV{'REMOTE_ADDR'};
 
     my $usertype = $MdpUsers::gAccessControlList{$user}{'usertype'};
+    my $role = $MdpUsers::gAccessControlList{$user}{'role'};
     my $ip_rangeref = $MdpUsers::gAccessControlList{$user}{'iprestrict'};
     my $expiration_date = $MdpUsers::gAccessControlList{$user}{'expires'};
 
@@ -55,9 +90,9 @@ sub a_Authorized {
             # Not expired. correct IP?
             foreach my $regexp (@$ip_rangeref) {
                 if ($ipaddr =~ m/$regexp/) {
-                    # Limit to certain usertype?
-                    if (defined($usertype_req)) {
-                        if ($usertype_req eq $usertype) {
+                    # Limit to certain roles?
+                    if (defined($role_req)) {
+                        if ($role =~ m/$role_req/) {
                             $authorized = 1;
                             last;
                         }
@@ -74,13 +109,13 @@ sub a_Authorized {
         }
     }
 
-    DEBUG('auth,all', qq{<h2>AUTH ACL: authorized="$authorized", IP="$ipaddr", user="$user" usertype="$usertype expires=$expiration_date"</h2>});
+    DEBUG('auth,all', qq{<h2>AUTH ACL: authorized=$authorized, IP=$ipaddr, user=$user usertype=$usertype role=$role expires=$expiration_date</h2>});
     DEBUG('acl',
           sub {
               my $s;
               my $ref = \%MdpUsers::gAccessControlList;
               foreach my $user (sort keys %$ref) {
-                  $s .= qq{<h2 style="text-align:left">ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype} ip=<br/>}
+                  $s .= qq{<h2 style="text-align:left">ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} ip=<br/>}
                     . join('<br/>', @{ $ref->{$user}{iprestrict} }) . qq{</h2>};
               }
               return $s;
