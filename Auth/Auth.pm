@@ -175,7 +175,7 @@ sub _initialize {
                                     . q{ is_umich=} . $self->affiliation_is_umich($C)
                                       . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
                                         . q{ entitlement=} . $ENV{entitlement}
-                                          . q{ print-disabled=} . $self-> get_eduPersonEntitlement_print_disabled($C);
+                                          . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
                                 });
         }
         else {

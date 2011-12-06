@@ -233,6 +233,7 @@ sub assert_final_access_status {
         _Assert_final_access_status($C, $initial_access_status, $id);
 
     $self->{'finalaccessstatus'} = $final_access_status;
+    $self->{'access_type'} = $access_type;
     $self->{'exclusivity'}{'granted'} = $granted;
     $self->{'exclusivity'}{'owner'} = $owner;
     $self->{'exclusivity'}{'expires'} = $expires;
@@ -258,6 +259,28 @@ sub get_exclusivity {
             $self->{'exclusivity'}{'owner'},
             $self->{'exclusivity'}{'expires'}
            );
+}
+
+# ---------------------------------------------------------------------
+
+=item get_access_type
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_access_type {
+    my $self = shift;
+    my ($C, $as_string) = @_;
+    
+    my $access_type = $self->{'access_type'};
+    my $at = 
+      $as_string 
+        ? $RightsGlobals::g_access_type_names{$access_type} 
+          : $access_type;
+ 
+    return $at;
 }
 
 # ---------------------------------------------------------------------
@@ -456,6 +479,8 @@ sub in_copyright {
 Get the true ic value independent of debugging switches.  Required for
 IC security logging.
 
+Returns the true rights_current.attr
+
 =cut
 
 # ---------------------------------------------------------------------
@@ -481,7 +506,7 @@ sub in_copyright_suppress_debug_switches {
         $in_copyright = (! grep(/^$attribute$/, @freely_available));        
     }
 
-    return $in_copyright;
+    return ($in_copyright, $attribute);
 }
 
 
