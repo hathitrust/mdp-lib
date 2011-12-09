@@ -1036,6 +1036,28 @@ sub remove_tags
     }
 }
 
+
+# ---------------------------------------------------------------------
+
+=item remove_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub remove_PI {
+    my ( $s_ref, $PI ) = @_;
+
+    # just remove this PI like <?xml ...?> else all of them)
+    if ($PI) {
+        $$s_ref =~ s,<\?$PI.*?\?>,,gs;
+    }
+    else {
+        $$s_ref =~ s,<\?.*?\?>,,gs;
+    }
+}
+
 # ---------------------------------------------------------------------
 
 =item replace_endtags_with_newlines

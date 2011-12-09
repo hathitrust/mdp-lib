@@ -537,6 +537,10 @@ Description: Procedural interface to output data
 sub P_output_data_HTTP {
     my ($C, $data_ref, $content_type) = @_ ;
 
+    if (Debug::DUtils::xml_debugging_enabled()) {
+        Utils::remove_PI($data_ref, 'xml');
+    }
+
     $content_type = 'text/html'
         if (! $content_type);
 
@@ -548,7 +552,7 @@ sub P_output_data_HTTP {
     if ($ses) {
         my $cookie = $ses->get_cookie();
         Utils::add_header($C, 'Cookie' => $cookie);
-    }
+    }    
     
     my $headers_ref = $C->get_object('HTTP::Headers');
     

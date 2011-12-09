@@ -40,7 +40,7 @@ use Auth::ACL;
 # Package lexical to enable debug message buffering for later display
 # across redirects
 my $g_session = undef;
-my $g_xml_debugging = undef;
+our $g_xml_debugging = undef;
 
 
 # DEBUG
@@ -202,8 +202,21 @@ Description
 # ---------------------------------------------------------------------
 sub set_xml_debugging_enabled {
     my $requested_switches_ref = shift;
-    $Debug::DUtils::g_xml_debugging =
+    $g_xml_debugging =
       scalar(grep(/^xml$|^rawxml$|^xsl$/, @$requested_switches_ref));
+}
+
+# ---------------------------------------------------------------------
+
+=item xml_debugging_enabled
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub xml_debugging_enabled {
+    return $g_xml_debugging;
 }
 
 # ---------------------------------------------------------------------
