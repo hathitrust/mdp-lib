@@ -179,7 +179,7 @@ sub update_row_by_key
     my $set_string;
 
     my $where = qq{WHERE $key_col_name\=\?};
-    update_row_where($dbh, $table_name, $row_hashref, $where, $key_col_name);
+    update_row_where($dbh, $table_name, $row_hashref, $where, $key_col_val);
 }
 
 

@@ -15,10 +15,6 @@ herein which populates class data with the name of the PI handled and
 the coderef of the handler method for later binding to the PIs in a
 given template.
 
-=head1 VERSION
-
-$Id: PIFiller.pm,v 1.2 2007/06/12 16:36:05 pfarber Exp $
-
 =head1 SYNOPSIS
 
 The naming convention is
@@ -85,7 +81,8 @@ sub PI_handler
     :ATTR
 {
     my ($package, $symbol, $PI_handler, $attr, $PI_name, $phase) = @_;
-
+    
+    $PI_name = $PI_name->[0] if ( ref($PI_name) eq 'ARRAY' );
     $PI_to_handler_map{$PI_name} = $PI_handler;
 }
 
