@@ -119,7 +119,7 @@ sub start_session
                         -name    => $cookie_name,
                         -value   => $sid,
                         -path    => '/',
-                        -domain  => get_cookie_domain($cgi),
+                        -domain  => Utils::get_cookie_domain($cgi),
                       );
 
     $ses->set_cookie($session_cookie);
@@ -153,32 +153,6 @@ sub start_session
     $C->get_object('MdpConfig')->__config_debug();
     
     return $ses;
-}
-
-
-# ---------------------------------------------------------------------
-
-=item get_cookie_domain
-
-Class method to build a domain string "two dot" requirement based on
-the virtual host
-
-=cut
-
-# ---------------------------------------------------------------------
-sub get_cookie_domain
-{
-    my $cgi = shift;
-
-    my $virtual_host = Utils::HTTP_hostname();
-
-    my ($cookie_domain) = ($virtual_host =~ m,^.*(\..+?\..+?)$,);
-    if (! $cookie_domain)
-    {
-        $cookie_domain = '.' . $virtual_host;
-    }
-
-    return $cookie_domain;
 }
 
 

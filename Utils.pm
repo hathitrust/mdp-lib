@@ -48,6 +48,8 @@ use LWP::UserAgent;
 use View::Fallback;
 use Debug::DUtils;
 
+use JSON::XS;
+
 
 # ---------------------------------------------------------------------
 
@@ -179,6 +181,30 @@ sub get_hostname
     return $host;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_cookie_domain
+
+Class method to build a domain string "two dot" requirement based on
+the virtual host
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_cookie_domain
+{
+    my $cgi = shift;
+
+    my $virtual_host = HTTP_hostname();
+
+    my ($cookie_domain) = ($virtual_host =~ m,^.*(\..+?\..+?)$,);
+    if (! $cookie_domain)
+    {
+        $cookie_domain = '.' . $virtual_host;
+    }
+
+    return $cookie_domain;
+}
 
 # ---------------------------------------------------------------------
 
@@ -1162,6 +1188,28 @@ sub add_header
     } else {
         $headers_ref->header($key => $value);
     }
+}
+
+sub get_user_status_cookie
+{
+    my ($C, $auth) = @_;
+    
+    my $displayName = $auth->get_displayName($C);
+    my $institution = $auth->get_institution($C);
+    my $institution_name = $auth->get_institution_name($C);
+    my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
+    my $auth_type = lc($ENV{AUTH_TYPE}); # should this require session?
+    
+    my $status = { authType => $auth_type, displayName => $displayName, institution => $institution, affiliation => $institution_name, u => $print_disabled };
+    
+    my $cookie = new CGI::Cookie(
+        -name => "HTstatus", 
+        -path => "/", 
+        -domain => get_cookie_domain(), 
+        -value => encode_json($status)
+    );
+    
+    return $cookie;
 }
 
 1;

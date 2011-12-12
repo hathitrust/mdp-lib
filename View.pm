@@ -550,6 +550,12 @@ sub P_output_data_HTTP {
         Utils::add_header($C, 'Cookie' => $cookie);
     }
     
+    my $auth = $C->get_object('Auth', 1);
+    if ($auth && $auth->isa_new_login()) {
+        my $cookie = Utils::get_user_status_cookie($C, $auth);
+        Utils::add_header($C, 'Cookie' => $cookie);
+    }
+    
     my $headers_ref = $C->get_object('HTTP::Headers');
     
     print STDOUT "Status: 200" . $CGI::CRLF;
