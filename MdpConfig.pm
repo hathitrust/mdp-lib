@@ -118,7 +118,11 @@ sub merge {
         # from a tertiary config file.  Those are (typically)
         # debugging values that would be stomped by defaults from the
         # to-be-merged-in M_config
-        next if ( $self->{'tertiary_config'}->{_}{$key} ne $M_config->{'config'}->{_}{$key} );
+        if ( defined $self->{'tertiary_config'}->{_}{$key} ) {
+            if ( $self->{'tertiary_config'}->{_}{$key} ne $M_config->{'config'}->{_}{$key} ) {
+                next;
+            }
+        }
             
         $self->{'config'}->{_}{$key} = $M_config->{'config'}->{_}{$key};
     }
