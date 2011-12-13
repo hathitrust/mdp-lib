@@ -51,20 +51,23 @@ generate the following javascript
 =cut
 
 # ---------------------------------------------------------------------
-sub build_javascript_array
-{
+sub build_javascript_array {
     my ($js_function_name, $arr_name, $arr_vals_arr_ref) = @_;
     
     my $arr_size = scalar(@$arr_vals_arr_ref);
-    
     my $js;
     $js .= qq{function $js_function_name()\n};
     $js .= qq{\{\n};
     $js .= qq{var $arr_name = new Array($arr_size);\n};
 
-    for (my $i=0; $i < $arr_size; $i++)
-    {
-        $js .= qq{$arr_name\[$i\] = "$$arr_vals_arr_ref[$i]";\n};
+    for (my $i=0; $i < $arr_size; $i++) {
+        use HTML::Entities;
+        # Protect against XSS attack.  Must encode twice to fully suppress the double quote in this attack string:
+        # https://babel.hathitrust.org/cgi/mb?cn=test23a04f"%3Balert(1)%3B%2F%2F5e123664cee;desc=rw;shrd=0;colltype=priv;a=addc     
+        my $safe_js_val = HTML::Entities::encode_entities($$arr_vals_arr_ref[$i]);
+        $safe_js_val = HTML::Entities::encode_entities($safe_js_val);
+
+        $js .= qq{$arr_name\[$i\] = "$safe_js_val";\n};
     }
     $js .= qq{return $arr_name;\n};
     $js .= qq{\}\n};
