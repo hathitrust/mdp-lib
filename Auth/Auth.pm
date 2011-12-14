@@ -102,16 +102,12 @@ use constant UMICH_SSD_LIST =>
          jlfr
          shanorwo
          caone
-         mrmarsh
          brekac
          nicolejg
-         rdorian
-         msschmit
          noahw
          ccarpey
          ekderus
          echols
-         cherisht
          mshoe
          dgoraya
          krausant
@@ -122,6 +118,7 @@ use constant UMICH_SSD_LIST =>
          benmb
          mikenuss
          nlcp
+         kshalosk
     );
  
 ### EXCLUDED
