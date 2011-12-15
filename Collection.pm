@@ -345,6 +345,32 @@ sub get_coll_owner_display_name
     return $owner_display_name;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_coll_owner
+
+Returns owner (as opposed to owner_display_name) which is the unique persistent
+id for the user) for a given coll_id
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_coll_owner {
+    my $self = shift;
+    my $coll_id = shift;
+
+    my $dbh = $self->get_dbh();
+    my $coll_table_name = $self->get_coll_table_name;
+
+    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id=?};
+
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
+    my @ary = $sth->fetchrow_array;
+    my $owner = $ary[0];
+
+    return $owner;
+}
+
 
 # ---------------------------------------------------------------------
 
