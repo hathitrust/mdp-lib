@@ -72,7 +72,7 @@ sub Set
 {
     my $self = shift;
     my ( $id, $key, $value, $force ) = @_;
-    my $keyFileName = $self->BuildKeyFileName($id, $key);
+    my $keyFileName = $self->BuildKeyFileName($id, $key, 1);
 
     # serialize data to a temporary file as a cheap way of 
     # avoiding file collisions.
@@ -80,7 +80,7 @@ sub Set
     $self->serialize($value, $tmpfilename);
     
     my $save_cache = ! $self->file_exists_n_newer($id, $keyFileName);
-
+    
     if ( $save_cache || $force ) {
         for( my $try = 0; $try < 3; $try++ ) {
             my $retval = move($tmpfilename, $keyFileName);
@@ -166,7 +166,7 @@ sub GenerateTemporaryFilename
     my $id = shift;
     my $outputFileType = shift || 'dat';
     
-    my $base = Identifier::get_pairtree_id_with_namespace($id);
+    my $base = Identifier::get_pairtree_id_with_namespace($id);   
     return Utils::Extract::__get_tmpdir($base) . "/${$}__" . time() . ".$outputFileType";
     
 }
@@ -176,10 +176,15 @@ sub BuildKeyFileName
     my $self = shift;
     my $id   = shift;
     my $key  = shift;
+    my $create_if_missing = shift;
     my $escaped_key = CGI::escape($key);
+
+    my $keydir = $self->{cacheDir};
+    $keydir .= Identifier::id_to_mdp_path($id);
     
-    my $keydir = $self->{cacheDir} . Identifier::id_to_mdp_path($id);
-    Utils::mkdir_path( $keydir, undef );
+    if ( ! -d $keydir && $create_if_missing ) {
+        Utils::mkdir_path( $keydir, undef );
+    }
     
     return $keydir . "/$escaped_key" . $self->suffix();
     
@@ -219,8 +224,8 @@ sub file_exists_n_newer {
     my $derivative = shift;
     
 
-    my $exists_n_newer = 0;
     my $max_cache_age = $$self{max_cache_age};
+    my $exists_n_newer = 0;
     
     if (Utils::file_exists($derivative)) {
 
@@ -231,22 +236,26 @@ sub file_exists_n_newer {
             DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: } . time() . qq{ - $der_mtime > $max_cache_age</h3>});
             return 0;
         }
-
+        
         my $itemFileSystemLocation = Identifier::get_item_location($id);
         my $barcode = Identifier::get_id_wo_namespace($id);
         my $zipfile = qq{$itemFileSystemLocation/$barcode.zip};
         
+        if ( -f $zipfile ) {
+            my $zip_mtime = (stat($zipfile))[9];
 
-        my $zip_mtime = (stat($zipfile))[9];
+            if ($der_mtime > $zip_mtime) {
+                $exists_n_newer = 1;
+            }
 
-        if ($der_mtime > $zip_mtime) {
+            DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: der_mtime [$der_mtime] zip_mtime [$zip_mtime] = $exists_n_newer</h3>});
+        } else {
             $exists_n_newer = 1;
         }
 
-        DEBUG('pt,mdpitem,cache', qq{<h3>file_exists_n_newer: der_mtime [$der_mtime] zip_mtime [$zip_mtime] = $exists_n_newer</h3>});
-        
-    }
 
+    }
+    
     return $exists_n_newer;
 }
 

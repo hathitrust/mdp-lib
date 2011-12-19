@@ -34,7 +34,7 @@ sub connection {
     if (exists $session->{args}->{Handle}) {
         $self->{dbh} = $session->{args}->{Handle};
         $self->{commit} = $session->{args}->{Commit};
-
+        
         if ( $self->{dbh}->{AutoCommit} == 1 ) {
             $self->{dbh}->begin_work;
             # $self->{dbh}->{AutoCommit} = 0;
@@ -86,6 +86,8 @@ sub materialize {
     my $results = $self->{materialize_sth}->fetchrow_arrayref;
 
     if (!(defined $results)) {
+        $self->{dbh}->rollback if ( $session->{commit} );
+        $self->{commit} = 0;
         die "Object does not exist in the data store";
     }
 

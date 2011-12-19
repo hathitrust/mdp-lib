@@ -5,6 +5,7 @@ use FindBin qw($Bin);
 use File::Basename;
 
 my @my_inc = ();
+our $__loaded = 0;
 
 sub import {
     my ( $pkg, $filepath ) = @_;
@@ -20,14 +21,18 @@ sub import {
 sub init {
     my ( $Bin ) = @_;
 
+    return if ( $__loaded );
+    $__loaded = 1;
+
     if ( -d "$Bin/../lib" ) {
         push(@my_inc, "$Bin/../lib");
     }
 
-    my $local_switch = $ENV{DEBUG_LOCAL} || (CGI::param('debug') && (CGI::param('debug') =~ m,local,));
+    my $local_switch = $ENV{DEBUG_LOCAL} || ($ENV{REQUEST_METHOD} ne 'POST' && CGI::param('debug') && (CGI::param('debug') =~ m,local,));
     if ($local_switch) {
         push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
-        $ENV{DEBUG} .= ',local,';
+        $ENV{DEBUG} .= ',' if ( $ENV{DEBUG} );
+        $ENV{DEBUG} .= 'local';
     }
 
     if ( -d "$Bin/../vendor" ) {

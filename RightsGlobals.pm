@@ -140,7 +140,7 @@ $HT_AFFILIATE           = 5;
    '3'  => 'ump',
    '4'  => 'ia',
    '5'  => 'yale',
-   '6'  => 'umn',
+   '6'  => 'mdl',
    '7'  => 'mhs',
    '8'  => 'usu',
    '9'  => 'ucm',
@@ -229,7 +229,7 @@ $HT_AFFILIATE           = 5;
      # in-copyright
      '2' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_by_holdings',
+             $SSD_USER              => 'allow_ssd_by_holdings',
              $LIBRARY_IPADDR_USER   => 'deny',
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
@@ -246,7 +246,7 @@ $HT_AFFILIATE           = 5;
    # databse FOR OTHER INSTITUTIONS.
      '3' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_by_holdings',
+             $SSD_USER              => 'allow_ssd_by_holdings',
              $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr',
              $UM_AFFILIATE          => 'allow_by_exclusivity',
              $HT_AFFILIATE          => 'deny', 
@@ -254,15 +254,15 @@ $HT_AFFILIATE           = 5;
      # copyright-orphaned (implies in-copyright)
      '4' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_by_holdings_by_agreement',
-             $LIBRARY_IPADDR_USER   => 'allow_by_holdings_by_agreement',
-             $UM_AFFILIATE          => 'allow_by_holdings_by_agreement',
-             $HT_AFFILIATE          => 'allow_by_holdings_by_agreement',
+             $SSD_USER              => 'allow_ssd_by_holdings',
+             $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
+             $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
+             $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
             },
      # undetermined copyright status
      '5' => { 
              $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_by_holdings',
+             $SSD_USER              => 'allow_ssd_by_holdings',
              $LIBRARY_IPADDR_USER   => 'deny',
              $UM_AFFILIATE          => 'deny',
              $HT_AFFILIATE          => 'deny',
@@ -353,7 +353,7 @@ $HT_AFFILIATE           = 5;
      # orphan candidate (implied in-copyright)
      '16' => { 
               $ORDINARY_USER         => 'deny',
-              $SSD_USER              => 'allow_by_holdings',
+              $SSD_USER              => 'allow_ssd_by_holdings',
               $LIBRARY_IPADDR_USER   => 'deny',
               $UM_AFFILIATE          => 'deny',
               $HT_AFFILIATE          => 'deny',
@@ -389,16 +389,6 @@ $g_orphan_candidate_attribute_value = 16;
 
 @g_source_values = keys %g_source_names;
 @g_rights_attribute_values = keys %g_rights_matrix;
-
-# ---------------------------------------------------------------------
-# Orphan Agreements by institution - (will allow affiliated users to
-# see works with attr=4 (orph)
-# ---------------------------------------------------------------------
-#
-@g_orphan_agreement_institutions = (
-                                    'uom',
-                                    'wisc',
-                                   );
 
 # ---------------------------------------------------------------------
 # Geographic IP Information

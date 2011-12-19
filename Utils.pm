@@ -48,6 +48,8 @@ use LWP::UserAgent;
 use View::Fallback;
 use Debug::DUtils;
 
+use JSON::XS;
+
 
 # ---------------------------------------------------------------------
 
@@ -90,7 +92,10 @@ sub ASSERT_core
 
     if ($die)
     {
-        Debug::DUtils::set_error_template($msg);
+        # route around weird conflict between Plack and HTML::Template
+        unless ( exists($ENV{'psgi.version'}) ) {
+            Debug::DUtils::set_error_template($msg);
+        }
         croak('ASSERT_FAIL: '. $msg)
     }
 }
@@ -176,6 +181,30 @@ sub get_hostname
     return $host;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_cookie_domain
+
+Class method to build a domain string "two dot" requirement based on
+the virtual host
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_cookie_domain
+{
+    my $cgi = shift;
+
+    my $virtual_host = HTTP_hostname();
+
+    my ($cookie_domain) = ($virtual_host =~ m,^.*(\..+?\..+?)$,);
+    if (! $cookie_domain)
+    {
+        $cookie_domain = '.' . $virtual_host;
+    }
+
+    return $cookie_domain;
+}
 
 # ---------------------------------------------------------------------
 
@@ -765,8 +794,11 @@ Construct $SDRROOT/{cache|cache-full}/$key
 sub get_true_cache_dir {
     my $C = shift;
     my $cache_dir_key = shift;
+    
+    # polymorphic : allow MdpConfig or Context as parameter
+    my $config = ref($C) eq 'Context' ? $C->get_object('MdpConfig') : $C;
 
-    my $cache_dir = $ENV{SDRROOT} . $C->get_object('MdpConfig')->get($cache_dir_key);
+    my $cache_dir = $ENV{SDRROOT} . $config->get($cache_dir_key);
     my $true_cache_component = ($ENV{SDRVIEW} eq 'full') ? 'cache-full' : 'cache';
     
     $cache_dir =~ s,___CACHE___,$true_cache_component,;
@@ -1030,6 +1062,28 @@ sub remove_tags
     }
 }
 
+
+# ---------------------------------------------------------------------
+
+=item remove_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub remove_PI {
+    my ( $s_ref, $PI ) = @_;
+
+    # just remove this PI like <?xml ...?> else all of them)
+    if ($PI) {
+        $$s_ref =~ s,<\?$PI.*?\?>,,gs;
+    }
+    else {
+        $$s_ref =~ s,<\?.*?\?>,,gs;
+    }
+}
+
 # ---------------------------------------------------------------------
 
 =item replace_endtags_with_newlines
@@ -1129,6 +1183,55 @@ sub sort_uniquify_list
     {
         @$a_ref = sort (keys %hash);
     }
+}
+
+# ---------------------------------------------------------------------
+
+=item add_header
+
+add HTTP response header to HTTP::Headers object in Config.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub add_header 
+{
+    my ($C, $key, $value) = @_;
+    my $headers_ref = $C->get_object('HTTP::Headers', 1);
+    unless(ref($headers_ref)) {
+        $headers_ref = HTTP::Headers->new;
+        $C->set_object('HTTP::Headers', $headers_ref);
+    }
+    if ( lc $key eq 'cookie' ) {
+        $key = 'Set-Cookie';
+        my @values = $headers_ref->header($key);
+        push @values, $value;
+        $headers_ref->header($key => \@values);
+    } else {
+        $headers_ref->header($key => $value);
+    }
+}
+
+sub get_user_status_cookie
+{
+    my ($C, $auth) = @_;
+    
+    my $displayName = $auth->get_displayName($C);
+    my $institution = $auth->get_institution($C);
+    my $institution_name = $auth->get_institution_name($C);
+    my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
+    my $auth_type = lc($ENV{AUTH_TYPE}); # should this require session?
+    
+    my $status = { authType => $auth_type, displayName => $displayName, institution => $institution, affiliation => $institution_name, u => $print_disabled };
+    
+    my $cookie = new CGI::Cookie(
+        -name => "HTstatus", 
+        -path => "/", 
+        -domain => get_cookie_domain(), 
+        -value => encode_json($status)
+    );
+    
+    return $cookie;
 }
 
 1;

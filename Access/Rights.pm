@@ -177,8 +177,6 @@ It is permissive of the attributes that equate to 'allow' in the
 CERTAIN KNOWLEDGE that these rights attribute values will be QUALIFIED
 BY THIS HOLDINGS TEST.
 
-WAITING FOR INSTITUTION DATA TO BE AVAILABLE IN Solr INDEX
-
 =cut
 
 # ---------------------------------------------------------------------
@@ -194,17 +192,15 @@ sub get_fulltext_attr_list {
 For this user (assuming user is authenticated) for user's institution,
 which rights attributes equate to 'search-only', i.e. no 'fulltext'.
 
+This includes attr=8 (nobody).  Even though we don't index those
+volumes we still need to assert that 8 is denied here.  
+
 =cut
 
 # ---------------------------------------------------------------------
 sub get_no_fulltext_attr_list {
     my $C = shift;
-
-    my $deny_attr_list_ref = _get_final_access_status_attr_list($C, 'deny');
-    # Objects having attr=8 are denied but whether to expose them is undecided.  Expose them for now.
-    # @$deny_attr_list_ref = grep(! /^$RightsGlobals::g_available_to_no_one_attribute_value$/, @$deny_attr_list_ref);
-    
-    return $deny_attr_list_ref;
+    return _get_final_access_status_attr_list($C, 'deny');
 }
 
 # ---------------------------------------------------------------------
@@ -237,6 +233,7 @@ sub assert_final_access_status {
         _Assert_final_access_status($C, $initial_access_status, $id);
 
     $self->{'finalaccessstatus'} = $final_access_status;
+    $self->{'access_type'} = $access_type;
     $self->{'exclusivity'}{'granted'} = $granted;
     $self->{'exclusivity'}{'owner'} = $owner;
     $self->{'exclusivity'}{'expires'} = $expires;
@@ -262,6 +259,28 @@ sub get_exclusivity {
             $self->{'exclusivity'}{'owner'},
             $self->{'exclusivity'}{'expires'}
            );
+}
+
+# ---------------------------------------------------------------------
+
+=item get_access_type
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_access_type {
+    my $self = shift;
+    my ($C, $as_string) = @_;
+    
+    my $access_type = $self->{'access_type'};
+    my $at = 
+      $as_string 
+        ? $RightsGlobals::g_access_type_names{$access_type} 
+          : $access_type;
+ 
+    return $at;
 }
 
 # ---------------------------------------------------------------------
@@ -433,6 +452,63 @@ sub public_domain_world {
         return 0;
     }
 }
+
+# ---------------------------------------------------------------------
+
+=item in_copyright
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub in_copyright {
+    my $self = shift;
+    my ($C, $id) = @_;
+    
+    if ($self->public_domain_world_creative_commons($C, $id)) {
+        return 0;
+    }
+    return 1;
+}
+
+# ---------------------------------------------------------------------
+
+=item CLASS PUBLIC: in_copyright_suppress_debug_switches
+
+Get the true ic value independent of debugging switches.  Required for
+IC security logging.
+
+Returns the true rights_current.attr
+
+=cut
+
+# ---------------------------------------------------------------------
+sub in_copyright_suppress_debug_switches {
+    my ($C, $id) = @_;
+    
+    my ($attribute, $rc) = _determine_rights_attribute($C, $id, 1);
+    $attribute = RightsGlobals::NOOP_ATTRIBUTE if ($rc != RightsGlobals::OK_ID);
+
+    # pessimistic
+    my $in_copyright = 1;
+    
+    if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
+        $in_copyright = (_resolve_access_by_GeoIP($C) eq 'deny');
+    }
+    else {
+        my @freely_available = 
+          (
+           @RightsGlobals::g_creative_commons_attribute_values, 
+           @RightsGlobals::g_public_domain_world_attribute_values
+          );
+    
+        $in_copyright = (! grep(/^$attribute$/, @freely_available));        
+    }
+
+    return ($in_copyright, $attribute);
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -612,7 +688,7 @@ sub _Assert_final_access_status {
     my ($C, $initial_access_status, $id) = @_;
 
     my ($final_access_status, $granted, $owner, $expires) =
-        ($initial_access_status, undef, undef, undef);
+        ($initial_access_status, 0, undef, '0000-00-00 00:00:00');
 
     if 
       ($initial_access_status eq 'allow_by_geo_ipaddr') {
@@ -628,12 +704,13 @@ sub _Assert_final_access_status {
         $final_access_status = 'allow';
     }
     elsif
-      ($initial_access_status eq 'allow_by_holdings_by_agreement') {
-        $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+      ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
+        ($final_access_status, $granted, $owner, $expires) = 
+          _resolve_access_by_held_and_agreement($C, $id, 1);
     }
     elsif 
-      ($initial_access_status eq 'allow_by_holdings') {
-        $final_access_status = _resolve_access_by_held($C, $id);
+      ($initial_access_status eq 'allow_ssd_by_holdings') {
+        $final_access_status = _resolve_ssd_access_by_held($C, $id, 1);
     }
 
     ___final_access_status_check($final_access_status);
@@ -659,7 +736,7 @@ that the user viewing results filtered by the 'fulltext' Facet.  The
 anomaly here is a 'search-only' link to pageturner in the search
 results for 'fulltext' only.
 
-(2) If the initial_access_status is 'allow_by_holdings_by_agreement' we set 
+(2) If the initial_access_status is 'allow_orph_by_holdings_by_agreement' we set 
 final_access_status to 'allow'.
 
 =cut
@@ -681,16 +758,18 @@ sub _Check_final_access_status {
     elsif 
       ($initial_access_status eq 'allow_by_exclusivity') {
         if (defined($id)) {
-            $final_access_status = _check_access_exclusivity($C, $id);
+            ($final_access_status, $granted, $owner, $expires) = 
+              _check_access_exclusivity($C, $id);
         }
         else {
             $final_access_status = 'allow';
         }
     }
     elsif 
-      ($initial_access_status eq 'allow_by_holdings_by_agreement') {
+      ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
         if (defined($id)) {
-            $final_access_status = _resolve_access_by_held_and_agreement($C, $id);
+            ($final_access_status, $granted, $owner, $expires) = 
+              _resolve_access_by_held_and_agreement($C, $id, 0);
         }
         else {
             # downstream must filter on holdings if $final_access_status = 'allow'
@@ -698,13 +777,13 @@ sub _Check_final_access_status {
         }
     }
     elsif 
-      ($initial_access_status eq 'allow_by_holdings') {
+      ($initial_access_status eq 'allow_ssd_by_holdings') {
         if (defined($id)) {
-            $final_access_status = _resolve_access_by_held($C, $id);
+            $final_access_status = _resolve_ssd_access_by_held($C, $id, 0);
         }
         else {
             # downstream must filter on holdings
-            $final_access_status = 'deny';
+            $final_access_status = 'allow';
         }
     }
     
@@ -729,23 +808,26 @@ If institution is not known return mdp.rights_current.attr
 
 # ---------------------------------------------------------------------
 sub _determine_rights_attribute {
-    my ($C, $id) = @_;
+    my ($C, $id, $skip_debug_test) = @_;
 
     my ($attr, $rc) = (undef, RightsGlobals::OK_ID);
-    my $cgi = $C->get_object('CGI');
 
     # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-    if (defined($cgi->param('attr')) && Debug::DUtils::debugging_enabled()) {
-        $attr = $cgi->param('attr');
-        ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
-                qq{Invalid attribute value for 'attr' parameter: } . $attr);
+    if (! $skip_debug_test) {
+        my $cgi = $C->get_object('CGI');
+        if (defined($cgi->param('attr')) && Debug::DUtils::debugging_enabled()) {
+            $attr = $cgi->param('attr');
+            ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
+                   qq{Invalid attribute value for 'attr' parameter: } . $attr);
+        }
     }
-    else {
+
+    if (! defined($attr)) {
         ($attr, $rc) = _get_rights_attribute($C, $id);
     }
 
     DEBUG('db,auth,all',
-          qq{<h4>id="$id", attr="$attr" desc="$RightsGlobals::g_attribute_names{$attr}"</h4>});
+          qq{<h4>id="$id", attr=$attr (DEBUG SUPPRESSED="$skip_debug_test") desc=$RightsGlobals::g_attribute_names{$attr}</h4>});
 
     return ($attr, $rc);
 }
@@ -806,8 +888,8 @@ sub _get_rights_attribute {
 
     my $row_hashref;
     my $statement =
-        qq{SELECT id, attr FROM rights_current WHERE id='$stripped_id' AND namespace='$namespace'};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+        qq{SELECT id, attr FROM rights_current WHERE id=? AND namespace=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
 
     $row_hashref = $sth->fetchrow_hashref();
     $sth->finish;
@@ -843,8 +925,8 @@ sub _get_source_attribute {
     my $namespace = Identifier::the_namespace($id);
 
     my $row_hashref;
-    my $statement = qq{SELECT id, source FROM rights_current WHERE id='$stripped_id' AND namespace='$namespace'};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $statement = qq{SELECT id, source FROM rights_current WHERE id=? AND namespace=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
 
     $row_hashref = $sth->fetchrow_hashref();
     $sth->finish;
@@ -968,12 +1050,11 @@ Description
 sub _check_access_exclusivity {
     my ($C, $id) = @_;
 
-    my $status = 'deny';
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
 
     if (defined($id)) {
-        my $identity = $C->get_object('Auth')->get_user_name($C);
-        my ($granted, $owner, $expires) =
-            Auth::Exclusive::check_exclusive_access($C, $id, $identity);
+        ($granted, $owner, $expires) =
+          Auth::Exclusive::check_exclusive_access($C, $id);
         if ($granted) {
             $status = 'allow';
         }
@@ -982,52 +1063,77 @@ sub _check_access_exclusivity {
         }
     }
 
-    return $status;
+    return ($status, $granted, $owner, $expires);
 }
 
 # ---------------------------------------------------------------------
 
 =item _resolve_access_by_held_and_agreement
 
-Description
+Orphan users must be "US soil" authed affiliates of a HT institution,
+the user's institution must hold the work and agree to allow orphan
+access and no more simultaneous users from that institution than
+number of print copies held by that institution.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub _resolve_access_by_held_and_agreement {
-    my ($C, $id) = @_;
+    my ($C, $id, $assert_ownership) = @_;
 
-    my $status = 'deny';
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+    my $inst = 'not defined';
     
-    my $inst = $C->get_object('Auth')->get_institution($C);
-    if (Access::Orphans::institution_agreement($C, $inst)) {
-        if (Access::Holdings::id_is_held($C, $id, $inst)) {
-            $status = 'allow';
+    my $US_status = _resolve_access_by_GeoIP($C);
+    if ($US_status eq 'allow') {
+        $inst = $C->get_object('Auth')->get_institution($C);
+        if (Access::Orphans::institution_agreement($C, $inst)) {
+            if (Access::Holdings::id_is_held($C, $id, $inst)) {
+                if ($assert_ownership) {
+                    ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+                }
+                else {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+                }
+            }
         }
     }
-    
+    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+
     return $status;
 }
 
 # ---------------------------------------------------------------------
 
-=item _resolve_access_by_held
+=item _resolve_ssd_access_by_held
 
-Description
+As of Tue Nov 29 13:17:04 2011, access is limited to one simultaneous
+ssd user on US soil
 
 =cut
 
 # ---------------------------------------------------------------------
-sub _resolve_access_by_held {
-    my ($C, $id) = @_;
+sub _resolve_ssd_access_by_held {
+    my ($C, $id, $assert_ownership) = @_;
 
-    my $status = 'deny';
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+    my $inst = 'not defined';
     
-    my $inst = $C->get_object('Auth')->get_institution($C);
-    if (Access::Holdings::id_is_held($C, $id, $inst)) {
-        $status = 'allow';
+    my $US_status = _resolve_access_by_GeoIP($C);
+    if ($US_status eq 'allow') {
+        $inst = $C->get_object('Auth')->get_institution($C);
+        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+            if ($assert_ownership) {
+                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+            }
+            else {
+                ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+            }
+        }
     }
-    
+
+    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+
     return $status;
 }
 
@@ -1061,12 +1167,8 @@ sub _assert_access_exclusivity {
 
     my $status;
 
-    my $auth = $C->get_object('Auth');
-    my $identity = $auth->get_user_name($C);
-    my $affiliation = $auth->get_eduPersonScopedAffiliation($C);
-
     my ($granted, $owner, $expires) =
-        Auth::Exclusive::acquire_exclusive_access($C, $id, $identity, $affiliation);
+        Auth::Exclusive::acquire_exclusive_access($C, $id);
     if ($granted) {
         $status = 'allow';
     }

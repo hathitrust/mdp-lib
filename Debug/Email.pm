@@ -8,10 +8,6 @@ Debug::Email
 
 This package implements a subroutine to send debug email.
 
-=head1 VERSION
-
-$Id: Email.pm,v 1.8 2007/11/15 17:43:39 pfarber Exp $
-
 =head1 SYNOPSIS
 
 use Debug::Email;
@@ -24,16 +20,18 @@ send_debug_email();
 
 =cut
 
-
+use Utils::Time;
 use Mail::Mailer;
 use Debug::DUtils;
 
 #
-# Addresses NOTE: Must coordinate with mdp-misc/bin/email-monitor.pl
+# Addresses NOTE: Must coordinate with mdp-misc/scripts/email-monitor.pl
 #
 my $g_assert_email_to_addr   = q{dlxs-system@umich.edu};
-my $g_assert_email_from_addr = q{"UMDL Mailer" <dlps-help@umich.edu>};
-my $g_email_file             = q{/tmp/hathitrust-email-file.eml};
+my $g_assert_email_from_addr = q{"HathiTrust Mailer" <dlps-help@umich.edu>};
+my $g_email_archive_dir      = qq{$ENV{SDRROOT}/logs/assert};
+my $g_email_file             = qq{$g_email_archive_dir/hathitrust-email-digest-current};
+my $g_email_subject          = qq{[MAFR] HathiTrust assert fail};
 
 #
 # Switch to enable email reports
@@ -60,8 +58,9 @@ sub __email_msg_core {
 
     my $hostname = Utils::get_hostname();
     ($hostname) = ($hostname =~ m,^(.*?)\..*$,);
+    my $when = Utils::Time::iso_Time();
 
-    my $email_subject = qq{[MAFR] HathiTrust assert fail ($hostname)};
+    my $email_subject = $g_email_subject . qq{ ($hostname)($when)};
     my $email_body = Carp::longmess(qq{ASSERTION FAILURE: $msg});
 
     # CGI params
@@ -120,6 +119,11 @@ sub buffer_debug_email {
     my ($email_subject, $email_body) = __email_msg_core($msg);
     if (defined($email_body)) {
         my $e = $email_subject . "\n\n" . $email_body . "\n";
+
+        use File::Path;
+        if (! -e $g_email_archive_dir) {
+            File::Path::mkpath( $g_email_archive_dir );
+        }
 
         if (open(OUTFILE, ">>:utf8", $g_email_file)) {
             print OUTFILE $e;

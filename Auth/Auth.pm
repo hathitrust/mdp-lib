@@ -78,41 +78,51 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP = qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
+# eduPersonENtitlement attribute values that qualify as print disabled
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
+  qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
-use constant MICH_SSD_LIST => qw
-  (
-      brekac
-      caone
-      cboyer
-      ccarpey
-      cherisht
-      dgoraya
-      echols
-      ekderus
-      gsheena
-      hkanter
-      jlfr
-      jrcarmon
-      jrmorak
-      kimjiy
-      kmbally
-      kqread
-      krausant
-      longcane
-      mrmarsh
-      mshoe
-      msschmit
-      nicolejg
-      noahw
-      orodrigu
-      rdorian
-      rokapur
-      rubind
-      shanorwo
-      ssutaria
-      ijohns
- );
+# Which eduPersonScopedAffiliation attribute values can be considered
+# for print disabled status
+my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
+  qr,^(member|faculty|staff|student)$,ios;
+
+use constant UMICH_SSD_LIST => 
+  qw (
+         ijohns
+         rubind
+         gsheena
+         hkanter
+         jrmorak
+         kmbally
+         orodrigu
+         kimjiy
+         kqread
+         jrcarmon
+         jlfr
+         shanorwo
+         caone
+         brekac
+         nicolejg
+         noahw
+         ccarpey
+         ekderus
+         echols
+         mshoe
+         dgoraya
+         krausant
+         rparten
+         crwils
+         sydfried
+         rgottfri
+         benmb
+         mikenuss
+         nlcp
+         kshalosk
+    );
+ 
+### EXCLUDED
+# ssutaria - alumni, no other affiliations
 
 sub new {
     my $class = shift;
@@ -162,6 +172,7 @@ sub _initialize {
                                     . q{ is_umich=} . $self->affiliation_is_umich($C)
                                       . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
                                         . q{ entitlement=} . $ENV{entitlement}
+                                          . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
                                 });
         }
         else {
@@ -202,7 +213,10 @@ sub __load_institutions_xml {
     
     foreach my $inst ($xml_instMap->get_nodelist) {
         my $domain = $inst->getAttribute('domain');
-        $inst_map->{$domain} = $inst->getAttribute('sdrinst');
+        $inst_map->{$domain} = {
+            'sdrinst' => $inst->getAttribute('sdrinst'),
+            'name'    => $inst->textContent
+        };
     }
 
     return $inst_map;
@@ -388,6 +402,7 @@ sub auth_sys_is_SHIBBOLETH {
     }
 
     return $is;
+    
 }
 
 # ---------------------------------------------------------------------
@@ -455,12 +470,37 @@ sub get_institution {
     
     if ($aff) {    
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain};
+        $inst = $map_ref->{$domain}->{sdrinst};
     }
 
     return $inst;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_institution_name
+
+Note this maps users eduPersonScopedAffiliation to the institution name. 
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_name {
+    my $self = shift;
+    my $C = shift;
+    
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
+    my $map_ref = $self->get_institution_map();
+    
+    my $inst;
+    
+    if ($aff) {    
+        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+        $inst = $map_ref->{$domain}->{name};
+    }
+
+    return $inst;
+}
 
 # ---------------------------------------------------------------------
 
@@ -509,6 +549,24 @@ sub __get_prioritized_scoped_affiliation {
     }
 
     return undef;
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_prioritized_unscoped_affiliation
+
+Parse $ENV{affiliation} into its components and strips the @foo.edu part.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_prioritized_unscoped_affiliation {
+    my $self = shift;
+
+    my $scoped_aff = $self->__get_prioritized_scoped_affiliation();
+    my ($unscoped_aff) = ($scoped_aff =~ m,^(.*?)@.*$,);
+
+    return $unscoped_aff;
 }
 
 # ---------------------------------------------------------------------
@@ -601,8 +659,11 @@ sub get_eduPersonEntitlement_print_disabled {
     my $is_print_disabled = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
-        $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+        my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
+        if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
+            my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+            $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+        }
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         $is_print_disabled = grep(/^$ENV{REMOTE_USER}$/, UMICH_SSD_LIST) || DEBUG('ssd');

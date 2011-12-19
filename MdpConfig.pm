@@ -114,6 +114,16 @@ sub merge {
     ASSERT((ref $M_config eq 'MdpConfig'), qq{"Invalid atgument});
 
     foreach my $key (keys %{$M_config->{'config'}{_}} ) {
+        # Do not overwrite any key value in the main config that came
+        # from a tertiary config file.  Those are (typically)
+        # debugging values that would be stomped by defaults from the
+        # to-be-merged-in M_config
+        if ( defined $self->{'tertiary_config'}->{_}{$key} ) {
+            if ( $self->{'tertiary_config'}->{_}{$key} ne $M_config->{'config'}->{_}{$key} ) {
+                next;
+            }
+        }
+            
         $self->{'config'}->{_}{$key} = $M_config->{'config'}->{_}{$key};
     }
 }

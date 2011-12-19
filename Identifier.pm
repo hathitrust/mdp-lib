@@ -32,6 +32,9 @@ use strict;
 use Utils;
 use Debug::DUtils;
 use File::Pairtree;
+use Context;
+use Database;
+use DbUtils;
 
 my %g_default_debug_ids =
     (
@@ -168,7 +171,7 @@ sub get_pairtree_id_with_namespace {
     my $namespace = the_namespace($id);
     $id =~ s,^$namespace\.,,;
 
-    return qq{$namespace.} . s2ppchars($id);
+    return qq{$namespace.} . File::Pairtree::s2ppchars($id);
 }
 
 # ---------------------------------------------------------------------
@@ -189,7 +192,7 @@ sub get_pairtree_id_wo_namespace {
     my $namespace = the_namespace($id);
     $id =~ s,^$namespace\.,,;
 
-    return s2ppchars($id);
+    return File::Pairtree::s2ppchars($id);
 }
 
 # ---------------------------------------------------------------------
@@ -257,7 +260,7 @@ sub id_to_mdp_path {
     $File::Pairtree::root = $root;
 
     my $barcode = get_id_wo_namespace($id);
-    my $path = id2ppath($barcode) . s2ppchars($barcode);
+    my $path = File::Pairtree::id2ppath($barcode) . File::Pairtree::s2ppchars($barcode);
 
     return $path;
 }
@@ -335,6 +338,33 @@ sub get_safe_Solr_id {
 
     $id =~ s,ark:,ark\\:,;
     return $id;
+}
+
+# ---------------------------------------------------------------------
+
+=item randomize_id
+
+If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.  
+
+=cut
+
+# ---------------------------------------------------------------------
+sub randomize_id {
+    my $C = shift;
+    my $cgi = shift;
+    
+    if ($cgi->param('id') eq 'r') {
+        my $dbh = $C->get_object('Database')->get_DBH();
+        my $statement = qq{SELECT CONCAT(namespace, '.', id) FROM small ORDER BY RAND() LIMIT 0,1};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement);
+        my $random_id = $sth->fetchrow_array;
+        if ($random_id) {
+            $cgi->param('id', $random_id);
+        }
+        else {
+            $cgi->param('id', 'mdp.39015015394847');
+        }
+    }
 }
 
 1;

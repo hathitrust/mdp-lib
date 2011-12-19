@@ -60,6 +60,8 @@ use Utils::XSLT;
 
 use Operation::Status;
 
+use Utils;
+use HTTP::Headers;
 
 sub new {
     my $class = shift;
@@ -535,29 +537,34 @@ Description: Procedural interface to output data
 sub P_output_data_HTTP {
     my ($C, $data_ref, $content_type) = @_ ;
 
+    if (Debug::DUtils::xml_debugging_enabled()) {
+        Utils::remove_PI($data_ref, 'xml');
+    }
+
     $content_type = 'text/html'
         if (! $content_type);
 
-    my $header_vals_ref;
-
     my $charset = 'UTF-8';
+    
+    Utils::add_header($C, 'Content-type' => qq{$content_type; charset=$charset});
+    
     my $ses = $C->get_object('Session', 1);
     if ($ses) {
         my $cookie = $ses->get_cookie();
-        $header_vals_ref =
-            {-type    => $content_type,
-             -charset => $charset,
-             -cookie  => $cookie,
-            };
+        Utils::add_header($C, 'Cookie' => $cookie);
+    }    
+    
+    my $auth = $C->get_object('Auth', 1);
+    if ($auth && $auth->isa_new_login()) {
+        my $cookie = Utils::get_user_status_cookie($C, $auth);
+        Utils::add_header($C, 'Cookie' => $cookie);
     }
-    else {
-        $header_vals_ref =
-            {-type    => $content_type,
-             -charset => $charset,
-            };
-    }
-
-    print STDOUT CGI::header($header_vals_ref);
+    
+    my $headers_ref = $C->get_object('HTTP::Headers');
+    
+    print STDOUT "Status: 200" . $CGI::CRLF;
+    print STDOUT $headers_ref->as_string($CGI::CRLF);
+    print STDOUT $CGI::CRLF . $CGI::CRLF;
     print STDOUT $$data_ref;
 }
 

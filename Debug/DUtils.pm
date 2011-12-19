@@ -40,7 +40,7 @@ use Auth::ACL;
 # Package lexical to enable debug message buffering for later display
 # across redirects
 my $g_session = undef;
-my $g_xml_debugging = undef;
+our $g_xml_debugging = undef;
 
 
 # DEBUG
@@ -202,8 +202,21 @@ Description
 # ---------------------------------------------------------------------
 sub set_xml_debugging_enabled {
     my $requested_switches_ref = shift;
-    $Debug::DUtils::g_xml_debugging =
+    $g_xml_debugging =
       scalar(grep(/^xml$|^rawxml$|^xsl$/, @$requested_switches_ref));
+}
+
+# ---------------------------------------------------------------------
+
+=item xml_debugging_enabled
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub xml_debugging_enabled {
+    return $g_xml_debugging;
 }
 
 # ---------------------------------------------------------------------
@@ -273,7 +286,7 @@ sub ___determine_app {
     # or /cgi/pt/search or /pt/cgi/pt/search namely: anyting after
     # /cgi/ that is followed by a slash but not the slash or
     # everything after /cgi/
-    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,/cgi/((.*)(?=/)|(.*)),);
+    my ($appname) = ($ENV{SCRIPT_NAME} =~ m,/(?:shcgi|cgi)/((.*)(?=/)|(.*)),);
     return $appname;
 }
 
@@ -524,13 +537,13 @@ Limit debug= functionality for certain classes of users.  Rules:
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
-    my $user_type = shift;
+    my $role = shift;
 
     # Over-ride all authorization checking.  DO NOT GO INTO PRODUCTION
     # WITH THIS SET!
     my $___no_ACL_debugging_test = ($ENV{'HT_DEV'} =~ m,[a-z]+,) || $ENV{'TERM'};
 
-    my $authorized = Auth::ACL::a_Authorized($user_type);
+    my $authorized = Auth::ACL::a_Authorized($role);
     if ($___no_ACL_debugging_test) {
         return 1;
     }

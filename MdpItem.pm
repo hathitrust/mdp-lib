@@ -839,16 +839,17 @@ sub GetFullTitle
 
     my $title;
     my $id = $self->GetId();
-    
+
     my $marcMetadataRef = $self->Get( 'marcmetadata' );
     my ($varfield) = ($$marcMetadataRef =~ m,<varfield id="245"[^>]*>(.*?)</varfield>,s);
-    ($title)     = ($varfield =~ m,<subfield label="a">(.*?)</subfield>,g);
-
-    ($title)     = ($varfield =~ m,<subfield label="b">(.*?)</subfield>,g)
-        unless ( $title );
     
-    ($title)     = ($varfield =~ m,<subfield label="c">(.*?)</subfield>,g)
-        unless ( $title );
+    my @tmp = ();
+    push @tmp, ($varfield =~ m,<subfield label="a">(.*?)</subfield>,g);
+    push @tmp, ($varfield =~ m,<subfield label="b">(.*?)</subfield>,g);
+    push @tmp, ($varfield =~ m,<subfield label="c">(.*?)</subfield>,g);
+    
+    $title = join(' ', @tmp);
+    $title =~ s,\s+, ,gsm;
     
     my $dataRef = $self->GetVolumeData();
     my $frag = $$dataRef{$id}{'vol'};
@@ -918,6 +919,28 @@ sub GetAuthor
     
     return join('; ', @values);
 
+}
+
+sub GetPublisher
+{
+    my $self = shift;
+
+    my $text;
+    my $id = $self->GetId();
+
+    my $marcMetadataRef = $self->Get( 'marcmetadata' );
+    my ($varfield) = ($$marcMetadataRef =~ m,<varfield id="260"[^>]*>(.*?)</varfield>,s);
+    
+    my @tmp = ();
+    push @tmp, ($varfield =~ m,<subfield label="a">(.*?)</subfield>,g);
+    push @tmp, ($varfield =~ m,<subfield label="b">(.*?)</subfield>,g);
+    push @tmp, ($varfield =~ m,<subfield label="c">(.*?)</subfield>,g);
+    push @tmp, ($varfield =~ m,<subfield label="d">(.*?)</subfield>,g);
+    
+    $text = join(' ', @tmp);
+    $text =~ s,\s+, ,gsm;
+    
+    return $text;
 }
 
 # ----------------------------------------------------------------------

@@ -71,7 +71,7 @@ sub __Log_string {
 
     exit 0 if (! $logging_enabled);
 
-    my $config = $C->get_object('MdpConfig');
+    my $config = ref($C) eq 'Context' ? $C->get_object('MdpConfig') : $C;
 
     my $logdir = __get_logdir_root() . $config->get('logdir');
     if (defined($optional_dir_key) && defined($optional_dir_pattern)) {
