@@ -55,6 +55,8 @@ my %HathiTrust_IP_hash =
    'nwu'  => '209.100.79.127',
    'osu'  => '128.146.127.127',
    'psu'  => '150.231.127.127',
+   'ucm'  => '147.96.1.135', # Universidad Complutense de Madrid, non-US
+
   );
 
 # ---------------------------------------------------------------------
@@ -158,6 +160,11 @@ sub set_HathiTrust_debug_environment {
         delete $ENV{REMOTE_USER};
 
         $ENV{REMOTE_ADDR} = $non_HathiTrust_IP;
+    }
+    
+    if (DEBUG('nonus')) {
+        # Not at a US IP address (Madrid)
+        $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{'ucm'};
     }
     
     if (DEBUG('notlogged')) {

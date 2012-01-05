@@ -351,12 +351,12 @@ As of Mon Mar 21 17:01:55 2011
 
 Allowed are: 
 
-1) non-google pd/pdus/world/cc for anyone
+1) non-google pd/pdus(on US soil)/world/cc for anyone
 
-2) google pd/pdus/world only authenticated HathiTrust
+2) google pd/pdus(anywhere)/world only authenticated HathiTrust
 affiliates. Excludes UM friend accounts.
 
-Exception: UM Press (ump)(source=3)
+Exceptions: UM Press (ump)(source=3)
 
 =cut
 
@@ -370,7 +370,6 @@ sub get_full_PDF_access_status {
     my $status = 'deny';
     my $message;
     
-    my $pd_pdus_world = $self->public_domain_world($C, $id);
     my $creative_commons = $self->creative_commons($C, $id);
 
     if ($creative_commons) {
@@ -379,25 +378,43 @@ sub get_full_PDF_access_status {
     else {
         my $source = $self->get_source_attribute($C, $id);
 
-        if ($pd_pdus_world) {
-            if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
-                $status = 'allow';
-            }
-            elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-                #  More restrictive cases require affiliation
-                if ($C->get_object('Auth')->affiliation_is_hathitrust($C)) {
+        # Affiliates can download pdus from anywhere on Earth
+        my $pd_for_affiliates = $self->public_domain_world($C, $id, 'suppress_geoip_test');
+        my $is_affiliated = $C->get_object('Auth')->affiliation_is_hathitrust($C);
+
+        my $pd_for_nonaffiliates = $self->public_domain_world($C, $id);
+
+        if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
+            #  Restrictive sources require affiliation
+            if ($is_affiliated) {
+                if ($pd_for_affiliates) {
                     $status = 'allow';
-                } 
-                else {
-                    $message = q{NOT_AFFILIATED};
                 }
-            } 
+                else {
+                    $message = q{NOT_AVAILABLE};
+                }
+            }
             else {
-                $message = q{NOT_AVAILABLE};
+                $message = q{NOT_AFFILIATED};
             }
         }
-        else {
-            $message = q{NOT_AVAILABLE};
+        elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
+            if ($is_affiliated) {
+                if ($pd_for_affiliates) {
+                    $status = 'allow';
+                }
+                else {
+                    $message = q{NOT_AVAILABLE};
+                }
+            }
+            else {
+                if ($pd_for_nonaffiliates) {
+                    $status = 'allow';
+                }
+                else {
+                    $message = q{NOT_AVAILABLE};
+                }
+            }
         }
     }
 
@@ -428,21 +445,28 @@ sub public_domain_world_creative_commons {
 
 =item PUBLIC: public_domain_world
 
-Description: is this id pd/pdus/world?
+Description: is this id pd/pdus/world? In some cases we relax the
+requirement that the IP address be US for pdus to be considered pd,
+e.g. if the user is authenticated from a HathiTrust institution.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub public_domain_world {
     my $self = shift;
-    my ($C, $id) = @_;
+    my ($C, $id, $suppress_geoip_test) = @_;
 
     $self->_validate_id($id);
     my $attribute = $self->get_rights_attribute($C, $id);
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-            return (_resolve_access_by_GeoIP($C) eq 'allow');
+            if ($suppress_geoip_test) {
+                return 1;
+            }
+            else {
+                return (_resolve_access_by_GeoIP($C) eq 'allow');
+            }
         }
         else {
             return 1;
