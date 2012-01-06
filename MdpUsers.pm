@@ -188,7 +188,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
 
-   # Michigan CRMS - Anne Karle-Zenith
+   # Michigan CRMS - see Bobby Glushko 
    'jaheim'
    => {
        'displayname' => 'Ahronheim, Judith R',
@@ -323,6 +323,17 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
       },
 
    # Indiana CRMS
+   'eringree@indiana.edu'
+   => {
+       'displayname' => 'Green, Erin',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.79\.35\.87$',
+                        ],
+      },
    'marlett@indiana.edu'
    => {
        'displayname' => 'Marlett, Kathy',
@@ -333,7 +344,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'iprestrict'  => [
                          '^129\.79\.35\.84$',
                         ],
-
       },
    'shmichae@indiana.edu'
    => {
@@ -357,7 +367,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'iprestrict'  => [
                          '^129\.79\.35\.88$',
                         ],
-
       },
    'jamblack@indiana.edu'
    => {
@@ -369,7 +378,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'iprestrict'  => [
                          '^129\.79\.35\.86$',
                         ],
-
       },
       
    # Orphan works review
@@ -581,24 +589,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    'moseshll'
    => {
        'displayname' => 'Hall, Brian',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'annekz'
-   => {
-       'displayname' => 'Karle-Zenith, Anne',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'annekz@puddlemedia.com'
-   => {
-       'displayname' => 'Karle-Zenith, Anne - friend',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
        'usertype'    => 'staff',
