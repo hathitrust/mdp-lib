@@ -71,6 +71,9 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+my $__a_debug_printed = 0;
+my $__b_debug_printed = 0;
+
 sub a_Authorized {
     my $role_req = shift;
     my $authorized = 0;
@@ -109,15 +112,24 @@ sub a_Authorized {
         }
     }
 
-    DEBUG('auth,all', qq{<h2>AUTH ACL: authorized=$authorized, IP=$ipaddr, user=$user usertype=$usertype role=$role expires=$expiration_date</h2>});
+    DEBUG('auth,all', 
+          sub {
+              return '' if $__a_debug_printed;
+              my $s = qq{<h2 style="text-align:left">AUTH ACL: authorized=$authorized, IP=$ipaddr, user=$user usertype=$usertype role=$role expires=$expiration_date</h2>};
+              $__a_debug_printed = 1;
+              return $s;
+          });
     DEBUG('acl',
           sub {
+              return '' if $__b_debug_printed;
               my $s;
               my $ref = \%MdpUsers::gAccessControlList;
+              my $time = time;
               foreach my $user (sort keys %$ref) {
-                  $s .= qq{<h2 style="text-align:left">ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} ip=<br/>}
+                  $s .= qq{<h2 style="text-align:left">AUTH ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} ip=<br/>}
                     . join('<br/>', @{ $ref->{$user}{iprestrict} }) . qq{</h2>};
               }
+              $__b_debug_printed = 1;
               return $s;
           });
     
