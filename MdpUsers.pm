@@ -685,7 +685,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
-   'tmooney'
+   'trmooney'
    => {
        'displayname' => 'Mooney, Thomas',
        'supervisor'  => 'pfarber',
