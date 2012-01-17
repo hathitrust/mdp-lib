@@ -370,6 +370,7 @@ $HT_AFFILIATE           = 5;
 
 $g_available_to_no_one_attribute_value = 8;
 $g_public_domain_US_attribute_value = 9;
+$g_orphan_attribute_value = 4;
 $g_orphan_candidate_attribute_value = 16;
 
 # ---------------------------------------------------------------------

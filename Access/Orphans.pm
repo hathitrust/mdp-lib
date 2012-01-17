@@ -19,6 +19,7 @@ This package provides an interface to the list of institutions with Orphans Agre
 use Context;
 use Utils;
 use RightsGlobals;
+use Debug::DUtils;
 
 my @ORPHAN_AGREEMENT_INSTITUTIONS = ();
 
@@ -34,12 +35,24 @@ Description
 sub institution_agreement {
     my ($C, $inst) = @_;
     
-    # lazy
-    if (! scalar(@ORPHAN_AGREEMENT_INSTITUTIONS)) {
-        __load_agreed_institutions($C);
-    }
+    my $agreed = 0;
     
-    my $agreed = grep(/^$inst$/, @ORPHAN_AGREEMENT_INSTITUTIONS);
+    if (DEBUG('agree')) {
+        $agreed = 1;
+    }
+    elsif (DEBUG('notagree')) {
+        $agreed = 0;
+    }
+    else {
+        # lazy
+        if (! scalar(@ORPHAN_AGREEMENT_INSTITUTIONS)) {
+            __load_agreed_institutions($C);
+        }
+        
+        $agreed = grep(/^$inst$/, @ORPHAN_AGREEMENT_INSTITUTIONS);
+    }
+    DEBUG('auth,all,agree,notagree', qq{<h4>Orphan agreement for inst=$inst: agreed=$agreed</h4>});
+
     return $agreed;
 }
 

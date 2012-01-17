@@ -844,6 +844,15 @@ sub _determine_rights_attribute {
             ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
                    qq{Invalid attribute value for 'attr' parameter: } . $attr);
         }
+        # for Facet debugging, if this is the special ID
+        if ($id eq $Identifier::non_um_in_copyright_id) {
+            if (DEBUG('orph')) {
+                $attr = $RightsGlobals::g_orphan_attribute_value;
+            }
+            elsif (DEBUG('orphcand')) {
+                $attr = $RightsGlobals::g_orphan_attribute_value;
+            }
+        }
     }
 
     if (! defined($attr)) {
@@ -1106,13 +1115,18 @@ sub _resolve_access_by_held_and_agreement {
     my ($C, $id, $assert_ownership) = @_;
 
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+
     my $inst = 'not defined';
+    my $held = 0;
+    my $agreed = 0;
     
     my $US_status = _resolve_access_by_GeoIP($C);
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution($C);
-        if (Access::Orphans::institution_agreement($C, $inst)) {
-            if (Access::Holdings::id_is_held($C, $id, $inst)) {
+        $agreed = Access::Orphans::institution_agreement($C, $inst);
+        if ($agreed) {
+            $held = Access::Holdings::id_is_held($C, $id, $inst);
+            if ($held) {
                 if ($assert_ownership) {
                     ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
                 }
@@ -1122,7 +1136,8 @@ sub _resolve_access_by_held_and_agreement {
             }
         }
     }
-    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+    DEBUG('pt,auth,all,agree,notagree,held,notheld', 
+          qq{<h5>Held+agreement status=$status inst of requestor=$inst held=$held agreed=$agreed</h5>});
 
     return $status;
 }
@@ -1142,11 +1157,13 @@ sub _resolve_ssd_access_by_held {
 
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
     my $inst = 'not defined';
+    my $held = 0;
     
     my $US_status = _resolve_access_by_GeoIP($C);
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution($C);
-        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+        $held = Access::Holdings::id_is_held($C, $id, $inst);
+        if ($held) {
             if ($assert_ownership) {
                 ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
             }
@@ -1156,7 +1173,7 @@ sub _resolve_ssd_access_by_held {
         }
     }
 
-    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+    DEBUG('pt,auth,all,held,notheld', qq{<h5>SSD access=$status Holdings institution=$inst held=$held"</h5>});
 
     return $status;
 }
