@@ -850,7 +850,7 @@ sub _determine_rights_attribute {
                 $attr = $RightsGlobals::g_orphan_attribute_value;
             }
             elsif (DEBUG('orphcand')) {
-                $attr = $RightsGlobals::g_orphan_attribute_value;
+                $attr = $RightsGlobals::g_orphan_candidate_attribute_value;
             }
         }
     }
