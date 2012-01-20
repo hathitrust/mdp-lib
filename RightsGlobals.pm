@@ -134,6 +134,7 @@ $HT_AFFILIATE           = 5;
    14 => 'cc-by-nc-sa',
    15 => 'cc-by-sa',
    16 => 'orphcand',
+   17 => 'cc-zero',
   );
 
 %g_source_names = 
