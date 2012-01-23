@@ -53,7 +53,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
 # WARNING: keys to this hash must be lower-case to work vs. ACL.pm
 #
 # NOTE: usertypes are 'staff' (UM), 'external' (non-UM)
-#       roles are (currently) 'superuser', 'misc', 'crms', 'orphan', 'digitization'
+#       roles are (currently) 'superuser', 'misc', 'crms', 'orphan', 'digitization', 'partneraccess'
 %gAccessControlList =
   (
    # Shibboleth development e.g. persistent-id=...
@@ -685,7 +685,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
-   'tmooney'
+   'trmooney'
    => {
        'displayname' => 'Mooney, Thomas',
        'supervisor'  => 'pfarber',

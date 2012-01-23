@@ -19,6 +19,7 @@ This package provides an interface to the Holdings Database tables (mdp-holdings
 use Context;
 use Utils;
 use DbUtils;
+use Debug::DUtils;
 
 # ---------------------------------------------------------------------
 
@@ -32,14 +33,25 @@ Description
 sub id_is_held {
     my ($C, $id, $inst) = @_;
 
-    my $dbh = $C->get_object('Database')->get_DBH($C);
+    my $held = 0;
 
-    my $SELECT_clause = 
-      qq{SELECT copy_count FROM mdp_holdings.htitem_htmember_jn WHERE volume_id=? AND member_id=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
-    my $count = $sth->fetchrow_array();
+    if (DEBUG('held')) {
+        $held = 1;
+    }
+    elsif (DEBUG('notheld')) {
+        $held = 0;
+    }
+    else {
+        my $dbh = $C->get_object('Database')->get_DBH($C);
 
-    return $count;
+        my $SELECT_clause = 
+          qq{SELECT copy_count FROM mdp_holdings.htitem_htmember_jn WHERE volume_id=? AND member_id=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
+        $held = $sth->fetchrow_array();
+    }
+    DEBUG('auth,all,held,notheld', qq{<h4>Holdings for inst=$inst id="$id": held=$held</h4>});
+    
+    return $held;
 }
 
 

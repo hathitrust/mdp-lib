@@ -88,7 +88,7 @@ my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
 
 use constant UMICH_SSD_LIST => 
-  qw (
+  qw ( 
          ijohns
          rubind
          gsheena
@@ -119,11 +119,9 @@ use constant UMICH_SSD_LIST =>
          mikenuss
          nlcp
          kshalosk
+         rpetrak
     );
  
-### EXCLUDED
-# ssutaria - alumni, no other affiliations
-
 sub new {
     my $class = shift;
     my $C = shift;

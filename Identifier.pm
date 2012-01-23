@@ -36,6 +36,8 @@ use Context;
 use Database;
 use DbUtils;
 
+our $non_um_in_copyright_id = 'coo.31924050725880';
+
 my %g_default_debug_ids =
     (
      # Internal library id results from a bug in a screen-scraper script
@@ -93,6 +95,10 @@ my %g_default_debug_ids =
      # pdus
      '13' => {
               'id'  => 'inu.30000000123830',
+             },
+     # not held by UM, in-copyright
+     '14' => {
+              'id' => $non_um_in_copyright_id,
              },
     );
 
