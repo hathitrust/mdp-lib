@@ -386,16 +386,12 @@ sub get_full_PDF_access_status {
 
         if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
             #  Restrictive sources require affiliation
-            if ($is_affiliated) {
-                if ($pd_for_affiliates) {
+            if ($pd_for_affiliates) {
+                if ( $is_affiliated ) {
                     $status = 'allow';
+                } else {
+                    $message = q{NOT_AFFILIATED};
                 }
-                else {
-                    $message = q{NOT_AVAILABLE};
-                }
-            }
-            else {
-                $message = q{NOT_AFFILIATED};
             }
         }
         elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
@@ -403,16 +399,10 @@ sub get_full_PDF_access_status {
                 if ($pd_for_affiliates) {
                     $status = 'allow';
                 }
-                else {
-                    $message = q{NOT_AVAILABLE};
-                }
             }
             else {
                 if ($pd_for_nonaffiliates) {
                     $status = 'allow';
-                }
-                else {
-                    $message = q{NOT_AVAILABLE};
                 }
             }
         }
