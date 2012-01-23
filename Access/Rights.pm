@@ -368,7 +368,7 @@ sub get_full_PDF_access_status {
     $self->_validate_id($id);
 
     my $status = 'deny';
-    my $message;
+    my $message = q{NOT_AVAILABLE};
     
     my $creative_commons = $self->creative_commons($C, $id);
 
