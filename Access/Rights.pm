@@ -408,6 +408,8 @@ sub get_full_PDF_access_status {
         }
     }
 
+    # clear the error message if $status eq 'allow'
+    $message = '' if ( $status eq 'allow' );
     return ($message, $status);
 }
 
