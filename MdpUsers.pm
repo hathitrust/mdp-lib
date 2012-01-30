@@ -446,6 +446,31 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                         ],
       },
       
+   # Quality Review Access - see https://wush.net/jira/hathitrust/browse/HTS-5432
+   'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!cqblrdcxsaov0z5lnvw+lwq54lg'
+   => {
+       'displayname' => 'Klingenberger, Robert',
+       'supervisor'  => 'jjyork',
+       'expires'     => '2012-04-30 23:59:59',
+       'usertype'    => 'external',
+       'role'        => 'partneraccess',
+       'iprestrict'  => [
+                         '^130\.32\.179\.11$',
+                        ],
+      },
+
+   'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!kbr5pq0qoupxfoqso5vo1loztsa='
+   => {
+       'displayname' => 'Kennedy, Tara',
+       'supervisor'  => 'jjyork',
+       'expires'     => '2012-04-30 23:59:59',
+       'usertype'    => 'external',
+       'role'        => 'partneraccess',
+       'iprestrict'  => [
+                         '^130\.32\.80\.222$',
+                        ],
+      },
+      
    # UCLA Team orphan - see Julia Lovett <jalovett@umich.edu>
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6y58l1vyoiieqblvz2obkjunnja='
    => {
