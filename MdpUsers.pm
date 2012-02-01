@@ -455,7 +455,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'usertype'    => 'external',
        'role'        => 'partneraccess',
        'iprestrict'  => [
-                         '^130\.32\.179\.11$',
+                         '^130\.132\.179\.11$',
                         ],
       },
 
@@ -467,7 +467,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'usertype'    => 'external',
        'role'        => 'partneraccess',
        'iprestrict'  => [
-                         '^130\.32\.80\.222$',
+                         '^130\.132\.80\.222$',
                         ],
       },
       
