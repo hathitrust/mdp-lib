@@ -447,7 +447,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
       },
       
    # Quality Review Access - see https://wush.net/jira/hathitrust/browse/HTS-5432
-   'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!cqblrdcxsaov0z5lnvw+lwq54lg'
+   'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!cqblrdcxsaov0z5lnvw+lwq54lg='
    => {
        'displayname' => 'Klingenberger, Robert',
        'supervisor'  => 'jjyork',
