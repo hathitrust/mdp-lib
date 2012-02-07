@@ -115,15 +115,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'misc',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-   'chisli'
-   => {
-       'displayname' => 'Li, Chisheng',
-       'supervisor'  => 'jpwilkin',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'misc',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
    'lhardman'
    => {
        'displayname' => 'lhardman',
