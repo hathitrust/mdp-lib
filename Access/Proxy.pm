@@ -10,6 +10,11 @@ This package provides an interface to a service that attempts to
 determine whether a request originates frm a proxy.  Used to control
 access pt pdus volumes.
 
+Depends on DNS caching and time-to-live to manage repeated requests on
+the same IP address.
+
+Depends on Net::DNS::tcp_timeout to set a timeout
+
 =head1 SYNOPSIS
 
 =head1 METHODS
@@ -18,65 +23,30 @@ access pt pdus volumes.
 
 =cut
 
-use Socket;
 use DBI;
+use Net::DNS;
+use Debug::DUtils;
 
-# Persistent bounded cache of blacklisted IP addresses
-BEGIN {
-    my $MAX_CACHED_IP_ADDRS = 40;
-
-    my @ip_arr = ();
-    my %ip_hash = ();
-    sub cache_ip_result {
-        my $ip = shift;
-        my $blacklist = shift;
-
-        if (! defined $ip_hash{$ip}) {
-            $ip_hash{$ip} = $blacklist;
-            push(@ip_arr, $ip);
-            if (scalar @ip_arr > $MAX_CACHED_IP_ADDRS) {
-                my $defunct_ip = shift @ip_arr;
-                delete $hash{$defunct_ip};
-            }
-        }
-    }
-
-    sub in_cache {
-        my $ip = shift;
-        return defined($ip_hash{$ip});
-    }
-
-    sub is_blacklisted {
-        my $ip = shift;
-        return ($ip_hash{$ip} == 1);
-    }
-}
+my $resolver = new Net::DNS::Resolver;
+$resolver->tcp_timeout(1);
 
 my %blacklist_services =
   (
    '__IPADDRESS__.cbl.abuseat.org' => '127.0.0.2',
    '__IPADDRESS__.dnsbl.njabl.org' => '127.0.0.9',
-   # '__IPADDRESS__.__PORT__.__SERVER__.ip-port.exitlist.torproject.org' => '127.0.0.2',
+   '__IPADDRESS__.__PORT__.__SERVER__.ip-port.exitlist.torproject.org' => '127.0.0.2',
   );
 
 sub blacklisted {
     my ($dbh, $ip_addr, $server_addr, $port) = @_;
 
-    # Check cache if tested
-    my $cached = in_cache($ip_addr);
-    if ($cached) {
-        return 1 if (is_blacklisted($ip_addr));
-    }
-
-    # Next check database
+    # Check database
     my $blacklist = __bl_check_db($dbh, $ip_addr);
 
     # Check services if passed database check
     if (! $blacklist) {
         $blacklist = __bl_check_services($ip_addr, $server_addr, $port);
     }
-
-    cache_ip_result($ip_addr, $blacklist) if (! $cached);
 
     return $blacklist;
 }
@@ -99,7 +69,7 @@ sub __bl_check_db {
         }
     }
     return 1 if (defined $ENV{TEST_BLACKLIST});
-    
+
     return $blacklist;
 }
 
@@ -118,15 +88,37 @@ sub __bl_check_services {
         $service =~ s,__SERVER__,$r_server_addr,;
         $service =~ s,__PORT__,$port,;
 
-        my $response = (gethostbyname($service))[4];
-        if (length($response) > 0) {
-            $response = inet_ntoa($response);
+        my $query = $resolver->query($service);
+        DEBUG('proxy',
+              sub {
+                  require Data::Dumper;
+                  my $d = Data::Dumper::Dumper($query);
+                  "<pre>Service: $service ::: " . $d . "</pre>";
+              });
 
-            if ($response eq $blacklist_services{$serv}) {
-                $blacklist = 1;
-                last;
+        eval {
+            if (defined $query) {
+                my $answer = $query->{answer}[0];
+                if (defined $answer) {
+                    my $address = $answer->address;
+                    if ($address eq $blacklist_services{$serv}) {
+                        $blacklist = 1;
+                        last;
+                    }
+                }
             }
-        }
+        };
+
+# Previously:
+#         my $response = (gethostbyname($service))[4];
+#         if (length($response) > 0) {
+#             $response = inet_ntoa($response);
+#
+#             if ($response eq $blacklist_services{$serv}) {
+#                 $blacklist = 1;
+#                 last;
+#             }
+#         }
     }
     return 1 if (defined $ENV{TEST_BLACKLIST});
 
@@ -151,7 +143,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2011 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2011-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
