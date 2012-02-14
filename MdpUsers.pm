@@ -21,10 +21,22 @@ package MdpUsers;
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-# Superusers are not restricted by subnet
+# Mon Feb 13 2012 Superusers are restricted to these ranges
+# 141.211.43.128/25   141.211.43.129  - 141.211.43.254  - LIT offices 
+# 141.211.84.128/25   141.211.84.129  - 141.211.84.254  - Library VPN 
+# 141.211.168.128/25  141.211.168.129 - 141.211.168.254 - Hatcher server room 
+# 141.211.172.0/22    141.211.172.1   - 141.211.172.254 - Hatcher/Shapiro buildings 
+# 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center 
+# 141.213.232.192/26  141.213.232.193 - 141.213.232.254 - MACC data center (this will  be retired sometime in 2012)
+
 $gSuperuserSubnetRangesRef =
   [
-   q{.*},
+   q{^141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.211\.84\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.211\.168\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.211\.172\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.213\.128\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.213\.232\.(1(9[3-9])|2([0-4][0-9]|5[0-4]))$},
   ];
 
 # Staff, students are restricted to internal subnets. Friend-accounts
@@ -387,7 +399,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^129\.79\.35\.86$',
                         ],
       },
-      
+
    # Orphan works review - see Melissa Levine <mslevine@umich.edu>
    'bentobey'
    => {
@@ -464,7 +476,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^141\.211\.173\.138$',
                         ],
       },
-      
+
    # Quality Review Access - see https://wush.net/jira/hathitrust/browse/HTS-5432
    'bronick'
    => {
@@ -497,7 +509,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^130\.132\.80\.222$',
                         ],
       },
-      
+
    # UCLA Team orphan - see Melissa Levine <mslevine@umich.edu>
    'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6y58l1vyoiieqblvz2obkjunnja='
    => {
