@@ -100,6 +100,11 @@ my %g_default_debug_ids =
      '14' => {
               'id' => $non_um_in_copyright_id,
              },
+     # tombstone in pfarber sample data repository: truncated METS, no zip
+     '15' => {
+              'id' => 'mdp.39015000287568',
+             },
+
     );
 
 # ---------------------------------------------------------------------
