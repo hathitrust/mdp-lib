@@ -44,7 +44,8 @@ use CGI;
 use Encode;
 use LWP::UserAgent;
 
-# MBooks
+# Local
+use Context;
 use View::Fallback;
 use Debug::DUtils;
 
@@ -967,14 +968,26 @@ sub write_data_to_file
 
 =item resolve_data_root
 
-description
+Support alternative data root for sample HTDE environment 
 
 =cut
 
 # ---------------------------------------------------------------------
-sub resolve_data_root
-{
-    return $ENV{'SDRDATAROOT'};
+sub resolve_data_root {
+    my $C = new Context;
+
+    my $config = $C->get_object('MdpConfig', 1);
+    # This could be early in the Plack layers before app initialization
+    if (! defined $config) {
+        return '/dev/null';
+    }
+    
+    if ( $config->has('localdataroot') ) {
+        return $ENV{SDRDATAROOT} = $config->get('localdataroot');
+    }
+    else {
+        return $ENV{SDRDATAROOT};
+    }
 }
 
 # ---------------------------------------------------------------------
