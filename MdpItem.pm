@@ -375,7 +375,12 @@ sub GetNextFeature
     my $self = shift;
 
     my $featureTableRef = $self->Get( 'featuretable' );
-    return \$$featureTableRef{ $self->{'featuretableindex'}++ };
+    if (defined $featureTableRef) {
+        return \$$featureTableRef{ $self->{'featuretableindex'}++ };
+    }
+    else {
+        return undef;
+    }
 }
 
 sub PeekNextFeature
@@ -383,15 +388,25 @@ sub PeekNextFeature
     my $self = shift;
 
     my $featureTableRef = $self->Get( 'featuretable' );
-    return \$$featureTableRef{ ($self->{'featuretableindex'}) };
+    if (defined $featureTableRef) {
+        return \$$featureTableRef{ ($self->{'featuretableindex'}) };
+    }
+    else {
+        return undef;
+    }
 }
 
 sub GetPageFeatures
 {
     my $self = shift;
     my $seq = shift;
-
-    return @{$self->{'pageinfo'}{'sequence'}{$seq}{'pagefeatures'}};
+    
+    if (defined $self->{'pageinfo'}{'sequence'}{$seq}{'pagefeatures'}) {
+        return @{$self->{'pageinfo'}{'sequence'}{$seq}{'pagefeatures'}};
+    }
+    else {
+        return ();
+    }
 }
 
 sub SetContentHandler
@@ -1078,11 +1093,9 @@ sub BuildFileGrpHash {
     my $root = shift;
     my $fileGrpHashRef = shift;
     
-    # Image fileGrp
-    my $imageFileGrp;
+    # Image fileGrp - tombstone objects lack this group
     my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
-    ASSERT($imageFileGrp = $root->findnodes($xpath),
-           q{Error: finding METS:fileGrp[@USE="image"] in: } . $self->Get('metsxmlfilename'));
+    my $imageFileGrp = $root->findnodes($xpath);
 
     foreach my $node ($imageFileGrp->get_nodelist) {
         my $id = $node->getAttribute('ID');
@@ -1096,7 +1109,7 @@ sub BuildFileGrpHash {
         $fileGrpHashRef->{$id}{filegrp} = 'imagefile';
     }
 
-    # OCR fileGrp - some objects lack this group
+    # OCR fileGrp - all tombstone and some live objects lack this group
     $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
     my $textFileGrp = $root->findnodes($xpath);
     $self->Set('has_ocr', scalar(@$textFileGrp));
@@ -1135,10 +1148,9 @@ sub ParseStructMap {
     my $self = shift;
     my ($root, $fileGrpHashRef, $pageInfoHashRef, $seq2PageNumberHashRef, $featureRecordRef) = @_;
     
-    my $structMap;
+    # tombstone objects have an empty structMap
     my $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
-    ASSERT($structMap = $root->findnodes($xpath),
-           q{Error: finding METS:structMap in: } . $self->Get('metsxmlfilename'));
+    my $structMap = $root->findnodes($xpath);
     
     my $hasPNs = 0;
     my $hasPFs = 0;
