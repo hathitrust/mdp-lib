@@ -71,17 +71,20 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+my $__a_debug_printed = 0;
+my $__b_debug_printed = 0;
+
 sub a_Authorized {
     my $role_req = shift;
     my $authorized = 0;
 
-    my $user = lc($ENV{'REMOTE_USER'});
+    my $remote_user = lc($ENV{'REMOTE_USER'});
     my $ipaddr = $ENV{'REMOTE_ADDR'};
 
-    my $usertype = $MdpUsers::gAccessControlList{$user}{'usertype'};
-    my $role = $MdpUsers::gAccessControlList{$user}{'role'};
-    my $ip_rangeref = $MdpUsers::gAccessControlList{$user}{'iprestrict'};
-    my $expiration_date = $MdpUsers::gAccessControlList{$user}{'expires'};
+    my $usertype = $MdpUsers::gAccessControlList{$remote_user}{'usertype'};
+    my $role = $MdpUsers::gAccessControlList{$remote_user}{'role'};
+    my $ip_rangeref = $MdpUsers::gAccessControlList{$remote_user}{'iprestrict'};
+    my $expiration_date = $MdpUsers::gAccessControlList{$remote_user}{'expires'};
 
     # See if user is in ACL
     if (defined($usertype)) {
@@ -109,15 +112,34 @@ sub a_Authorized {
         }
     }
 
-    DEBUG('auth,all', qq{<h2>AUTH ACL: authorized=$authorized, IP=$ipaddr, user=$user usertype=$usertype role=$role expires=$expiration_date</h2>});
+    DEBUG('auth,all', 
+          sub {
+              return '' if $__a_debug_printed;
+              my $s = qq{<h2 style="text-align:left">AUTH ACL: authorized=$authorized, IP=$ipaddr, user=$remote_user usertype=$usertype role=$role expires=$expiration_date</h2>};
+              $__a_debug_printed = 1;
+              return $s;
+          });
     DEBUG('acl',
           sub {
+              return '' if $__b_debug_printed;
               my $s;
               my $ref = \%MdpUsers::gAccessControlList;
-              foreach my $user (sort keys %$ref) {
-                  $s .= qq{<h2 style="text-align:left">ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} ip=<br/>}
+              my $time = time;
+              my @users = (sort keys %$ref);
+              my @debug_users = ();
+              foreach my $user (@users) {
+                  if (DEBUG($user)) {
+                      push(@debug_users, $user);
+                  }
+              }
+              if (scalar @debug_users) {
+                  @users = @debug_users;
+              }              
+              foreach my $user (@users) {
+                  $s .= qq{<h2 style="text-align:left">AUTH ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} ip=<br/>}
                     . join('<br/>', @{ $ref->{$user}{iprestrict} }) . qq{</h2>};
               }
+              $__b_debug_printed = 1;
               return $s;
           });
     
@@ -136,7 +158,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2010 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2010-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

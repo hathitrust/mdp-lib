@@ -76,14 +76,18 @@ sub _initialize
     while ($connect_attempts) {
         $connect_attempts--;
         
-        $dbh = DBI->connect(
-                            $dsn, 
-                            $db_user, 
-                            $db_passwd, 
-                            {
-                             RaiseError => 1, 
-                            }
-                           );
+        eval {
+            $dbh = DBI->connect(
+                                $dsn, 
+                                $db_user, 
+                                $db_passwd, 
+                              {
+                               # Do our own checks, below
+                               RaiseError => 0,
+                               PrintError => 0,
+                              }
+                               );
+        };
         last if ($dbh);
         sleep 5;
     }

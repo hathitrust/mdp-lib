@@ -22,9 +22,10 @@ package RightsGlobals;
  4         orph        copyright copyright-orphaned (implies in-copyright)
  5         und         copyright undetermined copyright status
  6         umall       access    available to UM affiliates and walk-in patrons (all campuses)
- 7         world       access    available to everyone in the world
+ 7         ic-world    access    in-copyright and available to everyone in the world
  8         nobody      access    available to nobody; blocked for all users
  9         pdus        copyright public domain only when viewed in the US
+ 18        und-world   access    undetermined copyright status and permitted as world viewable
 
  (Creative Commons)
 
@@ -35,6 +36,7 @@ package RightsGlobals;
  13        cc-by-nc    copyright  cc-by +  non-commercial use only
  14        cc-by-nc-sa copyright  cc-by-nc + ccby-sa
  15        cc-by-sa    copyright  cc-by + same license upon redistribution
+ 17        cc-zero     copyright  cc0 license implies pd
 
  (Orphan works project)
 
@@ -57,6 +59,7 @@ package RightsGlobals;
  cc-by-nc-sa
  cc-by-sa
  orphcand
+ cc-zero
 
 =cut
 
@@ -111,6 +114,8 @@ $HT_AFFILIATE           = 5;
    '14' => 'copyright cc-by-nc + ccby-sa',
    '15' => 'copyright cc-by + same license upon redistribution',
    '16' => 'in-copyright orphan candidate',
+   '17' => 'cc0 no rights reserved license implies pd',
+   '18' => 'available to everyone',
   );
 
 %g_attribute_keys =
@@ -121,7 +126,7 @@ $HT_AFFILIATE           = 5;
    4  => 'orph',
    5  => 'und',
    6  => 'umall',
-   7  => 'world',
+   7  => 'ic-world',
    8  => 'nobody',
    9  => 'pdus',
    10 => 'cc-by',
@@ -131,6 +136,8 @@ $HT_AFFILIATE           = 5;
    14 => 'cc-by-nc-sa',
    15 => 'cc-by-sa',
    16 => 'orphcand',
+   17 => 'cc-zero',
+   18 => 'und-world',
   );
 
 %g_source_names = 
@@ -207,6 +214,10 @@ $HT_AFFILIATE           = 5;
    'cc-by-sa'     => {
                       'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
                       'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
+                     },
+   'cc-zero'      => {
+                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/zero/1.0/80x15.png',
+                      'stmt_url_aux'  => 'http://creativecommons.org/publicdomain/zero/1.0/',
                      },
    'candidates'   => {
                       'stmt_icon' => '',
@@ -358,18 +369,35 @@ $HT_AFFILIATE           = 5;
               $UM_AFFILIATE          => 'deny',
               $HT_AFFILIATE          => 'deny',
             },
+     # available to everyone in the world http://creativecommons.org/publicdomain/zero/1.0/
+     '17' => { 
+              $ORDINARY_USER         => 'allow',
+              $SSD_USER              => 'allow',
+              $LIBRARY_IPADDR_USER   => 'allow',
+              $UM_AFFILIATE          => 'allow',
+              $HT_AFFILIATE          => 'allow',
+            },
+     # available to everyone in the world
+     '18' => { 
+             $ORDINARY_USER         => 'allow',
+             $SSD_USER              => 'allow',
+             $LIBRARY_IPADDR_USER   => 'allow',
+             $UM_AFFILIATE          => 'allow',
+             $HT_AFFILIATE          => 'allow',
+            },
     );
 
 # ---------------------------------------------------------------------
 # "Public domain"
 # ---------------------------------------------------------------------
 #
-@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15);
-@g_public_domain_world_attribute_values = (1, 7, 9);
+@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17);
+@g_public_domain_world_attribute_values = (1, 7, 9, 18);
 @g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16);
 
 $g_available_to_no_one_attribute_value = 8;
 $g_public_domain_US_attribute_value = 9;
+$g_orphan_attribute_value = 4;
 $g_orphan_candidate_attribute_value = 16;
 
 # ---------------------------------------------------------------------

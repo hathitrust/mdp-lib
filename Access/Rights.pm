@@ -71,6 +71,7 @@ use Database;
 use Identifier;
 use DbUtils;
 use Auth::Auth;
+use Auth::ACL;
 use Auth::Exclusive;
 use RightsGlobals;
 use MirlynGlobals;
@@ -351,12 +352,12 @@ As of Mon Mar 21 17:01:55 2011
 
 Allowed are: 
 
-1) non-google pd/pdus/world/cc for anyone
+1) non-google pd/pdus(on US soil)/world/cc for anyone
 
-2) google pd/pdus/world only authenticated HathiTrust
+2) google pd/pdus(anywhere)/world only authenticated HathiTrust
 affiliates. Excludes UM friend accounts.
 
-Exception: UM Press (ump)(source=3)
+Exceptions: UM Press (ump)(source=3)
 
 =cut
 
@@ -368,9 +369,8 @@ sub get_full_PDF_access_status {
     $self->_validate_id($id);
 
     my $status = 'deny';
-    my $message;
+    my $message = q{NOT_AVAILABLE};
     
-    my $pd_pdus_world = $self->public_domain_world($C, $id);
     my $creative_commons = $self->creative_commons($C, $id);
 
     if ($creative_commons) {
@@ -379,28 +379,53 @@ sub get_full_PDF_access_status {
     else {
         my $source = $self->get_source_attribute($C, $id);
 
-        if ($pd_pdus_world) {
-            if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
-                $status = 'allow';
-            }
-            elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-                #  More restrictive cases require affiliation
-                if ($C->get_object('Auth')->affiliation_is_hathitrust($C)) {
+        # Affiliates can download pdus from anywhere on Earth
+        my $pd_for_affiliates = $self->public_domain_world($C, $id, 'suppress_geoip_test');
+        my $is_affiliated = $C->get_object('Auth')->affiliation_is_hathitrust($C);
+
+        my $pd_for_nonaffiliates = $self->public_domain_world($C, $id);
+
+        if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
+            #  Restrictive sources require affiliation
+            if ($pd_for_affiliates) {
+                if ( $is_affiliated ) {
                     $status = 'allow';
-                } 
-                else {
+                } else {
                     $message = q{NOT_AFFILIATED};
                 }
-            } 
-            else {
-                $message = q{NOT_AVAILABLE};
             }
         }
-        else {
-            $message = q{NOT_AVAILABLE};
+        elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
+            if ($is_affiliated) {
+                if ($pd_for_affiliates) {
+                    $status = 'allow';
+                }
+            }
+            else {
+                if ($pd_for_nonaffiliates) {
+                    $status = 'allow';
+                }
+            }
         }
     }
 
+    # 'allow' at this point may be because of attr=1 from upstream for
+    # debugging or CRMS/quality/orphan activity.  As of Feb 13 2012
+    # only superusers (developers) within a restricted IP range are
+    # allowed full book download of in-copyright books.
+    if ($status eq 'allow') {
+        my ($in_copyright, $attr) = Access::Rights::in_copyright_suppress_debug_switches($C, $id);
+        if ($in_copyright) {
+            my $role = Auth::ACL::a_GetUserAttributes('role');
+            if ($role ne 'superuser') {
+                $status = 'deny';
+                $message = q{NOT_AVAILABLE};
+            }
+        }
+    }
+
+    # clear the error message if $status eq 'allow'
+    $message = '' if ( $status eq 'allow' );
     return ($message, $status);
 }
 
@@ -428,21 +453,28 @@ sub public_domain_world_creative_commons {
 
 =item PUBLIC: public_domain_world
 
-Description: is this id pd/pdus/world?
+Description: is this id pd/pdus/world? In some cases we relax the
+requirement that the IP address be US for pdus to be considered pd,
+e.g. if the user is authenticated from a HathiTrust institution.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub public_domain_world {
     my $self = shift;
-    my ($C, $id) = @_;
+    my ($C, $id, $suppress_geoip_test) = @_;
 
     $self->_validate_id($id);
     my $attribute = $self->get_rights_attribute($C, $id);
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-            return (_resolve_access_by_GeoIP($C) eq 'allow');
+            if ($suppress_geoip_test) {
+                return 1;
+            }
+            else {
+                return (_resolve_access_by_GeoIP($C) eq 'allow');
+            }
         }
         else {
             return 1;
@@ -820,6 +852,15 @@ sub _determine_rights_attribute {
             ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
                    qq{Invalid attribute value for 'attr' parameter: } . $attr);
         }
+        # for Facet debugging, if this is the special ID
+        if ($id eq $Identifier::non_um_in_copyright_id) {
+            if (DEBUG('orph')) {
+                $attr = $RightsGlobals::g_orphan_attribute_value;
+            }
+            elsif (DEBUG('orphcand')) {
+                $attr = $RightsGlobals::g_orphan_candidate_attribute_value;
+            }
+        }
     }
 
     if (! defined($attr)) {
@@ -1082,13 +1123,18 @@ sub _resolve_access_by_held_and_agreement {
     my ($C, $id, $assert_ownership) = @_;
 
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+
     my $inst = 'not defined';
+    my $held = 0;
+    my $agreed = 0;
     
     my $US_status = _resolve_access_by_GeoIP($C);
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution($C);
-        if (Access::Orphans::institution_agreement($C, $inst)) {
-            if (Access::Holdings::id_is_held($C, $id, $inst)) {
+        $agreed = Access::Orphans::institution_agreement($C, $inst);
+        if ($agreed) {
+            $held = Access::Holdings::id_is_held($C, $id, $inst);
+            if ($held) {
                 if ($assert_ownership) {
                     ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
                 }
@@ -1098,7 +1144,8 @@ sub _resolve_access_by_held_and_agreement {
             }
         }
     }
-    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+    DEBUG('pt,auth,all,agree,notagree,held,notheld', 
+          qq{<h5>Held+agreement status=$status inst of requestor=$inst held=$held agreed=$agreed</h5>});
 
     return $status;
 }
@@ -1118,11 +1165,13 @@ sub _resolve_ssd_access_by_held {
 
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
     my $inst = 'not defined';
+    my $held = 0;
     
     my $US_status = _resolve_access_by_GeoIP($C);
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution($C);
-        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+        $held = Access::Holdings::id_is_held($C, $id, $inst);
+        if ($held) {
             if ($assert_ownership) {
                 ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
             }
@@ -1132,7 +1181,7 @@ sub _resolve_ssd_access_by_held {
         }
     }
 
-    DEBUG('pt,auth,all', qq{<h5>Holdings institution=$inst held=$status"</h5>});
+    DEBUG('pt,auth,all,held,notheld', qq{<h5>SSD access=$status Holdings institution=$inst held=$held"</h5>});
 
     return $status;
 }
