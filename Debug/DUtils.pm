@@ -534,11 +534,14 @@ sub handle_terminal_debug_msg {
 
 =item debugging_enabled
 
-Limit debug= functionality for certain classes of users.  Rules:
+Limit attr=, src=, debug= functionality for certain classes of users.
 
-(1) Production web: allowed when authenticated
+Rules:
+
+(1) Development and Production web: all user classes are limited to IP
+ranges when authenticated. VPN required when outside these ranges.
+
 (2) Development command line: allowed globally
-(3) Development web: allowed for HT_DEV == uniqname
 
 =cut
 
@@ -546,9 +549,8 @@ Limit debug= functionality for certain classes of users.  Rules:
 sub debugging_enabled {
     my $role = shift;
 
-    # Over-ride all authorization checking.  DO NOT GO INTO PRODUCTION
-    # WITH THIS SET!
-    my $___no_ACL_debugging_test = ($ENV{'HT_DEV'} =~ m,[a-z]+,) || $ENV{'TERM'};
+    # Over-ride all authorization checking at the command line.
+    my $___no_ACL_debugging_test = $ENV{'TERM'};
 
     my $authorized = Auth::ACL::a_Authorized($role);
     if ($___no_ACL_debugging_test) {

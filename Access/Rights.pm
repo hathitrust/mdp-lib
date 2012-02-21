@@ -71,6 +71,7 @@ use Database;
 use Identifier;
 use DbUtils;
 use Auth::Auth;
+use Auth::ACL;
 use Auth::Exclusive;
 use RightsGlobals;
 use MirlynGlobals;
@@ -404,6 +405,21 @@ sub get_full_PDF_access_status {
                 if ($pd_for_nonaffiliates) {
                     $status = 'allow';
                 }
+            }
+        }
+    }
+
+    # 'allow' at this point may be because of attr=1 from upstream for
+    # debugging or CRMS/quality/orphan activity.  As of Feb 13 2012
+    # only superusers (developers) within a restricted IP range are
+    # allowed full book download of in-copyright books.
+    if ($status eq 'allow') {
+        my ($in_copyright, $attr) = Access::Rights::in_copyright_suppress_debug_switches($C, $id);
+        if ($in_copyright) {
+            my $role = Auth::ACL::a_GetUserAttributes('role');
+            if ($role ne 'superuser') {
+                $status = 'deny';
+                $message = q{NOT_AVAILABLE};
             }
         }
     }
