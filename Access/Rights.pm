@@ -1054,14 +1054,15 @@ sub _resolve_access_by_GeoIP {
 
     my $status = 'deny';
 
-    # Allow caller to specify IP address, optionally
-    my $IPADDR = shift || $ENV{'REMOTE_ADDR'};
+    # Use forwarded IP address if proxied, else UA IP addr
+    my $IPADDR = $ENV{HTTP_X_FORWARDED_FOR} || $ENV{REMOTE_ADDR};
 
     require "Geo/IP.pm";
     my $geoIP = Geo::IP->new();
     my $country_code = $geoIP->country_code_by_addr($IPADDR);
     if (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes)) {
-        # veryify this is not a US proxy for a non-US request
+        # veryify this is not a blacklisted US proxy that does not set
+        # HTTP_X_FORWARDED_FOR for a non-US request
         require "Access/Proxy.pm";
         my $dbh = $C->get_object('Database')->get_DBH($C);
 

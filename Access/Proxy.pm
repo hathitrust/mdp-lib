@@ -37,9 +37,18 @@ my %blacklist_services =
    '__IPADDRESS__.__PORT__.__SERVER__.ip-port.exitlist.torproject.org' => '127.0.0.2',
   );
 
+# Eliminate some calls out to DNS
+my %ip_address_cache = ();
+
 sub blacklisted {
     my ($dbh, $ip_addr, $server_addr, $port) = @_;
 
+    # Check cache
+    if (defined $ip_address_cache{$ip_addr}) {
+        DEBUG('proxy', qq{<pre>return cached blacklist=$blacklist</pre>});
+        return $ip_address_cache{$ip_addr};
+    }
+    
     # Check database
     my $blacklist = __bl_check_db($dbh, $ip_addr);
 
@@ -48,6 +57,10 @@ sub blacklisted {
         $blacklist = __bl_check_services($ip_addr, $server_addr, $port);
     }
 
+    # Cache
+    $ip_address_cache{$ip_addr} = $blacklist;
+    DEBUG('proxy', qq{<pre>set cache blacklist=$blacklist</pre>});
+    
     return $blacklist;
 }
 
