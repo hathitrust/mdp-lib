@@ -120,6 +120,7 @@ use constant UMICH_SSD_LIST =>
          nlcp
          kshalosk
          rpetrak
+         lwernick
     );
  
 sub new {
