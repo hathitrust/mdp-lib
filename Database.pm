@@ -103,23 +103,7 @@ sub _initialize
     $dbh->{mysql_auto_reconnect} = 1;
     $dbh->{mysql_enable_utf8} = 1;
 
-    $self->{'dbh'} = $dbh;
-
-    $self->test_schema_version($config);
-    
-}
-
-# ---------------------------------------------------------------------
-
-=item test_schema_version
-
-Description: virtual, subclass optional
-
-=cut
-
-# ---------------------------------------------------------------------
-sub test_schema_version
-{
+    $self->{'dbh'} = $dbh;    
 }
 
 # ---------------------------------------------------------------------
