@@ -366,8 +366,13 @@ sub randomize_id {
     
     if ($cgi->param('id') eq 'r') {
         my $dbh = $C->get_object('Database')->get_DBH();
-        my $statement = qq{SELECT CONCAT(namespace, '.', id) FROM small ORDER BY RAND() LIMIT 0,1};
-        my $sth = DbUtils::prep_n_execute($dbh, $statement);
+        my ($statement, $sth);
+        $statement = qq{SELECT count(*) FROM rights_current};
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        my $count = $sth->fetchrow_array;
+        my $rand_int = int(rand()*$count) + 1;
+        $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current LIMIT 1 OFFSET $rand_int};
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
         my $random_id = $sth->fetchrow_array;
         if ($random_id) {
             $cgi->param('id', $random_id);
