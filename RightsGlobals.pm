@@ -255,10 +255,15 @@ $HT_AFFILIATE           = 5;
    # and allow_by_exclusivity because all OPB in database are held by
    # uom. THIS WILL CHANGE WHEN WE HAVE CONDITION DATA IN Holdings
    # databse FOR OTHER INSTITUTIONS.
+   #
+   # 3) We now Thu Mar 8 15:49:56 2012 have IP ranges for institutions
+   # besides UM but they can't see brittle books because we don't have
+   # condition data for them in Holdings hence allow_by_lib_ipaddr
+   # becomes allow_by_uom_lib_ipaddr
      '3' => { 
              $ORDINARY_USER         => 'deny',
              $SSD_USER              => 'allow_ssd_by_holdings',
-             $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr',
+             $LIBRARY_IPADDR_USER   => 'allow_by_uom_lib_ipaddr',
              $UM_AFFILIATE          => 'allow_by_exclusivity',
              $HT_AFFILIATE          => 'deny', 
             },

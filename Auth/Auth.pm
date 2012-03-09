@@ -479,7 +479,8 @@ sub get_institution {
 
 =item get_institution_name
 
-Note this maps users eduPersonScopedAffiliation to the institution name. 
+Note this maps users SDRINST environment var or
+eduPersonScopedAffiliation to the institution name.
 
 =cut
 
@@ -491,14 +492,24 @@ sub get_institution_name {
     my $aff = $self->get_eduPersonScopedAffiliation($C);
     my $map_ref = $self->get_institution_map();
     
-    my $inst;
+    my $inst_name;
     
     if ($aff) {    
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain}->{name};
+        $inst_name = $map_ref->{$domain}->{name};
+    }
+    else { 
+        my $inst = $self->get_institution_by_ip_address();
+        # Try a lookup by SDRINST
+        foreach my $domain (keys %$map_ref) {
+            if ($map_ref->{$domain}->{sdrinst} eq $inst) {
+                $inst_name = $map_ref->{$domain}->{name};
+                last;
+            }
+        }
     }
 
-    return $inst;
+    return $inst_name;
 }
 
 # ---------------------------------------------------------------------
@@ -507,7 +518,11 @@ sub get_institution_name {
 
 This plays a role in Section 108 brittle book access authorization. We
 do not currently have IP addresses of non-UM Library buildings. If we
-did, we could consult the Holdings database for book's condition.
+did, we could consult the Holdings database for book's condition when
+condition data becomes available in that database.
+
+As of Thu Mar 8 15:15:52 2012 We are adding LOC to the in-library IP
+ranges.
 
 =cut
 
@@ -515,6 +530,31 @@ did, we could consult the Holdings database for book's condition.
 sub is_in_library {
     my $self = shift;
     my $institution = $self->get_institution_by_ip_address();
+
+    my $institution_allowed = 
+      (
+       ($institution eq 'uom')
+       ||
+       ($institution eq 'loc') 
+      );
+    
+    return ($institution && $institution_allowed && $ENV{'SDRLIB'});
+}
+
+
+# ---------------------------------------------------------------------
+
+=item is_in_uom_library
+
+See is_in_library
+
+=cut
+
+# ---------------------------------------------------------------------
+sub is_in_uom_library {
+    my $self = shift;
+    my $institution = $self->get_institution_by_ip_address();
+    
     return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
 }
 

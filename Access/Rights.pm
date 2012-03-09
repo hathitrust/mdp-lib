@@ -357,6 +357,9 @@ Allowed are:
 2) google pd/pdus(anywhere)/world only authenticated HathiTrust
 affiliates. Excludes UM friend accounts.
 
+3) LOC users "in-a-library" are now Thu Mar 8 16:04:11 2012
+considered equivalent to authenticated HathiTrust affiliates.
+
 Exceptions: UM Press (ump)(source=3)
 
 =cut
@@ -381,8 +384,12 @@ sub get_full_PDF_access_status {
 
         # Affiliates can download pdus from anywhere on Earth
         my $pd_for_affiliates = $self->public_domain_world($C, $id, 'suppress_geoip_test');
-        my $is_affiliated = $C->get_object('Auth')->affiliation_is_hathitrust($C);
-
+        my $auth = $C->get_object('Auth');
+        my $is_affiliated = (
+                             $auth->affiliation_is_hathitrust($C) 
+                             ||
+                             $auth->is_in_library()
+                            );
         my $pd_for_nonaffiliates = $self->public_domain_world($C, $id);
 
         if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
@@ -390,7 +397,8 @@ sub get_full_PDF_access_status {
             if ($pd_for_affiliates) {
                 if ( $is_affiliated ) {
                     $status = 'allow';
-                } else {
+                } 
+                else {
                     $message = q{NOT_AFFILIATED};
                 }
             }
@@ -729,11 +737,17 @@ sub _Assert_final_access_status {
     elsif 
       ($initial_access_status eq 'allow_by_exclusivity') {
         ($final_access_status, $granted, $owner, $expires) =
-            _assert_access_exclusivity($C, $id);
+          _assert_access_exclusivity($C, $id);
     }
     elsif 
-      ($initial_access_status eq 'allow_by_lib_ipaddr') {
-        $final_access_status = 'allow';
+      ($initial_access_status eq 'allow_by_uom_lib_ipaddr') {
+        if ($C->get_object('Auth')->is_in_uom_library()) {
+            ($final_access_status, $granted, $owner, $expires) =
+              _assert_access_exclusivity($C, $id);
+        }
+        else {
+            $final_access_status = 'deny';
+        }
     }
     elsif
       ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
@@ -784,8 +798,19 @@ sub _Check_final_access_status {
         $final_access_status = _resolve_access_by_GeoIP($C);
     }
     elsif 
-      ($initial_access_status eq 'allow_by_lib_ipaddr') {
-        $final_access_status = 'allow';
+      ($initial_access_status eq 'allow_by_uom_lib_ipaddr') {
+        if (defined($id)) {
+            if ($C->get_object('Auth')->is_in_uom_library()) {
+                ($final_access_status, $granted, $owner, $expires) = 
+                  _check_access_exclusivity($C, $id);
+            }
+            else {
+                $final_access_status = 'deny';
+            }
+        }
+        else {
+            $final_access_status = 'allow';
+        }
     }
     elsif 
       ($initial_access_status eq 'allow_by_exclusivity') {
@@ -1001,10 +1026,7 @@ sub _determine_access_type {
     my $access_type = $RightsGlobals::ORDINARY_USER;
 
     # Tests are in order of which access type would give most
-    # privileges. Note: If authed as UMICH, exclusive access to
-    # brittle books is limited by number of copies held and by users
-    # vith exclusive access grants to same whereas if unauthenticated
-    # and in a library building they would not be constrained at all.
+    # privileges.
 
     my $auth = $C->get_object('Auth');
 
@@ -1025,7 +1047,9 @@ sub _determine_access_type {
     }
     elsif 
       ($auth->is_in_library()) {
-        # brittle book access not limited by number held or exclusion
+        # brittle book access limited by number held and 24h
+        # exclusivity: UM only until Holding Db carries condition
+        # data.
         $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
     }
 
