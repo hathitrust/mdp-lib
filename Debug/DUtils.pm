@@ -131,7 +131,7 @@ sub set_HathiTrust_debug_environment {
     }
     
     if (DEBUG('shib')) {
-        # Appear to be a shib login at whatever IP you are at
+        # Appear to be a UM shib login at whatever IP you are at unless DEBUG=nonus see below
         $ENV{AUTH_TYPE} = 'shibboleth';
         $ENV{affiliation} = 'member@umich.edu';
         $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
@@ -165,6 +165,10 @@ sub set_HathiTrust_debug_environment {
     if (DEBUG('nonus')) {
         # Not at a US IP address (Madrid)
         $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{'ucm'};
+        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
+        $ENV{SDRINST} = 'ucm';
+        $ENV{AUTH_TYPE} = 'shibboleth';
+        $ENV{affiliation} = 'member@ucm.es';
     }
     
     if (DEBUG('notlogged')) {
@@ -177,7 +181,6 @@ sub set_HathiTrust_debug_environment {
 
     if (DEBUG('nonlib')) {
         delete $ENV{SDRLIB};
-        $ENV{REMOTE_ADDR} = $non_HathiTrust_IP;
     }
 
     DEBUG('auth',
@@ -549,8 +552,12 @@ ranges when authenticated. VPN required when outside these ranges.
 sub debugging_enabled {
     my $role = shift;
 
-    # Over-ride all authorization checking at the command line.
-    my $___no_ACL_debugging_test = $ENV{'TERM'};
+    use constant NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1 => 1;
+
+    # Over-ride all authorization checking at the command line or by
+    # flag. Some debug switches will not work unless this sub always
+    # returns 1.
+    my $___no_ACL_debugging_test = $ENV{'TERM'} || NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1;
 
     my $authorized = Auth::ACL::a_Authorized($role);
     if ($___no_ACL_debugging_test) {

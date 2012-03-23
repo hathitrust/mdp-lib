@@ -214,6 +214,7 @@ sub __load_institutions_xml {
         my $domain = $inst->getAttribute('domain');
         $inst_map->{$domain} = {
             'sdrinst' => $inst->getAttribute('sdrinst'),
+            'us'      => $inst->getAttribute('us'),
             'name'    => $inst->textContent
         };
     }
@@ -473,6 +474,31 @@ sub get_institution {
     }
 
     return $inst;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_us_status
+
+Is user's institution in the US?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_us_status {
+    my $self = shift;
+    my $C = shift;
+    
+    my $status = 'notaff';
+    
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
+    if ($aff) {    
+        my $map_ref = $self->get_institution_map();
+        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+        $status = $map_ref->{$domain}->{us} ? 'affus' : 'affnotus';
+    }
+
+    return $status;
 }
 
 # ---------------------------------------------------------------------

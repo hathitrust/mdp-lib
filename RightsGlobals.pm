@@ -257,9 +257,9 @@ $HT_AFFILIATE           = 5;
    # databse FOR OTHER INSTITUTIONS.
    #
    # 3) We now Thu Mar 8 15:49:56 2012 have IP ranges for institutions
-   # besides UM but they can't see brittle books because we don't have
-   # condition data for them in Holdings hence allow_by_lib_ipaddr
-   # becomes allow_by_uom_lib_ipaddr
+   # besides UM (LOC) but they can't see brittle books because we
+   # don't have condition data for them in Holdings hence
+   # allow_by_lib_ipaddr becomes allow_by_uom_lib_ipaddr
      '3' => { 
              $ORDINARY_USER         => 'deny',
              $SSD_USER              => 'allow_ssd_by_holdings',
@@ -310,13 +310,15 @@ $HT_AFFILIATE           = 5;
              $HT_AFFILIATE          => 'deny',
             },
      # available if IP is in the "U.S." As of Mon Aug 23 15:13:41
-     # 2010, per JPW, authenticated users can see pdus outside U.S.
+     # 2010, per JPW, authenticated users can see pdus outside U.S. As
+     # of Thu Mar 22 12:58:16 2012, affiliates of non-US institutions
+     # cannot access pdus from non-US IP addresses.
      '9' => { 
              $ORDINARY_USER         => 'allow_by_geo_ipaddr',
-             $SSD_USER              => 'allow',
+             $SSD_USER              => 'allow_ssd_by_holdings',
              $LIBRARY_IPADDR_USER   => 'allow',
              $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'allow',
+             $HT_AFFILIATE          => 'allow_non_us_aff_by_ip_addr',
             },
      # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
      '10' => { 

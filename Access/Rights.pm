@@ -355,7 +355,8 @@ Allowed are:
 1) non-google pd/pdus(on US soil)/world/cc for anyone
 
 2) google pd/pdus(anywhere)/world only authenticated HathiTrust
-affiliates. Excludes UM friend accounts.
+affiliates. Affiliates of non-US institutions must be at a US IP
+address. Excludes UM friend accounts.
 
 3) LOC users "in-a-library" are now Thu Mar 8 16:04:11 2012
 considered equivalent to authenticated HathiTrust affiliates.
@@ -382,19 +383,22 @@ sub get_full_PDF_access_status {
     else {
         my $source = $self->get_source_attribute($C, $id);
 
-        # Affiliates can download pdus from anywhere on Earth
-        my $pd_for_affiliates = $self->public_domain_world($C, $id, 'suppress_geoip_test');
+        # Affiliates of US institutions can download pd/pdus from
+        # anywhere on Earth. Unaffiliated users and non-US affiliates
+        # only from US IP addresses.  This pd determination is
+        # fully-wrapped by call to public_domain_world() next.
+
+        my $pd = $self->public_domain_world($C, $id);
         my $auth = $C->get_object('Auth');
         my $is_affiliated = (
                              $auth->affiliation_is_hathitrust($C) 
                              ||
                              $auth->is_in_library()
                             );
-        my $pd_for_nonaffiliates = $self->public_domain_world($C, $id);
 
         if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-            #  Restrictive sources require affiliation
-            if ($pd_for_affiliates) {
+            #  Restrictive sources require affiliation.
+            if ($pd) {
                 if ( $is_affiliated ) {
                     $status = 'allow';
                 } 
@@ -404,23 +408,16 @@ sub get_full_PDF_access_status {
             }
         }
         elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
-            if ($is_affiliated) {
-                if ($pd_for_affiliates) {
-                    $status = 'allow';
-                }
-            }
-            else {
-                if ($pd_for_nonaffiliates) {
-                    $status = 'allow';
-                }
+            if ($pd) {
+                $status = 'allow';
             }
         }
     }
 
     # 'allow' at this point may be because of attr=1 from upstream for
-    # debugging or CRMS/quality/orphan activity.  As of Feb 13 2012
-    # only superusers (developers) within a restricted IP range are
-    # allowed full book download of in-copyright books.
+    # debugging or CRMS/quality/orphan research activity.  As of Feb
+    # 13 2012 only superusers (developers) within a restricted IP
+    # range are allowed full book download of in-copyright books.
     if ($status eq 'allow') {
         my ($in_copyright, $attr) = Access::Rights::in_copyright_suppress_debug_switches($C, $id);
         if ($in_copyright) {
@@ -461,23 +458,24 @@ sub public_domain_world_creative_commons {
 
 =item PUBLIC: public_domain_world
 
-Description: is this id pd/pdus/world? In some cases we relax the
-requirement that the IP address be US for pdus to be considered pd,
-e.g. if the user is authenticated from a HathiTrust institution.
+Description: is this id pd/pdus/world? In the pdus case, unaffiliated
+users of non-US institutions must be at a US IP address for this id to
+be in the public domain.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub public_domain_world {
     my $self = shift;
-    my ($C, $id, $suppress_geoip_test) = @_;
+    my ($C, $id) = @_;
 
     $self->_validate_id($id);
     my $attribute = $self->get_rights_attribute($C, $id);
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-            if ($suppress_geoip_test) {
+            my $us_status = $C->get_object('Auth')->get_institution_us_status($C);
+            if ($us_status eq 'affus') {
                 return 1;
             }
             else {
@@ -534,7 +532,14 @@ sub in_copyright_suppress_debug_switches {
     my $in_copyright = 1;
     
     if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-        $in_copyright = (_resolve_access_by_GeoIP($C) eq 'deny');
+        # pdus is pd for authenticated US affiliates coming from non-US IP addresses
+        my $us_status = $C->get_object('Auth')->get_institution_us_status($C);
+        if ($us_status eq 'affus') {
+            $in_copyright = 0;
+        }
+        else {
+            $in_copyright = (_resolve_access_by_GeoIP($C) eq 'deny');
+        }
     }
     else {
         my @freely_available = 
@@ -711,7 +716,7 @@ sub ___final_access_status_check {
            ($final_access_status eq 'unknown'),
            qq{Invalid final access status value="$final_access_status"});
 
-    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="$final_access_status" REMOTE_USER="$ENV{'REMOTE_USER'}"</h4>});
+    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="$ENV{'REMOTE_USER'}"</h4>});
 }
 
 
@@ -733,6 +738,10 @@ sub _Assert_final_access_status {
     if 
       ($initial_access_status eq 'allow_by_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C);
+    }
+    elsif 
+      ($initial_access_status eq 'allow_non_us_aff_by_ip_addr') {
+        $final_access_status = _resolve_non_us_aff_access_by_GeoIP($C);
     }
     elsif 
       ($initial_access_status eq 'allow_by_exclusivity') {
@@ -796,6 +805,10 @@ sub _Check_final_access_status {
     if 
       ($initial_access_status eq 'allow_by_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C);
+    }
+    elsif 
+      ($initial_access_status eq 'allow_non_us_aff_by_ip_addr') {
+        $final_access_status = _resolve_non_us_aff_access_by_GeoIP($C);
     }
     elsif 
       ($initial_access_status eq 'allow_by_uom_lib_ipaddr') {
@@ -1042,7 +1055,7 @@ sub _determine_access_type {
     }
     elsif 
       ($auth->affiliation_is_hathitrust($C)) {
-        # full PDF + exclusive brittle access
+        # full PDF + exclusive brittle access + orph modulo geo location
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
     elsif 
@@ -1061,6 +1074,38 @@ sub _determine_access_type {
           });
 
     return $access_type;
+}
+
+# ---------------------------------------------------------------------
+
+=item CLASS PRIVATE: _resolve_non_us_aff_access_by_GeoIP
+
+ if (affiliate of US institution)
+    allow 
+ else if (affiliate of non-US institution)
+    allow if IP address is US
+ else
+    deny
+ endif
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _resolve_non_us_aff_access_by_GeoIP {
+    my $C = shift;
+
+    my $status = 'deny';
+    
+    my $us_status = $C->get_object('Auth')->get_institution_us_status($C);
+    if ($us_status eq 'affus') {
+        $status = 'allow';
+    } 
+    elsif ($us_status eq 'affnotus') {
+        # non-US affiliate: on us soil?
+        $status = _resolve_access_by_GeoIP($C);
+    }
+
+    return $status;
 }
 
 
