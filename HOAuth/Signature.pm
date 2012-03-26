@@ -29,6 +29,8 @@ use CGI;
 use OAuth::Lite::Consumer;
 use OAuth::Lite::ServerUtil;
 
+use HOAuth::Keys;
+
 my $FORCE_TIMESTAMP_EXPIRATION = 0;
 my $FORCE_VALID_SIGNATURE = 0;
 
@@ -46,7 +48,9 @@ extra = hash ref to query string
 
 # ---------------------------------------------------------------------
 sub S_get_signed_request_URL {
-    my ($unsigned_url, $key_pair, $request_method, $extra) = @_;
+    my ($unsigned_url, $access_key, $secret_key, $request_method, $extra) = @_;
+
+    my $key_pair = HOAuth::Keys::make_key_pair_from($access_key, $secret_key);
 
     my %args = (
                 consumer_key    => $key_pair->token,
@@ -75,7 +79,7 @@ Validate a signed URL
 
 # ---------------------------------------------------------------------
 sub S_validate {
-    my ($signed_url, $key_pair, $request_method, $extra) = @_;
+    my ($signed_url, $access_key, $secret_key, $request_method, $extra) = @_;
 
     return 1 if ($FORCE_VALID_SIGNATURE);
     
@@ -90,6 +94,8 @@ sub S_validate {
     unless ($util->validate_params(\%params)) {
         return (0, $util->errstr);
     }
+
+    my $key_pair = HOAuth::Keys::make_key_pair_from($access_key, $secret_key);
 
     if (! $util->verify_signature(
                                   method          => $request_method,
