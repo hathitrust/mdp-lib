@@ -31,10 +31,6 @@ use OAuth::Lite::ServerUtil;
 
 use HOAuth::Keys;
 
-my $FORCE_TIMESTAMP_EXPIRATION = 0;
-my $FORCE_VALID_SIGNATURE = 0;
-
-
 # ---------------------------------------------------------------------
 
 =item S_get_signed_request_URL
@@ -57,9 +53,6 @@ sub S_get_signed_request_URL {
                 consumer_secret => $key_pair->secret,
                 auth_method     => OAuth::Lite::AuthMethod::URL_QUERY,
                );
-    if ($FORCE_TIMESTAMP_EXPIRATION) {
-        $args{_timestamp} = 1231658070;
-    }
 
     my $signing_agent = OAuth::Lite::Consumer->new(%args);
         
@@ -81,8 +74,6 @@ Validate a signed URL
 sub S_validate {
     my ($signed_url, $access_key, $secret_key, $request_method, $extra) = @_;
 
-    return 1 if ($FORCE_VALID_SIGNATURE);
-    
     my $uri = URI->new($signed_url);
     my %params = CGI->new($uri->query)->Vars;
 
