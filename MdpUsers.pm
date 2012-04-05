@@ -237,18 +237,27 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-   'dfulmer'
+   'dmcw'
    => {
-       'displayname' => 'Fulmer, David',
+       'displayname' => 'McWhinnie, Dennis A ',
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'role'        => 'crms',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-   'dmcw'
+   'hnhampt'
    => {
-       'displayname' => 'McWhinnie, Dennis A ',
+       'displayname' => 'Hampton, Heather',
+       'supervisor'  => 'jaheim',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'rcadler'
+   => {
+       'displayname' => 'Adler, Rick',
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
