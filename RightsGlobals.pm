@@ -140,6 +140,8 @@ $HT_AFFILIATE           = 5;
    18 => 'und-world',
   );
 
+%g_attribute_names = reverse %g_attribute_keys;
+
 %g_source_names = 
   (
    '1'  => 'google',
