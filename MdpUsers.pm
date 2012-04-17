@@ -205,10 +205,19 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    => {
        'displayname' => 'Glushko, Bobby',
        'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
+       'expires'     => $gSuperuserExpireDate,
        'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
+       'role'        => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'rcadler'
+   => {
+       'displayname' => 'Adler, Rich',
+       'supervisor'  => 'mslevine',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
    'jaheim'
    => {
@@ -249,15 +258,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    'hnhampt'
    => {
        'displayname' => 'Hampton, Heather',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'rcadler'
-   => {
-       'displayname' => 'Adler, Rick',
        'supervisor'  => 'jaheim',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
