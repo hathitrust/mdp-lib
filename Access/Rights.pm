@@ -385,26 +385,23 @@ sub get_full_PDF_access_status {
 
         # Affiliates of US institutions can download pd/pdus from
         # anywhere on Earth. Unaffiliated users and non-US affiliates
-        # only from US IP addresses.  This pd determination is
+        # only from US IP addresses.  This "pd" determination is
         # fully-wrapped by call to public_domain_world() next.
 
         my $pd = $self->public_domain_world($C, $id);
-        my $auth = $C->get_object('Auth');
-        my $is_affiliated = (
-                             $auth->affiliation_is_hathitrust($C) 
-                             ||
-                             $auth->is_in_library()
-                            );
 
         if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-            #  Restrictive sources require affiliation.
+            #  Restricted pd sources (google) require affiliation.
             if ($pd) {
+                my $auth = $C->get_object('Auth');
+                my $is_affiliated = (
+                                     $auth->affiliation_is_hathitrust($C) 
+                                     ||
+                                     $auth->is_in_library()
+                                    );
                 if ( $is_affiliated ) {
                     $status = 'allow';
                 } 
-                else {
-                    $message = q{NOT_AFFILIATED};
-                }
             }
         }
         elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
