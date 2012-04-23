@@ -34,7 +34,7 @@ $gSuperuserSubnetRangesRef =
    q{^141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
    q{^141\.211\.84\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
    q{^141\.211\.168\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.211\.172\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$},
    q{^141\.213\.128\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
    q{^141\.213\.232\.(1(9[3-9])|2([0-4][0-9]|5[0-4]))$},
   ];
@@ -42,10 +42,11 @@ $gSuperuserSubnetRangesRef =
 # Staff, students are restricted to internal subnets. Friend-accounts
 # are locked to an exact IP address that should be hardcoded for the
 # 'iprestrict' key.
+# Mon Apr 23 10:58:29 2012: Updated subset to match superuser defns above
 $gStaffSubnetRangesRef =
   [
-   q{^141\.211\.(1(7[2-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))$}, # Hatcher/Shapiro/CRMS
-   q{^141\.211\.43\.(1(2[8-9]|[3-9][0-9])|2([0-4][0-9]|5[0-5]))$}, # LIT 3rd floor Hatcher
+   q{^141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$}, # Hatcher/Shapiro/CRMS
+   q{^141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$}, # LIT 3rd floor Hatcher
   ];
 
 # Superuser access expires on date:
@@ -81,55 +82,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                    ],
  },
 
-   # Temporary quality -- delete at first opportunity following expiration
-   'dmrosen'
-   => {
-       'displayname' => '',
-       'supervisor'  => 'bronick',
-       'expires'     => '2012-02-17 23:59:59',
-       'usertype'    => 'student',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^141.211.173.208$',
-                         '^141.211.173.207$',
-                        ],
-      },
-   'evain'
-   => {
-       'displayname' => 'Jenny Vainberg',
-       'supervisor'  => 'bronick',
-       'expires'     => '2012-02-17 23:59:59',
-       'usertype'    => 'student',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^141.211.173.208$',
-                         '^141.211.173.207$',
-                        ],
-      },
-   'nsion'
-   => {
-       'displayname' => 'Nadia Rae Sion',
-       'supervisor'  => 'bronick',
-       'expires'     => '2012-03-02 23:59:59',
-       'usertype'    => 'student',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^141.211.173.208$',
-                         '^141.211.173.207$',
-                        ],
-      },
-   'weisq'
-   => {
-       'displayname' => 'Siqi Wei',
-       'supervisor'  => 'bronick',
-       'expires'     => '2012-02-17 23:59:59',
-       'usertype'    => 'student',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^141.211.173.208$',
-                         '^141.211.173.207$',
-                        ],
-      },
 
    # HathiTrust staff
    'azaytsev'
