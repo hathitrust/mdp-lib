@@ -20,6 +20,8 @@ Extracted from PT::MdpItem; only concerned with $id.mets.xml data.
 
 use strict;
 use CGI;
+use Date::Manip qw( Date_Cmp ParseDate );
+
 use MirlynGlobals;
 
 # MDP
@@ -545,6 +547,16 @@ sub HasMULTIFeature
     return $self->{ 'hasmultifeature' };
 }
 
+sub Version {
+    my $self = shift;
+    my $version = shift;
+    
+    if (defined $version) {
+        $self->{mostrecentversion} = $version;
+    }
+    return $self->{mostrecentversion};
+}
+
 # ---------------------------------------------------------------------
 
 =item GetFullMetsRef
@@ -1067,14 +1079,13 @@ sub DeleteExtraneousMETSElements {
     my $self = shift;
     my $metsXmlRef = shift;
 
-   # remove all xml bits since we don't need them in the outp
+   # remove all xml bits since we don't need them in the output
     $$metsXmlRef =~ s,<\?xml\s+.*?\?>,,s;
 
     # If not debug=xml, remove other unneeded elements. UC content has
-    # an extra dmdSec. The amdSec is PREMIS and not used by
-    # pageturner.
+    # an extra dmdSec. The amdSec not used by
+    # pageturner. METS:amdSec//PREMIS:event is required for Version label.
     if (! DEBUG('xml')) {
-        $$metsXmlRef =~ s,<METS:amdSec>.*?</METS:amdSec>,,s;
         $$metsXmlRef =~ s,<METS:dmdSec.+?ID="DMD2".*?>.*?</METS:dmdSec>,,;
     }
 }
@@ -1233,6 +1244,44 @@ sub BuildPage2SequenceMap {
 
 # ---------------------------------------------------------------------
 
+=item ParseVersionFromPREMIS
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ParseVersionFromPREMIS {
+    my $self = shift;
+    my $tree = shift;
+
+    use constant NS_PREMIS  => 'info:lc/xmlns/premis-v2';
+    use constant NS_PREMIS1 => 'http://www.loc.gov/standards/premis';
+
+    my $xpc = XML::LibXML::XPathContext->new($tree);
+    $xpc->registerNs('premis', NS_PREMIS);
+    $xpc->registerNs('premis1', NS_PREMIS1);
+
+    my $most_recent;    
+    my $event_xpath = '//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]';
+    my $date_xpath = './premis:eventDateTime | ./premis1:eventDateTime';
+    
+    foreach my $event ($xpc->findnodes($event_xpath)) {
+        my $date = $xpc->findvalue($date_xpath, $event);
+        if (
+            (! defined $most_recent)
+            ||
+            (Date_Cmp(ParseDate($date), ParseDate($most_recent)) == 1)
+           ) {
+            $most_recent = $date;
+        }
+    }
+
+    return $most_recent;
+}
+
+# ---------------------------------------------------------------------
+
 =item SetPageInfo
 
 Description
@@ -1291,6 +1340,9 @@ sub SetPageInfo {
        \%seq2PageNumberHash,
        \%pageInfoHash,
       );
+    
+    my $version = $self-> ParseVersionFromPREMIS($tree);
+    $self->Version($version);
     
     $self->{pageinfo} = \%pageInfoHash;
     
