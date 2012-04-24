@@ -20,6 +20,9 @@ Extracted from PT::MdpItem; only concerned with $id.mets.xml data.
 
 use strict;
 use CGI;
+BEGIN {
+    $Date::Manip::Backend = 'DM5';
+}
 use Date::Manip qw( Date_Cmp ParseDate );
 
 use MirlynGlobals;
