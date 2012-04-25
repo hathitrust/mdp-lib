@@ -1,6 +1,5 @@
 package Utils::Time;
 
-
 =head1 NAME
 
 Utils::Time
@@ -8,10 +7,6 @@ Utils::Time
 =head1 DESCRIPTION
 
 This non OO package contains routines to handle times.
-
-=head1 VERSION
-
-$Id: Time.pm,v 1.11 2010/04/30 16:38:00 pfarber Exp $
 
 =head1 SYNOPSIS
 
@@ -26,6 +21,9 @@ Coding example
 use Date::Parse;
 use Date::Calc;
 use Time::HiRes;
+
+use base qw(Exporter);
+our @EXPORT = qw( unix_Time iso_UTC_Time iso_Time friendly_iso_Time );
 
 my %MONTHS =
 (0=>'Jan',1=>'Feb',2=>'Mar',3=>'Apr',4=>'May',5=>'Jun',6=>'Jul',7=>'Aug',8=>'Sep',9=>'Oct',10=>'Nov',11=>'Dec');
@@ -50,9 +48,7 @@ sub unix_Time {
 
     return Date::Parse::str2time($isoTime);
 }
-sub iso_time {
-    return iso_Time(@_);
-}
+
 
 # ---------------------------------------------------------------------
 
@@ -87,6 +83,36 @@ sub friendly_iso_Time {
     }
 
     return $output;
+}
+
+# ---------------------------------------------------------------------
+
+=item iso_UTC_Time
+
+Takes a unix time like from unix_Time() above which assumes the system
+time zone and returns a human readable string localized to the UTC
+time zone, e.g. 2010-09-28 18:43 UTC
+
+=cut
+
+# ---------------------------------------------------------------------
+sub iso_UTC_Time {
+    my $time = shift;
+    
+    my @time = gmtime($time);
+
+    #  0    1    2     3     4    5     6     7     8
+    # ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
+    my $yea = sprintf("20%02d", $time[5] - 100);
+    my $mon = $time[4] + 1;
+    my $day = $time[3];
+    my $hou = $time[2];
+    my $min = $time[1];
+    my $sec = $time[0];
+
+    my $isoUTCtime = sprintf("%4d-%02d-%02d %02d:%02d UTC", $yea, $mon, $day, $hou, $min);
+    
+    return $isoUTCtime;
 }
 
 # ---------------------------------------------------------------------
