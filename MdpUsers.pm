@@ -28,6 +28,7 @@ package MdpUsers;
 # 141.211.172.0/22    141.211.172.1   - 141.211.172.254 - Hatcher/Shapiro buildings 
 # 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center 
 # 141.213.232.192/26  141.213.232.193 - 141.213.232.254 - MACC data center (this will  be retired sometime in 2012)
+#                     141.211.174.173 - 141.211.174.199 - ULIC Shapiro 4th floor
 
 $gSuperuserSubnetRangesRef =
   [
@@ -37,6 +38,7 @@ $gSuperuserSubnetRangesRef =
    q{^141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$},
    q{^141\.213\.128\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
    q{^141\.213\.232\.(1(9[3-9])|2([0-4][0-9]|5[0-4]))$},
+   q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$},
   ];
 
 # Staff, students are restricted to internal subnets. Friend-accounts
@@ -48,6 +50,13 @@ $gStaffSubnetRangesRef =
    q{^141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$}, # Hatcher/Shapiro/CRMS
    q{^141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$}, # LIT 3rd floor Hatcher
   ];
+
+# ULIC 141.211.174.173 - 141.211.174.199
+$gULIC_SubnetRangesRef = [
+                          q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$},
+                         ];
+$gCRMS_WorkshopExpireDate = '2012-05-04 23:59:59';
+
 
 # Superuser access expires on date:
 $gSuperuserExpireDate = '2012-12-31 23:59:59';
@@ -81,6 +90,215 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                     '^141\.211\.43\.195$',
                    ],
  },
+
+   # CRMS Workshop
+   'um143296'
+   => {
+       'displayname' => 'Atkins, Winston',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143289'
+   => {
+       'displayname' => 'Bailey, Judy',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143288'
+   => {
+       'displayname' => 'Block, Jennifer',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143292'
+   => {
+       'displayname' => 'Brennan, Martin',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143284'
+   => {
+       'displayname' => 'Brooks, Grace',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143290'
+   => {
+       'displayname' => 'Brown, Katie',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143280'
+   => {
+       'displayname' => 'Case, Christopher',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143317'
+   => {
+       'displayname' => 'Christenson, Heather',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143291'
+   => {
+       'displayname' => 'DeSousa, Katie',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143298'
+   => {
+       'displayname' => 'Duncan-Gibbs, Ann',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143285'
+   => {
+       'displayname' => 'Holobar, Chris',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143286'
+   => {
+       'displayname' => 'Hughes, Carol',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143279'
+   => {
+       'displayname' => 'Kruger, Betsy',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143297'
+   => {
+       'displayname' => 'Lane, Zack',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143316'
+   => {
+       'displayname' => 'Lavery, Curtis',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143282'
+   => {
+       'displayname' => 'MacFarland, David',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143294'
+   => {
+       'displayname' => 'McBride, Sarah',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143293'
+   => {
+       'displayname' => 'Morrison, Shelley',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143295'
+   => {
+       'displayname' => 'Owen, Terry',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143278'
+   => {
+       'displayname' => 'Riggio, Angela',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143283'
+   => {
+       'displayname' => 'Rodgers, Denyse',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143287'
+   => {
+       'displayname' => 'Young, Jennifer',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
+   'um143281'
+   => {
+       'displayname' => 'Zellner, Dan',
+       'supervisor'  => 'glushko',
+       'expires'     => $gCRMS_WorkshopExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'crms',
+       'iprestrict'  => $gULIC_SubnetRangesRef,
+      },
 
 
    # HathiTrust staff
