@@ -87,6 +87,14 @@ my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
 
+# SDRINST environment variable values designating "in a library" by IP address
+use constant SDRINST_IN_A_LIBRARY => 
+  qw( 
+        uom 
+        loc 
+        nypl 
+   );
+
 use constant UMICH_SSD_LIST => 
   qw ( 
          ijohns
@@ -542,12 +550,16 @@ sub get_institution_name {
 
 =item is_in_library
 
-This plays a role in Section 108 brittle book access authorization. We
-do not currently have IP addresses of non-UM Library buildings. If we
-did, we could consult the Holdings database for book's condition when
-condition data becomes available in that database.
+This plays a role in Section 108 brittle book access authorization and
+pd full book PDF download. We do not currently have complete IP
+addresses of non-UM Library buildings. If we did, we could consult the
+Holdings database for book's condition when condition data becomes
+available in that database.
 
 As of Thu Mar 8 15:15:52 2012 We are adding LOC to the in-library IP
+ranges.
+
+As of Mon Apr 30 12:41:49 2012 We are adding NYPL to the in-library IP
 ranges.
 
 =cut
@@ -555,16 +567,11 @@ ranges.
 # ---------------------------------------------------------------------
 sub is_in_library {
     my $self = shift;
-    my $institution = $self->get_institution_by_ip_address();
 
-    my $institution_allowed = 
-      (
-       ($institution eq 'uom')
-       ||
-       ($institution eq 'loc') 
-      );
-    
-    return ($institution && $institution_allowed && $ENV{'SDRLIB'});
+    my $institution = $self->get_institution_by_ip_address();
+    my $institution_allowed = grep(/^$institution$/, SDRINST_IN_A_LIBRARY);
+     
+    return ($institution && $institution_allowed && $ENV{SDRLIB});
 }
 
 
