@@ -92,7 +92,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
  },
 
    # CRMS Workshop
-   'um143296'
+   'winston.atkins@duke.edu'
    => {
        'displayname' => 'Atkins, Winston',
        'supervisor'  => 'glushko',
@@ -101,7 +101,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143289'
+   'judy.bailey@duke.edu'
    => {
        'displayname' => 'Bailey, Judy',
        'supervisor'  => 'glushko',
@@ -110,7 +110,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143288'
+   'jblock@princeton.edu'
    => {
        'displayname' => 'Block, Jennifer',
        'supervisor'  => 'glushko',
@@ -119,7 +119,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143292'
+   'martinjbrennan@library.ucla.edu'
    => {
        'displayname' => 'Brennan, Martin',
        'supervisor'  => 'glushko',
@@ -128,7 +128,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143284'
+   'gem10@psu.edu'
    => {
        'displayname' => 'Brooks, Grace',
        'supervisor'  => 'glushko',
@@ -137,7 +137,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143290'
+   'katiebrown@northwestern.edu'
    => {
        'displayname' => 'Brown, Katie',
        'supervisor'  => 'glushko',
@@ -146,7 +146,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143280'
+   'ccase2@jhu.edu'
    => {
        'displayname' => 'Case, Christopher',
        'supervisor'  => 'glushko',
@@ -164,7 +164,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143291'
+   'kdesous2@jhu.edu'
    => {
        'displayname' => 'DeSousa, Katie',
        'supervisor'  => 'glushko',
@@ -173,7 +173,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143298'
+   'a-gibbs@northwestern.edu'
    => {
        'displayname' => 'Duncan-Gibbs, Ann',
        'supervisor'  => 'glushko',
@@ -182,7 +182,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143285'
+   'holobar@psu.edu'
    => {
        'displayname' => 'Holobar, Chris',
        'supervisor'  => 'glushko',
@@ -191,7 +191,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143286'
+   'hughes@uci.edu'
    => {
        'displayname' => 'Hughes, Carol',
        'supervisor'  => 'glushko',
@@ -200,7 +200,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143279'
+   'betsyk@illinois.edu'
    => {
        'displayname' => 'Kruger, Betsy',
        'supervisor'  => 'glushko',
@@ -209,7 +209,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143297'
+   'zl2114@columbia.edu'
    => {
        'displayname' => 'Lane, Zack',
        'supervisor'  => 'glushko',
@@ -227,7 +227,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143282'
+   'david.macfarland@ucsf.edu'
    => {
        'displayname' => 'MacFarland, David',
        'supervisor'  => 'glushko',
@@ -236,7 +236,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143294'
+   'sarah.mcbride@dartmouth.edu'
    => {
        'displayname' => 'McBride, Sarah',
        'supervisor'  => 'glushko',
@@ -245,7 +245,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143293'
+   's-morrison@northwestern.edu'
    => {
        'displayname' => 'Morrison, Shelley',
        'supervisor'  => 'glushko',
@@ -254,7 +254,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143295'
+   'towen@umd.edu'
    => {
        'displayname' => 'Owen, Terry',
        'supervisor'  => 'glushko',
@@ -263,7 +263,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143278'
+   'ariggio@library.ucla.edu'
    => {
        'displayname' => 'Riggio, Angela',
        'supervisor'  => 'glushko',
@@ -272,7 +272,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143283'
+   'denyse_rodgers@baylor.edu'
    => {
        'displayname' => 'Rodgers, Denyse',
        'supervisor'  => 'glushko',
@@ -281,7 +281,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143287'
+   'j-young2@northwestern.edu'
    => {
        'displayname' => 'Young, Jennifer',
        'supervisor'  => 'glushko',
@@ -290,7 +290,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => $gULIC_SubnetRangesRef,
       },
-   'um143281'
+   'd-zellner@northwestern.edu'
    => {
        'displayname' => 'Zellner, Dan',
        'supervisor'  => 'glushko',
