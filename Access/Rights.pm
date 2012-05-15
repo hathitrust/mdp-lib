@@ -369,7 +369,7 @@ Exceptions: UM Press (ump)(source=3)
 sub get_full_PDF_access_status {
     my $self = shift;
     my ($C, $id) = @_;
-
+    
     $self->_validate_id($id);
 
     my $status = 'deny';
@@ -401,12 +401,22 @@ sub get_full_PDF_access_status {
                                     );
                 if ( $is_affiliated ) {
                     $status = 'allow';
-                } 
+                }
+                else {
+                    $message = q{NOT_AFFILIATED};                    
+                }
             }
         }
         elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
             if ($pd) {
                 $status = 'allow';
+            }
+        }
+        else {
+            if ($pd) {
+                # There's some sort of source restriction on whole book
+                # download like that which applies to UM Press
+                $message = q{RESTRICTED_SOURCE};
             }
         }
     }
@@ -428,6 +438,8 @@ sub get_full_PDF_access_status {
 
     # clear the error message if $status eq 'allow'
     $message = '' if ( $status eq 'allow' );
+
+    DEBUG('pt,auth', qq{<h5>get_full_PDF_access_status: status=$status message=$message</h5>});
     return ($message, $status);
 }
 
