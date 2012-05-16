@@ -552,7 +552,7 @@ ranges when authenticated. VPN required when outside these ranges.
 sub debugging_enabled {
     my $role = shift;
 
-    use constant NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1 => 1;
+    use constant NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1 => 0;
 
     # Over-ride all authorization checking at the command line or by
     # flag. Some debug switches will not work unless this sub always
