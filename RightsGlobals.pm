@@ -11,8 +11,11 @@ package RightsGlobals;
  5         yale           Yale University
  6         umn            University of Minnesota
  7         mhs            Minnesota Historical Society
- 8         usu            Utah State University
+ 8         usup           Utah State University Press
  9         ucm            Universidad Complutense de Madrid
+ 10        purd           Purdue University
+ 11        getty          Getty Research Institute
+ 12        um-dc-mp       University of Michigan, Duderstadt Center, Millennium Project
 
  ATTRIBUTES
  id        name        type      dscr
@@ -151,8 +154,11 @@ $HT_AFFILIATE           = 5;
    '5'  => 'yale',
    '6'  => 'mdl',
    '7'  => 'mhs',
-   '8'  => 'usu',
+   '8'  => 'usup',
    '9'  => 'ucm',
+   '10' => 'purd',
+   '11' => 'getty',
+   '12' => 'um-dc-mp',
   );
 
 @g_stmt_fields = 
@@ -414,11 +420,14 @@ $g_orphan_candidate_attribute_value = 16;
 # ---------------------------------------------------------------------
 #                                          
 @g_full_PDF_download_open_source_values = (
-                                           2, # lit-dlps-dc
-                                           4, # ia
-                                           5, # yale
-                                           8, # usu
-                                           9, # ucm
+                                           2,  # lit-dlps-dc
+                                           4,  # ia
+                                           5,  # yale
+                                           8,  # usup
+                                           9,  # ucm
+                                           10, # purd
+                                           11, # getty
+                                           12, # um-dc-mp
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
@@ -448,7 +457,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-11 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
