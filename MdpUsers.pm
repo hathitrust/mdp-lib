@@ -358,14 +358,280 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'cataloging',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-
-   # CRMS - see Bobby Glushko <rglushko@umich.edu>
-
-   # Michigan CRMS
+   
+   # === CRMS - see Bobby Glushko <rglushko@umich.edu> ===
+   
+   # CRMS World, assorted institutions   
+   'ariggio@library.ucla.edu'
+   => {
+       'displayname' => 'Riggio, Angela',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^164\.67\.17\.137$',
+                        ],
+      },
+   'a-gibbs@northwestern.edu'
+   => {
+       'displayname' => 'DuncanGibbs, Ann',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.105\.29\.27$',
+                        ],
+      },
+   'betsyk@illinois.edu'
+   => {
+       'displayname' => 'Kruger, Betsy',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^130\.126\.36\.71$',
+                        ],
+      },
+   'hughes@uci.edu'
+   => {
+       'displayname' => 'Hughes, Carol',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.195\.145\.101$',
+                        ],
+      },
+   'holobar@psu.edu'
+   => {
+       'displayname' => 'Holobar, Chris',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.118\.90\.188$',
+                        ],
+      },
+   'ccase2@jhu.edu'
+   => {
+       'displayname' => 'Case, Christopher',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.220\.159\.5$',
+                        ],
+      },
+   'd-zellner@northwestern.edu'
+   => {
+       'displayname' => 'Zellner, Dan',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.105\.184\.28$',
+                        ],
+      },
+   'david.macfarland@ucsf.edu'
+   => {
+       'displayname' => 'MacFarland, David',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.218\.15\.136$',
+                        ],
+      },
+   'denyse_rodgers@baylor.edu'
+   => {
+       'displayname' => 'Rodgers, Denyse',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.62\.35\.254$',
+                        ],
+      },
+   'gem10@psu.edu'
+   => {
+       'displayname' => 'Brooks, Grace',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.118\.90\.48$',
+                        ],
+      },
+   'jblock@princeton.edu'
+   => {
+       'displayname' => 'Block, Jennifer',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.112\.200\.247$',
+                        ],
+      },
+   'j-young2@northwestern.edu'
+   => {
+       'displayname' => 'Young, Jennifer',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.105\.203\.57$',
+                        ],
+      },
+   'judy.bailey@duke.edu'
+   => {
+       'displayname' => 'Bailey, Judy',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^152\.3\.116\.242$',
+                        ],
+      },
+   'katiebrown@northwestern.edu'
+   => {
+       'displayname' => 'Brown, Katie',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.105\.29\.57$',
+                        ],
+      },
+   'kdesous2@jhu.edu'
+   => {
+       'displayname' => 'DeSousa, Katie',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.220\.8\.217$',
+                        ],
+      },
+   'martinjbrennan@library.ucla.edu'
+   => {
+       'displayname' => 'Brennan, Martin',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^0\.0\.0\.0$', # pending
+                        ],
+      },
+   'sarah.mcbride@dartmouth.edu'
+   => {
+       'displayname' => 'McBride, Sarah',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.170\.88\.49$',
+                        ],
+      },
+   's-morrison@northwestern.edu'
+   => {
+       'displayname' => 'Morrison, Shelley',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.105\.29\.26$',
+                        ],
+      },
+   'towen@umd.edu'
+   => {
+       'displayname' => 'Owen, Terry',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.2\.18\.73$',
+                        ],
+      },
+   'winston.atkins@duke.edu'
+   => {
+       'displayname' => 'Atkins, Winston',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^152\.3\.116\.104$',
+                        ],
+      },
+   'zl2114@columbia.edu'
+   => {
+       'displayname' => 'Lane, Zack',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.59\.154\.21$',
+                        ],
+      },
+   'curtis.lavery@ucop.edu'
+   => {
+       'displayname' => 'Lavery, Curtis',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.48\.39\.98$',
+                        ],
+      },
+   'virginia.sinclair@ucop.edu'
+   => {
+       'displayname' => 'Sinclair, Virginia',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.48\.127\.32$',
+                        ],
+      },
+   'nancy.scott-noennig@ucop.edu'
+   => {
+       'displayname' => 'ScottNoennig, Nancy',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.48\.39\.107$',
+                        ],
+      },
+   
+   # Michigan CRMS   
    'mslevine'
    => {
        'displayname' => 'Levine, Melissa',
-       'supervisor'  => 'mbonn',
+       'supervisor'  => 'mslevine',
        'expires'     => $gStaffExpireDate,
        'usertype'    => 'staff',
        'role'        => 'crms',
