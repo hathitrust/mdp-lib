@@ -100,9 +100,9 @@ my %g_default_debug_ids =
      '14' => {
               'id' => $non_um_in_copyright_id,
              },
-     # tombstone in pfarber sample data repository: truncated METS, no zip
+     # attr=8 (nobody) tombstone in data repository: full METS + zip
      '15' => {
-              'id' => 'mdp.39015000287568',
+              'id' => 'mdp.39015002426263',
              },
 
     );
