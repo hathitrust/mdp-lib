@@ -720,10 +720,8 @@ sub get_shared_status {
     my $self = shift;
     my $coll_id = shift;
 
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
     my $status_string = "";
-    my $status = $self->get_coll_record($coll_id)->{status};
+    my $status = $self->get_coll_record($coll_id)->{shared};
 
     # instead of returning 1 or 0 return strings
     if ($status == 0) {
