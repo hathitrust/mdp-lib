@@ -93,6 +93,7 @@ use constant SDRINST_IN_A_LIBRARY =>
         uom 
         loc 
         nypl 
+        getty
    );
 
 use constant UMICH_SSD_LIST => 
