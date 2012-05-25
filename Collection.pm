@@ -676,6 +676,33 @@ sub arr_ref2SQL_in_string {
 #
 # Should these be moved to a true collection object and the list mgt
 # functions be in a listMgr object?
+
+# ---------------------------------------------------------------------
+
+=item get_coll_record
+
+Description
+
+Fetches the row for $coll_id and caches the result.
+
+=cut
+
+# ---------------------------------------------------------------------
+my %cache = ();
+sub get_coll_record {
+    my $self = shift;
+    my $coll_id = shift;
+
+    unless ( $cache{$coll_id} ) {
+        my $dbh = $self->get_dbh();
+        my $coll_table_name = $self->get_coll_table_name;
+        my $statement = qq{SELECT * from $coll_table_name WHERE MColl_ID=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
+        $cache{$coll_id} = $sth->fetchrow_hashref;
+    }
+    return $cache{$coll_id};
+}
+
 # ----------------------------------------------------------------------
 # shared_status is 1 if public 0 if private
 
@@ -696,11 +723,7 @@ sub get_shared_status {
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $status_string = "";
-
-    my $statement = qq{SELECT shared from $coll_table_name WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $status = $ary[0];
+    my $status = $self->get_coll_record($coll_id)->{status};
 
     # instead of returning 1 or 0 return strings
     if ($status == 0) {
@@ -730,15 +753,8 @@ does mysql return? What does DBI return?
 sub get_description {
     my $self = shift;
     my $coll_id = shift;
-
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
-    my $statement = qq{SELECT description from $coll_table_name WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $description = $ary[0];
-
-    return $description;
+    
+    return $self->get_coll_record($coll_id)->{description};
 }
 
 
@@ -751,20 +767,24 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+
 sub get_coll_name {
     my $self = shift;
     my $coll_id = shift;
-
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
-    my $statement = qq{SELECT collname from $coll_table_name WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $coll_name = $ary[0];
-
-    return $coll_name;
+    return $self->get_coll_record($coll_id)->{collname};
 }
 
+sub get_coll_featured {
+    my $self = shift;
+    my $coll_id = shift;
+    return $self->get_coll_record($coll_id)->{featured};
+}
+
+sub get_coll_contact_info {
+    my $self = shift;
+    my $coll_id = shift;
+    return $self->get_coll_record($coll_id)->{contact_info};
+}
 
 # ---------------------------------------------------------------------
 
@@ -794,6 +814,9 @@ sub _edit_metadata {
 
     my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
+    
+    # clear the cache
+    delete $cache{$coll_id};
 }
 
 
