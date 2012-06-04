@@ -87,15 +87,6 @@ my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
 
-# SDRINST environment variable values designating "in a library" by IP address
-use constant SDRINST_IN_A_LIBRARY => 
-  qw( 
-        uom 
-        loc 
-        nypl 
-        getty
-   );
-
 use constant UMICH_SSD_LIST => 
   qw ( 
          ijohns
@@ -563,16 +554,18 @@ ranges.
 As of Mon Apr 30 12:41:49 2012 We are adding NYPL to the in-library IP
 ranges.
 
+As of Mon Jun 4 13:38:38 2012 We are adding GETTY to the in-library IP
+ranges.
+
+
 =cut
 
 # ---------------------------------------------------------------------
 sub is_in_library {
     my $self = shift;
 
-    my $institution = $self->get_institution_by_ip_address();
-    my $institution_allowed = grep(/^$institution$/, SDRINST_IN_A_LIBRARY);
-     
-    return ($institution && $institution_allowed && $ENV{SDRLIB});
+    my $institution = $self->get_institution_by_ip_address();     
+    return ($institution && $ENV{SDRLIB});
 }
 
 

@@ -535,7 +535,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'usertype'    => 'external',
        'role'        => 'crms',
        'iprestrict'  => [
-                         '^0\.0\.0\.0$', # pending
+                         '^164\.67\.19\.44$',
                         ],
       },
    'sarah.mcbride@dartmouth.edu'
