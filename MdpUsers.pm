@@ -79,227 +79,18 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
 %gAccessControlList =
   (
    # Shibboleth development e.g. persistent-id=...
-   'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=' =>
- {
-  'displayname' => 'Farber, Phillip Shibboleth development',
-  'supervisor'  => 'pfarber',
-  'expires'     => $gSuperuserExpireDate,
-  'usertype'    => 'staff',
-  'role'        => 'superuser',
-  'iprestrict'  => [
-                    '^141\.211\.43\.195$',
-                   ],
- },
-
-   # CRMS Workshop
-   'winston.atkins@duke.edu'
-   => {
-       'displayname' => 'Atkins, Winston',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'judy.bailey@duke.edu'
-   => {
-       'displayname' => 'Bailey, Judy',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'jblock@princeton.edu'
-   => {
-       'displayname' => 'Block, Jennifer',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'martinjbrennan@library.ucla.edu'
-   => {
-       'displayname' => 'Brennan, Martin',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'gem10@psu.edu'
-   => {
-       'displayname' => 'Brooks, Grace',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'katiebrown@northwestern.edu'
-   => {
-       'displayname' => 'Brown, Katie',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'ccase2@jhu.edu'
-   => {
-       'displayname' => 'Case, Christopher',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'um143317'
-   => {
-       'displayname' => 'Christenson, Heather',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'kdesous2@jhu.edu'
-   => {
-       'displayname' => 'DeSousa, Katie',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'a-gibbs@northwestern.edu'
-   => {
-       'displayname' => 'Duncan-Gibbs, Ann',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'holobar@psu.edu'
-   => {
-       'displayname' => 'Holobar, Chris',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'hughes@uci.edu'
-   => {
-       'displayname' => 'Hughes, Carol',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'betsyk@illinois.edu'
-   => {
-       'displayname' => 'Kruger, Betsy',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'zl2114@columbia.edu'
-   => {
-       'displayname' => 'Lane, Zack',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'um143316'
-   => {
-       'displayname' => 'Lavery, Curtis',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'david.macfarland@ucsf.edu'
-   => {
-       'displayname' => 'MacFarland, David',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'sarah.mcbride@dartmouth.edu'
-   => {
-       'displayname' => 'McBride, Sarah',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   's-morrison@northwestern.edu'
-   => {
-       'displayname' => 'Morrison, Shelley',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'towen@umd.edu'
-   => {
-       'displayname' => 'Owen, Terry',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'ariggio@library.ucla.edu'
-   => {
-       'displayname' => 'Riggio, Angela',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'denyse_rodgers@baylor.edu'
-   => {
-       'displayname' => 'Rodgers, Denyse',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'j-young2@northwestern.edu'
-   => {
-       'displayname' => 'Young, Jennifer',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-   'd-zellner@northwestern.edu'
-   => {
-       'displayname' => 'Zellner, Dan',
-       'supervisor'  => 'glushko',
-       'expires'     => $gCRMS_WorkshopExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gULIC_SubnetRangesRef,
-      },
-
+   'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=' 
+   =>
+   {
+    'displayname' => 'Farber, Phillip Shibboleth development',
+    'supervisor'  => 'pfarber',
+    'expires'     => $gSuperuserExpireDate,
+    'usertype'    => 'staff',
+    'role'        => 'superuser',
+    'iprestrict'  => [
+                      '^141\.211\.43\.195$',
+                     ],
+   },
 
    # HathiTrust staff
    'azaytsev'
@@ -425,7 +216,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'usertype'    => 'external',
        'role'        => 'crms',
        'iprestrict'  => [
-                         '^128\.220\.159\.5$',
+                         '^128\.220\.8\.213$',
                         ],
       },
    'd-zellner@northwestern.edu'
