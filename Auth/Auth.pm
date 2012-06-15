@@ -89,38 +89,38 @@ my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
 
 use constant UMICH_SSD_LIST => 
   qw ( 
-         ijohns
-         rubind
+         benmb
+         brekac
+         ccarpey
+         crwils
+         damincki
+         dgoraya
+         echols
+         forbess
          gsheena
          hkanter
-         jrmorak
-         kmbally
-         orodrigu
-         kimjiy
-         kqread
-         jrcarmon
+         ijohns
          jlfr
-         shanorwo
-         caone
-         brekac
-         nicolejg
-         noahw
-         ccarpey
-         ekderus
-         echols
-         mshoe
-         dgoraya
+         jrcarmon
+         jrmorak
+         kimjiy
+         kmbally
+         kqread
          krausant
-         rparten
-         crwils
-         sydfried
-         rgottfri
-         benmb
-         mikenuss
-         nlcp
          kshalosk
-         rpetrak
          lwernick
+         mikenuss
+         mshoe
+         nicolejg
+         nlcp
+         noahw
+         orodrigu
+         rgottfri
+         rparten
+         rpetrak
+         rubind
+         shanorwo
+         sydfried
     );
  
 sub new {
