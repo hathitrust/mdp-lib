@@ -495,7 +495,7 @@ sub get_institution_us_status {
     if ($aff) {    
         my $map_ref = $self->get_institution_map();
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $status = $map_ref->{$domain}->{us} ? 'affus' : 'affnotus';
+        $status = $map_ref->{$domain}->{us} ? 'affus' : 'affnonus';
     }
 
     return $status;
