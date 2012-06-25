@@ -136,8 +136,8 @@ sub a_Authorized {
                   @users = @debug_users;
               }              
               foreach my $user (@users) {
-                  $s .= qq{<h2 style="text-align:left">AUTH ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} ip=<br/>}
-                    . join('<br/>', @{ $ref->{$user}{iprestrict} }) . qq{</h2>};
+                  $s .= qq{<h2 style="text-align:left">AUTH ACL: user=$user name=$ref->{$user}{displayname} expire=$ref->{$user}{expires} type=$ref->{$user}{usertype}  role=$ref->{$user}{role} <font color="blue">ip=<br/>}
+                    . join('<br/>', @{ $ref->{$user}{iprestrict} }) . qq{</font></h2>};
               }
               $__b_debug_printed = 1;
               return $s;

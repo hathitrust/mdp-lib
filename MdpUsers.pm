@@ -725,7 +725,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                         ],
       },
 
-   # Quality Review Access - see https://wush.net/jira/hathitrust/browse/HTS-5432
+   # Quality Review Access - see https://wush.net/jira/hathitrust/browse/HTS-5432  https://wush.net/jira/hathitrust/browse/HTS-9592
    'bronick'
    => {
        'displayname' => 'Bronicki, Jackie',
@@ -734,6 +734,39 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'usertype'    => 'staff',
        'role'        => 'quality',
        'iprestrict'  => $gStaffSubnetRangesRef,
+      },
+   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!hsqca1ZjIq0B2EDA6uCQSL5f2Pc='
+   => {
+       'displayname' => 'Wange-Connelly, Marie',
+       'supervisor'  => 'jjyork',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'quality',
+       'iprestrict'  => [
+                         '^128\.112\.201\.208$',
+                        ],
+      },
+   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!/StDCT3taHKRXpTxV4CGVHbfnok'
+   => {
+       'displayname' => 'Kaytus, Patricia',
+       'supervisor'  => 'jjyork',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'quality',
+       'iprestrict'  => [
+                         '^128\.112\.177\.64$',
+                        ],
+      },
+   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!TO3UuAN+nJxE9LuURM+yS4NZVBg='
+   => {
+       'displayname' => 'Stroop, Jon',
+       'supervisor'  => 'jjyork',
+       'expires'     => $gStaffExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'quality',
+       'iprestrict'  => [
+                         '^173\.61\.191\.73$',
+                        ],
       },
    'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!cqblrdcxsaov0z5lnvw+lwq54lg='
    => {
