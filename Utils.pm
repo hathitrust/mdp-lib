@@ -41,6 +41,7 @@ BEGIN
 
 use Carp;
 use CGI;
+use URI;
 use Encode;
 use LWP::UserAgent;
 
@@ -457,21 +458,30 @@ sub remap_cers_to_chars
 
 # ---------------------------------------------------------------------
 
-=item escape_url_separators
+=item xml_escape_url_separators
 
-Description
+XML escape '&' in a &-separated URL. There is no predefined XML
+character entity reference for ';' which is also a legitimate URL
+separator but some services do not recognize it as a separator so to
+be friendly we convert ';' separators to &amp; too. Any occurrences of
+& and ; in parameter /values/ must already have been URL escaped to
+%26 and %3B or the URL would not have been valid.
 
 =cut
 
 # ---------------------------------------------------------------------
-sub escape_url_separators
-{
-    my $s = shift;
+sub xml_escape_url_separators {
+    my $url = shift;
 
-    $s =~ s,[&],%26,g;
-    $s =~ s,[;],%3B,g;
+    my $escaped_url = $url;
 
-    return $s;
+    $escaped_url =~ s,[&],&amp;,g;
+    if ($escaped_url eq $url) {
+        # was not &-separated. check for ;-separated
+        $escaped_url =~ s,[;],&amp;,g;
+    }
+
+    return $escaped_url;
 }
 
 # ---------------------------------------------------------------------
