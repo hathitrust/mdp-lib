@@ -355,10 +355,10 @@ sub check_final_access_status_by_attribute {
 
 =item PUBLIC: get_POD_access_status
 
-POD access is limited to PD to users on "US soil" REGARDLESS OF THEIR
-AFFILIATION. This sub supports just display of the POD link.  The link
-currently goes "elsewhere" where it is anybody's guess how it is
-determined whether the user is allowed the POD.
+POD access is limited to "PD" to users on "US soil" REGARDLESS OF
+THEIR AFFILIATION. This sub supports just display of the POD link.
+The link currently goes "elsewhere" where it is anybody's guess how it
+is determined whether the user is allowed the POD.
 
 =cut
 
@@ -371,23 +371,21 @@ sub get_POD_access_status {
 
     my $status = 'deny';
 
-    if ($self->creative_commons($C, $id)) {
-        $status = 'allow';
-    }
-    else {
-        my $attribute = $self->get_rights_attribute($C, $id);
-        if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
-            if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
-                $status = _resolve_access_by_GeoIP($C, 'US');
-            }
-            elsif ($attribute == $RightsGlobals::g_public_domain_non_US_attribute_value) {
-                # Must be in the US, but this volume is IC in US
-                $status = 'deny';
-            }
-            else {
-                $status = 'allow';
-            }
+    my $attribute = $self->get_rights_attribute($C, $id);
+    if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
+        if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
+            $status = _resolve_access_by_GeoIP($C, 'US');
         }
+        elsif ($attribute == $RightsGlobals::g_public_domain_non_US_attribute_value) {
+            # Must be in the US, but this volume is IC in US
+            $status = 'deny';
+        }
+        else {
+            $status = _resolve_access_by_GeoIP($C, 'US');
+        }
+    }
+    elsif ($self->creative_commons($C, $id)) {
+        $status = _resolve_access_by_GeoIP($C, 'US');                
     }
 
     DEBUG('pt,auth', qq{<h5>get_POD_access_status: status=$status</h5>});
@@ -588,8 +586,15 @@ sub in_copyright_suppress_debug_switches {
     my $self = shift;
     my ($C, $id) = @_;
     
-    my $in_copyright = (! $self->public_domain_world($C, $id, 1));
+    my $in_copyright = 1;
+    
     my $attribute = $self->get_rights_attribute($C, $id, 1);
+    if ($self->creative_commons($C, $id, 1)) {
+        $in_copyright = 0; 
+    }
+    elsif ($self->public_domain_world($C, $id, 1)) {
+        $in_copyright = 0;
+    }
 
     return ($in_copyright, $attribute);
 }
@@ -629,10 +634,10 @@ rights_current.attr valuse?
 # ---------------------------------------------------------------------
 sub creative_commons {
     my $self = shift;
-    my ($C, $id) = @_;
+    my ($C, $id, $disallow_debug_values) = @_;
 
     $self->_validate_id($id);
-    my $attribute = $self->get_rights_attribute($C, $id);
+    my $attribute = $self->get_rights_attribute($C, $id, $disallow_debug_values);
 
     if (grep(/^$attribute$/, @RightsGlobals::g_creative_commons_attribute_values)) {
         return 1;
