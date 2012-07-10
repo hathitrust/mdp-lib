@@ -25,6 +25,8 @@ use Debug::DUtils;
 use Utils::Js;
 use Access::Statements;
 use Access::Rights;
+use Access::Holdings;
+use Auth::Auth;
 
 # ---------------------------------------------------------------------
 
@@ -166,6 +168,39 @@ sub handle_ACCESS_USE_PI
 
 # ---------------------------------------------------------------------
 
+=item handle_ACCESS_HOLDINGS_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_ACCESS_HOLDINGS_PI
+    : PI_handler(ACCESS_HOLDINGS)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $held = 'NO';
+    my $inst = 'notaninstitution';
+    
+    my $id = $C->get_object('CGI')->param('id');
+    if ($id) {
+        $inst = $C->get_object('Auth')->get_institution($C);
+        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+            $held = 'YES';
+        }
+    }
+    
+    my $s;
+    $s .= wrap_string_in_tag($held, 'Held');
+    $s .= wrap_string_in_tag($inst, 'Institution');
+
+    return $s;
+}
+
+
+# ---------------------------------------------------------------------
+
 =item handle_LOGGED_IN_PI :  PI_handler(LOGGED_IN)
 
 is user logged in?  emits YES/NO
@@ -282,8 +317,8 @@ sub handle_DEBUG_UNCOMPRESSED_PI
     my $debug_css = $config->get('debug_uncompressed_css');
     
     my $s;
-    $s .= wrap_string_in_tag($debug_js, JS);
-    $s .= wrap_string_in_tag($debug_css, CSS);
+    $s .= wrap_string_in_tag($debug_js, 'JS');
+    $s .= wrap_string_in_tag($debug_css, 'CSS');
     return $s;
 }
 
