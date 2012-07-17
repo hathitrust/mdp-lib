@@ -8,12 +8,7 @@ Utils::GlobalSwitch
 =head1 DESCRIPTION
 
 This package encapsulates functions that (mostly cron) client code can
-call to test whether to run or not.  Nasically, a switch to indicate
-maintenence is in progress.
-
-=head1 VERSION
-
-$Id: GlobalSwitch.pm,v 1.11 2009/10/01 17:47:47 pfarber Exp $
+call to test whether to run or not.
 
 =head1 SYNOPSIS
 
@@ -33,32 +28,42 @@ my $CRON_JOBS_DISABLED = 0;
 # Fast way to enable cron jobs if files have been touched
 my $GlobalSwitch_ignore_STOP_files = 0;
 
-my %file2app_map =
+my %app2file_map =
   (
-   'STOPCB'   => 'cbi',
-   'STOPSLIP' => 'slip',
+   'slip' => 'STOPSLIP',
   );
 
 sub Exit_If_cron_jobs_disabled {
-    my $file = shift;
+    my $app = shift;
 
     exit 0
-        if (cron_jobs_disabled($file2app_map{$file}, $file));
+        if (cron_jobs_disabled($app));
 }
 
 sub cron_jobs_disabled {    
     my $app = shift;
-    my $file = shift;
     
     # If the STOP files are ignored, cron jobs are enabled
     return 0
         if ($GlobalSwitch_ignore_STOP_files);
     
+    my $file = $app2file_map{$app};
     return (
             $CRON_JOBS_DISABLED
             ||
             (-e "$ENV{SDRROOT}/$app/etc/$file")
            );
+}
+
+sub disable_cron_jobs {    
+    my $app = shift;
+    
+    # If the STOP files are ignored, cron jobs are enabled
+    return 0
+        if ($GlobalSwitch_ignore_STOP_files);
+    
+    my $file = $app2file_map{$app};
+    `touch "$ENV{SDRROOT}/$app/etc/$file"`;
 }
 
 
@@ -72,7 +77,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2009 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2009-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
