@@ -798,7 +798,8 @@ sub _edit_metadata {
     my $coll_id = shift;
     my $field = shift;
     my $value = shift;
-
+    my $max_length = shift;
+    
     my $user_id = $self->get_user_id;
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
@@ -807,8 +808,11 @@ sub _edit_metadata {
     ASSERT($self->coll_owned_by_user($coll_id, $user_id),
            qq{Can not edit this collection: Collection $coll_name id = $coll_id not owned by user $user_id});
 
-    # XXX Insert any anti SQL injection processing here
-    # $value=&cleanit($value);
+    if (defined($max_length)) {
+        if (length($value) > $max_length) {
+            $value = substr($value, 0, $max_length);
+        }
+    }
 
     my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
@@ -856,7 +860,7 @@ sub edit_status {
 $co->edit_description($coll_id, $desc)
 
 Saves description to datbase client is responsible for making sure
-$desc is less than 255 characters.
+$desc is less than 150 characters.
 
 
 =cut
@@ -869,12 +873,8 @@ sub edit_description {
 
     my $dbh = $self->get_dbh;
 
-    if (length($value) > 255) {
-        $value = substr($value, 0, 255);
-    }
-
     # specific processing
-    $self-> _edit_metadata($coll_id, 'description', $value);
+    $self-> _edit_metadata($coll_id, 'description', $value, 150);
 }
 
 
@@ -901,14 +901,14 @@ sub edit_coll_name {
     my $dbh = $self->get_dbh;
     my $config = $self->get_config;
 
-    my $CS = CollectionSet->new($dbh,$self->{config},$owner) ;
+    my $CS = CollectionSet->new($dbh,$self->{config}, $owner);
 
     ASSERT(! $CS->exists_coll_name_for_owner($coll_name, $owner),
            qq{Can't change collection name because a collection owned by $owner already exists with that name $coll_name});
 
     # specific processing: check proposed changed name isn't already
     # in use need to use CollectionSet->exists_coll_name_for_owner()
-    $self->_edit_metadata($coll_id, 'collname', $value);
+    $self->_edit_metadata($coll_id, 'collname', $value, 50);
 }
 
 

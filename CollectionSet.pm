@@ -200,11 +200,11 @@ sub add_coll
     ASSERT(! $self->exists_coll_name_for_owner($coll_name, $owner),
            qq{CollectionSet::add_coll Collection name $coll_name for $owner is already in table $coll_table_name});
 
-    if (length($coll_name) > 100) {
-        $coll_name = substr($coll_name, 0, 100);
+    if (length($coll_name) > 50) {
+        $coll_name = substr($coll_name, 0, 50);
     }
-    if (length($description) > 255) {
-        $description = substr($description, 0, 255);
+    if (length($description) > 150) {
+        $description = substr($description, 0, 150);
     }
 
     my $MColl_ID = DbUtils::generate_unique_id($dbh, $coll_table_name, 'MColl_ID');
