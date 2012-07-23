@@ -38,6 +38,20 @@ my $UNZIP_PROG = "/l/local/bin/unzip";
 
 # ---------------------------------------------------------------------
 
+=item __get_df_report
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_df_report {
+    my $mount = shift;
+    return "\n" . `df -i $mount` . "\n" . `df -a $mount`;
+}
+
+# ---------------------------------------------------------------------
+
 =item __handle_EndBlock_cleanup
 
 Description
@@ -109,7 +123,7 @@ sub get_formatted_path {
     $delta = 0 || $delta;
     $suffix = qq{_$suffix} if ( $suffix );
 
-    ASSERT(($prefix !~ m,_,), qq{ERROR: prefix contains '_' character});
+    ASSERT(($prefix !~ m,_,), qq{ERROR: prefix contains '_' character } . __get_df_report('/ram'));
     my $path = $prefix . qq{_$$} . q{__} . (time() + $delta) . $suffix;
     return $path;
 }
@@ -134,7 +148,7 @@ sub __get_tmpdir {
     my $input_cache_dir = get_formatted_path("$tmp_root/$pairtree_form_id", $suffix, $delta);
     if (! -e $input_cache_dir) {
         my $rc = mkdir($input_cache_dir);
-        ASSERT($rc, qq{Failed to create dir=$input_cache_dir rc=$rc errno=$!});
+        ASSERT($rc, qq{Failed to create dir=$input_cache_dir rc=$rc errno=$! } . __get_df_report('/ram'));
     }
 
     return $input_cache_dir;
@@ -175,6 +189,8 @@ sub extract_file_to_temp_cache {
 
     my $cmd = qq{$UNZIP_PROG -j -qq -d $input_cache_dir $zip_file "$stripped_pairtree_id/$filename"};
     DEBUG('doc', qq{UNZIP: $cmd});
+
+    soft_ASSERT((-e qq{$input_cache_dir/$filename}, qq{Could not extract $filename to $input_cache_dir} . __get_df_report('/ram')));
 
     return
       (-e qq{$input_cache_dir/$filename})
@@ -234,7 +250,7 @@ sub extract_dir_to_temp_cache {
       );
     if (! $ok) {
         my $t_ref = read_file($error_file, 1);
-        my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref"};
+        my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref" } . __get_df_report('/ram');
         Utils::Logger::__Log_simple($msg);
         ASSERT(0, $msg);
     }
