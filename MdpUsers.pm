@@ -79,7 +79,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
 %gAccessControlList =
   (
    # Shibboleth development e.g. persistent-id=...
-   'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=' 
+   'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0hwjoiebxqgt6dfxh65zxsok=' 
    =>
    {
     'displayname' => 'Farber, Phillip Shibboleth development',
@@ -725,7 +725,11 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                         ],
       },
 
-   # Quality Review Access - see https://wush.net/jira/hathitrust/browse/HTS-5432  https://wush.net/jira/hathitrust/browse/HTS-9592
+   # Quality Review Access - see
+   # https://wush.net/jira/hathitrust/browse/HTS-5432
+   # https://wush.net/jira/hathitrust/browse/HTS-9592 Note because
+   # email addresses are lower-cased for comparison we also lower-case
+   # shib IDs.
    'bronick'
    => {
        'displayname' => 'Bronicki, Jackie',
@@ -735,7 +739,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'quality',
        'iprestrict'  => $gStaffSubnetRangesRef,
       },
-   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!hsqca1ZjIq0B2EDA6uCQSL5f2Pc='
+   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!hsqca1zjiq0b2eda6ucqsl5f2pc='
    => {
        'displayname' => 'Wange-Connelly, Marie',
        'supervisor'  => 'jjyork',
@@ -746,7 +750,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^128\.112\.201\.208$',
                         ],
       },
-   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!/StDCT3taHKRXpTxV4CGVHbfnok'
+   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!/stdct3tahkrxptxv4cgvhbfnok'
    => {
        'displayname' => 'Kaytus, Patricia',
        'supervisor'  => 'jjyork',
@@ -757,7 +761,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^128\.112\.177\.64$',
                         ],
       },
-   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!TO3UuAN+nJxE9LuURM+yS4NZVBg='
+   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!to3uuan+njxe9luurm+ys4nzvbg='
    => {
        'displayname' => 'Stroop, Jon',
        'supervisor'  => 'jjyork',
