@@ -700,7 +700,7 @@ sub get_coll_record {
         my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
         $cache{$coll_id} = $sth->fetchrow_hashref;
     }
-    return $cache{$coll_id};
+    return $cache{$coll_id} || {};
 }
 
 # ----------------------------------------------------------------------
