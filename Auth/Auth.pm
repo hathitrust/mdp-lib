@@ -107,7 +107,6 @@ use constant UMICH_SSD_LIST =>
       kqread
       krausant
       kshalosk
-      lwernick
       mikenuss
       mshoe
       nicolejg
@@ -117,6 +116,7 @@ use constant UMICH_SSD_LIST =>
       rgottfri
       rparten
       rubind
+      sileo
       shanorwo
       sydfried
     );
