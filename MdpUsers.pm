@@ -151,8 +151,19 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
       },
    
    # === CRMS - see Bobby Glushko <rglushko@umich.edu> ===
-   
+
    # CRMS World, assorted institutions   
+   'keden@umich.edu'
+   => {
+       'displayname' => 'Eden, Kristina',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^141\.211\.173\.213$',
+                        ],
+      },
    'morikaw1@illinois.edu'
    => {
        'displayname' => 'Morikawa, Hiromi',
