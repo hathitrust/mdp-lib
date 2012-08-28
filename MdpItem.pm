@@ -1266,7 +1266,7 @@ sub ParseVersionFromPREMIS {
     $xpc->registerNs('premis1', NS_PREMIS1);
 
     my $most_recent;    
-    my $event_xpath = '//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]';
+    my $event_xpath = '//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"] | //premis:event[premis:eventType="deletion"] | //premis1:event[premis1:eventType="deletion"]';
     my $date_xpath = './premis:eventDateTime | ./premis1:eventDateTime';
     
     foreach my $event ($xpc->findnodes($event_xpath)) {
