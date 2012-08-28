@@ -153,12 +153,12 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    # === CRMS - see Bobby Glushko <rglushko@umich.edu> ===
 
    # CRMS World, assorted institutions   
-   'keden@umich.edu'
+   'keden'
    => {
        'displayname' => 'Eden, Kristina',
        'supervisor'  => 'glusko',
        'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
+       'usertype'    => 'staff',
        'role'        => 'crms',
        'iprestrict'  => [
                          '^141\.211\.173\.213$',
