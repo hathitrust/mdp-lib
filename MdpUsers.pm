@@ -426,7 +426,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'usertype'    => 'external',
        'role'        => 'crms',
        'iprestrict'  => [
-                         '^128\.48\.127\.32$',
+                         '^128\.48\.204\.180$',
                         ],
       },
    'nancy.scott-noennig@ucop.edu'
