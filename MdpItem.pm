@@ -552,12 +552,13 @@ sub HasMULTIFeature
 
 sub Version {
     my $self = shift;
-    my $version = shift;
+    my ($version, $was_deleted) = @_;
     
     if (defined $version) {
         $self->{mostrecentversion} = $version;
+        $self->{mostrecentversionwasdeleted} = $was_deleted;
     }
-    return $self->{mostrecentversion};
+    return ($self->{mostrecentversion}, $self->{mostrecentversionwasdeleted});
 }
 
 # ---------------------------------------------------------------------
@@ -1265,11 +1266,13 @@ sub ParseVersionFromPREMIS {
     $xpc->registerNs('premis', NS_PREMIS);
     $xpc->registerNs('premis1', NS_PREMIS1);
 
-    my $most_recent;    
-    my $event_xpath = '//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"] | //premis:event[premis:eventType="deletion"] | //premis1:event[premis1:eventType="deletion"]';
     my $date_xpath = './premis:eventDateTime | ./premis1:eventDateTime';
+
+    my $most_recent;    
+    my $was_deleted = 0;
+    my $deletion_event_xpath = '//premis:event[premis:eventType="deletion"] | //premis1:event[premis1:eventType="deletion"]';
     
-    foreach my $event ($xpc->findnodes($event_xpath)) {
+    foreach my $event ($xpc->findnodes($deletion_event_xpath)) {
         my $date = $xpc->findvalue($date_xpath, $event);
         if (
             (! defined $most_recent)
@@ -1277,10 +1280,27 @@ sub ParseVersionFromPREMIS {
             (Date_Cmp(ParseDate($date), ParseDate($most_recent)) == 1)
            ) {
             $most_recent = $date;
+            $was_deleted = 1;
         }
     }
 
-    return $most_recent;
+    if (! defined $most_recent) {
+        # Not deleted, use ingestion date
+        my $ingestion_event_xpath = '//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]';
+    
+        foreach my $event ($xpc->findnodes($ingestion_event_xpath)) {
+            my $date = $xpc->findvalue($date_xpath, $event);
+            if (
+                (! defined $most_recent)
+                ||
+                (Date_Cmp(ParseDate($date), ParseDate($most_recent)) == 1)
+               ) {
+                $most_recent = $date;
+            }
+        }
+    }
+
+    return ($most_recent, $was_deleted);
 }
 
 # ---------------------------------------------------------------------
@@ -1344,8 +1364,8 @@ sub SetPageInfo {
        \%pageInfoHash,
       );
     
-    my $version = $self-> ParseVersionFromPREMIS($tree);
-    $self->Version($version);
+    my ($version, $was_deleted) = $self-> ParseVersionFromPREMIS($tree);
+    $self->Version($version, $was_deleted);
     
     $self->{pageinfo} = \%pageInfoHash;
     
