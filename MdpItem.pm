@@ -859,6 +859,14 @@ sub GetStoredFileType
     my $self = shift;
     my $pageSequence = shift;
 
+    if ( $pageSequence !~ m,^\d+$, ) {
+        # not a number!
+        my $fileGrpHash = $$self{fileGrpHash};
+        if ( $$fileGrpHash{$pageSequence} ) {
+            return $$fileGrpHash{$pageSequence}{filetype};
+        }
+    }
+
     my $pageInfoHashRef = $self->{ 'pageinfo' };
 
     return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filetype' };
@@ -908,7 +916,7 @@ sub GetAuthor
     my $parser = XML::LibXML->new();
     my $tree = $parser->parse_string($$marcMetadataRef);
     my $root = $tree->getDocumentElement();
-    
+
     foreach my $node ( $root->findnodes(qq{/present/record/metadata/oai_marc/varfield[\@id='100']}) ) {
         # a - Personal name
         # b - Numeration
@@ -1107,7 +1115,42 @@ sub BuildFileGrpHash {
     my $self = shift;
     my $root = shift;
     my $fileGrpHashRef = shift;
+
+    my %type_map = (
+        'zip archive' => 'zip',
+    );
     
+    my $fileGrps = $root->findnodes(q{/METS:mets/METS:fileSec/METS:fileGrp[METS:file]});
+    foreach my $fileGrpNode ( $fileGrps->get_nodelist ) {
+        my $filegrp = $fileGrpNode->getAttribute('USE');
+        if ( $type_map{$filegrp} ) { $filegrp = $type_map{$filegrp}; }
+
+        my $fileNodes = $fileGrpNode->findnodes(q{METS:file});
+        my $has_key = qq{has_$filegrp};
+        $self->Set($has_key, scalar @$fileNodes);
+
+        if ( $self->Get($has_key) ) {
+            my $totalFileSize = 0;
+            foreach my $node ( $fileNodes->get_nodelist ) {
+                my $id = $node->getAttribute('ID');
+                my $filesize = $node->getAttribute('SIZE');
+                my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+                my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+
+                $fileGrpHashRef->{$id}{filename} = $filename;
+                $fileGrpHashRef->{$id}{filetype} = $filetype;
+                $fileGrpHashRef->{$id}{filesize} = $filesize;
+                $fileGrpHashRef->{$id}{filegrp} =  $filegrp . 'file'; # compatibility?
+                $totalFileSize += $filesize;
+            }
+
+            $self->Set($has_key, 0) if ($totalFileSize == 0);
+
+        }
+    }
+
+    return;
+
     # Image fileGrp - tombstone objects lack this group
     my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
     my $imageFileGrp = $root->findnodes($xpath);
@@ -1303,6 +1346,27 @@ sub ParseVersionFromPREMIS {
     return ($most_recent, $was_deleted);
 }
 
+sub SetFileGroupMap {
+    my $self = shift;
+    my $fileGrpHash = shift;
+    $$self{fileGrpHash} = $fileGrpHash;
+}
+
+sub GetFileGroupMap {
+    my $self = shift;
+    return $$self{fileGrpHash};
+}
+
+sub GetFileById {
+    my $self = shift;
+    my $fileid = shift;
+    my $fileGrpHash = $self->GetFileGroupMap;
+    if ( $$fileGrpHash{$fileid} ) {
+        return $$fileGrpHash{$fileid}{filename};
+    }
+    return undef;
+}
+
 # ---------------------------------------------------------------------
 
 =item SetPageInfo
@@ -1330,6 +1394,8 @@ sub SetPageInfo {
        \%fileGrpHash
       );
     
+    $self->SetFileGroupMap(\%fileGrpHash);
+
     my %pageInfoHash = ();
     my %seq2PageNumberHash = ();
     my %featureRecord = ();
@@ -1654,7 +1720,14 @@ sub GetFilePathMaybeExtract
     
     my $filePath;
 
-    my $fileName = $self->GetFileNameBySequence($sequence, $which);
+    my $fileName;
+    if ( $sequence =~ m,^\d+, && $which ) {
+        # it's really a sequence
+        $fileName = $self->GetFileNameBySequence($sequence, $which);
+    } else {
+        # treat $sequence as a fileid
+        $fileName = $self->GetFileById($sequence);
+    }
     return (undef, undef) 
       if (! $fileName);
     # POSSIBLY NOTREACHED
