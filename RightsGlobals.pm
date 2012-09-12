@@ -54,7 +54,7 @@ package RightsGlobals;
  pd-us-google
  oa
  oa-google
- section108
+ ic-access
  ic
  cc-by
  cc-by-nd
@@ -196,7 +196,7 @@ our $HT_AFFILIATE        = 5;
    'oa-google'    => {
                       'stmt_icon' => '',
                      },
-   'section108'   => {
+   'ic-access'    => {
                       'stmt_icon' => '',
                      },
    'ic'           => {
