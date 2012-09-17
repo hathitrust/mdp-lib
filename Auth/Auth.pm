@@ -91,6 +91,7 @@ use constant UMICH_SSD_LIST =>
   qw ( 
       aaehawki
       benmb
+      bervilla
       brekac
       ccarpey
       crwils
@@ -105,7 +106,6 @@ use constant UMICH_SSD_LIST =>
       kimjiy
       kmbally
       kqread
-      krausant
       kshalosk
       mikenuss
       mshoe
@@ -114,10 +114,11 @@ use constant UMICH_SSD_LIST =>
       noahw
       orodrigu
       rgottfri
+      rlfabry
       rparten
       rubind
-      sileo
       shanorwo
+      sileo 
       sydfried
     );
  
