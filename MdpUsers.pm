@@ -152,7 +152,52 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    
    # === CRMS - see Bobby Glushko <rglushko@umich.edu> ===
 
-   # CRMS World, assorted institutions   
+   # CRMS World, assorted institutions
+
+   'bxb39@psu.edu'
+   => {
+       'displayname' => 'Blakeslee-Drain, Benjamin',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.118\.152\.183$',
+                        ],
+      },
+    'ccb4@psu.edu'
+   => {
+       'displayname' => 'Bridgens, Carol',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.118\.90\.34$',
+                        ],
+      },
+    'nlb125@psu.edu'
+   => {
+       'displayname' => 'Nicastro, Nicolle',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.118\.153\.92$',
+                        ],
+      },
+    'msf13@psu.edu'
+   => {
+       'displayname' => 'Rinker, Melanie',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^128\.118\.152\.80$',
+                        ],
+      },
    'keden'
    => {
        'displayname' => 'Eden, Kristina',
