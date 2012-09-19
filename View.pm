@@ -565,7 +565,6 @@ sub P_output_data_HTTP {
     print STDOUT "Status: 200" . $CGI::CRLF;
     print STDOUT $headers_ref->as_string($CGI::CRLF);
     print STDOUT $CGI::CRLF;
-    # print STDOUT $CGI::CRLF . $CGI::CRLF;
     print STDOUT $$data_ref;
 }
 
