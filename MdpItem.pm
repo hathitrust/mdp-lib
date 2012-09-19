@@ -872,6 +872,42 @@ sub GetStoredFileType
     return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filetype' };
 }
 
+sub GetStoredFileGroup
+{
+    my $self = shift;
+    my $pageSequence = shift;
+
+    if ( $pageSequence !~ m,^\d+$, ) {
+        # not a number!
+        my $fileGrpHash = $$self{fileGrpHash};
+        if ( $$fileGrpHash{$pageSequence} ) {
+            return $$fileGrpHash{$pageSequence}{filegrp};
+        }
+    }
+
+    my $pageInfoHashRef = $self->{ 'pageinfo' };
+
+    return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filegrp' };
+}
+
+sub GetStoredFileMimeType
+{
+    my $self = shift;
+    my $pageSequence = shift;
+
+    if ( $pageSequence !~ m,^\d+$, ) {
+        # not a number!
+        my $fileGrpHash = $$self{fileGrpHash};
+        if ( $$fileGrpHash{$pageSequence} ) {
+            return $$fileGrpHash{$pageSequence}{mimetype};
+        }
+    }
+
+    my $pageInfoHashRef = $self->{ 'pageinfo' };
+
+    return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filegrp' };
+}
+
 sub GetFullTitle
 {
     my $self = shift;
@@ -1136,9 +1172,11 @@ sub BuildFileGrpHash {
                 my $filesize = $node->getAttribute('SIZE');
                 my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+                my $filemimetype = $node->getAttribute('MIMETYPE');
 
                 $fileGrpHashRef->{$id}{filename} = $filename;
                 $fileGrpHashRef->{$id}{filetype} = $filetype;
+                $fileGrpHashRef->{$id}{mimetype} = $filemimetype;                
                 $fileGrpHashRef->{$id}{filesize} = $filesize;
                 $fileGrpHashRef->{$id}{filegrp} =  $filegrp . 'file'; # compatibility?
                 $totalFileSize += $filesize;
@@ -1656,6 +1694,7 @@ sub GetFileSizeBySequence
 
     return $filesize;
 }
+
 
 
 # ----------------------------------------------------------------------
