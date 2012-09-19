@@ -236,10 +236,14 @@ sub GetMdpItem
         # don't cache if we've got a metadatafailure
         if ( $cache_mdpItem && ! $mdpItem->Get('metadatafailure') ) {
             DEBUG('pt,mdpitem,cache', qq{<h3>Cache MdpItem: $id : $cache_key</h3>});
+
+            # do some zigzag to avoid serializing the XML::LibXML structure
+            my $dom = delete $$mdpItem{_METS};
             $cache->Set($id, $cache_key, $mdpItem, $ignore_existing_cache);
+            $$mdpItem{_METS} = $dom;
         }
     }
-    
+
     DEBUG('mdpitem,all',
           sub
           {
@@ -249,6 +253,7 @@ sub GetMdpItem
     if (DEBUG('noocr')) {
         $mdpItem->Set('has_ocr', 0);
     }
+
     return $mdpItem;
 }
 
@@ -320,6 +325,7 @@ sub _initialize
 
     $self->Set( 'metadatafailure', $metadata_failed );
 
+    $self->SetItemType();
     $self->SetPageInfo();
 }
 
@@ -343,6 +349,49 @@ sub SetId
     my $self = shift;
     my $id = shift;
     $self->{ 'id' } = $id;
+}
+
+sub _GetMetsRoot {
+    my $self = shift;
+    unless ( ref($$self{_METS}) ) {
+        my $metsXmlRef = $self->Get( 'metsxml' );
+        my $parser = XML::LibXML->new();
+        my $tree = $parser->parse_string($$metsXmlRef);
+        my $root = $tree->getDocumentElement();
+        $$self{_METS} = $root;
+    }
+    return $$self{_METS};
+}
+
+sub SetItemType {
+    my $self = shift;
+
+    my $root = $self->_GetMetsRoot();
+    my $item_type;
+
+    my $item_type;
+    foreach my $path_expr qw( //METS:structMap[@TYPE='logical']/METS:div/@TYPE  //METS:structMap[@TYPE='logical']/METS:div/@TYPE ) {
+        $item_type = $root->findvalue($path_expr);
+        last if ( $item_type );
+    }
+
+    # set default item type
+    unless ( $item_type ) { $item_type = 'volume'; } 
+
+    $self->Set('item_type', $item_type);
+
+    # intiaizlie subclass...
+    if ( $item_type ne 'volume' ) {
+        my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
+        eval "require MdpItem::$subclass";
+        bless $self, "MdpItem::$subclass";
+    }
+
+}
+
+sub GetItemType {
+    my $self = shift;
+    return $self->Get('item_type');
 }
 
 sub GetMetadataFailure
@@ -1419,10 +1468,7 @@ sub SetPageInfo {
 
     DEBUG('time', qq{<h3>MdpItem::SetPageInfo(START)</h3>} . Utils::display_stats());
 
-    my $metsXmlRef = $self->Get( 'metsxml' );
-    my $parser = XML::LibXML->new();
-    my $tree = $parser->parse_string($$metsXmlRef);
-    my $root = $tree->getDocumentElement();
+    my $root = $self->_GetMetsRoot();
 
     my %fileGrpHash = ();
 
@@ -1468,7 +1514,7 @@ sub SetPageInfo {
        \%pageInfoHash,
       );
     
-    my ($version, $was_deleted) = $self-> ParseVersionFromPREMIS($tree);
+    my ($version, $was_deleted) = $self-> ParseVersionFromPREMIS($root);
     $self->Version($version, $was_deleted);
     
     $self->{pageinfo} = \%pageInfoHash;
