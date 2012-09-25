@@ -1240,7 +1240,7 @@ sub get_user_status_cookie
     my ($C, $auth) = @_;
     
     my $displayName = $auth->get_displayName($C);
-    my $institution = $auth->get_institution($C);
+    my $institution = $auth->get_institution_code($C);
     my $institution_name = $auth->get_institution_name($C);
     my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
     my $auth_type = lc($ENV{AUTH_TYPE}); # should this require session?

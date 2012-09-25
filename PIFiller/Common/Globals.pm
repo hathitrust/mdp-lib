@@ -185,7 +185,7 @@ sub handle_ACCESS_HOLDINGS_PI
     
     my $id = $C->get_object('CGI')->param('id');
     if ($id) {
-        $inst = $C->get_object('Auth')->get_institution($C);
+        $inst = $C->get_object('Auth')->get_institution_code($C);
         if (Access::Holdings::id_is_held($C, $id, $inst)) {
             $held = 'YES';
         }

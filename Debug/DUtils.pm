@@ -183,6 +183,10 @@ sub set_HathiTrust_debug_environment {
         delete $ENV{SDRLIB};
     }
 
+    if (DEBUG('inlib')) {
+        $ENV{SDRLIB} = 1;
+    }
+
     DEBUG('auth',
           qq{HathiTrust: SDRINST=$ENV{SDRINST} SDRLIB=$ENV{SDRLIB} affiliation=$ENV{affiliation} eppn=$ENV{eppn} entitlement=$ENV{entitlement} displayName=$ENV{displayName} AUTH_TYPE=$ENV{AUTH_TYPE} REMOTE_ADDR=$ENV{REMOTE_ADDR}});
 }

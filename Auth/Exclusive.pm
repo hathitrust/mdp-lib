@@ -146,7 +146,7 @@ sub __grant_access {
     my $expires;
 
     my $auth = $C->get_object('Auth');
-    my $inst_code = $auth->get_institution($C);
+    my $inst_code = $auth->get_institution_code($C);
     my $identity = $auth->get_user_name($C);
 
     my $num_held = Access::Holdings::id_is_held($C, $id, $inst_code);

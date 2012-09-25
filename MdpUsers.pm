@@ -1113,6 +1113,15 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
+   'srmishra'
+   => {
+       'displayname' => 'Mishra, Sonali',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
   );
 
 1;

@@ -142,6 +142,27 @@ Initialize Auth::Auth
 =cut
 
 # ---------------------------------------------------------------------
+sub __debug_auth {
+    my $self = shift;
+    my ($C, $ses) = @_;
+
+    DEBUG('auth',
+          sub {
+              q{AUTH: user=} . $self->get_user_name($C) . q{ disp=} . $self->get_user_display_name($C)
+                . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+                  . q{ authsys=} . __get_auth_sys($ses)
+                    . q{ newlogin=} . $self->isa_new_login()
+                      . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                        . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                          . q{ institution code=} . $self->get_institution_code($C)
+                            . q{ institution name=} . $self->get_institution_name($C)
+                              . q{ is_umich=} . $self->affiliation_is_umich($C)
+                                . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                  . q{ entitlement=} . $ENV{entitlement}
+                                    . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
+          });
+}
+
 sub _initialize {
     my $self = shift;
     my $C = shift;
@@ -157,28 +178,12 @@ sub _initialize {
             my $now_logged_in_via = __get_auth_sys($ses);
 
             $self->set_isa_new_login($was_logged_in_via ne $now_logged_in_via);
-
-            DEBUG('auth',
-                  sub {
-                      q{AUTH: user=} . $self->get_user_name($C) . q{ disp=} . $self->get_user_display_name($C)
-                        . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
-                          . q{ authsys=} . __get_auth_sys($ses)
-                            . q{ newlogin=} . $self->isa_new_login()
-                              . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                                . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                                  . q{ institution=} . $self->get_institution($C)
-                                    . q{ is_umich=} . $self->affiliation_is_umich($C)
-                                      . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                        . q{ entitlement=} . $ENV{entitlement}
-                                          . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
-                                });
+            $self->__debug_auth($C, $ses);
         }
         else {
             # Not authenticated: THIS MAY BE CONDITION X:
             # See pod (above).
-            DEBUG('auth', q{AUTH: Not Authed. user=} . $self->get_user_name($C)
-                  . q{ disp=} . $self->get_user_display_name($C));
-
+            $self->__debug_auth($C, $ses);
             $self->handle_possible_redirect($C, $was_logged_in_via);
             # POSSIBLY NOTREACHED
         }
@@ -436,43 +441,56 @@ sub login_realm_is_friend {
 
 # ---------------------------------------------------------------------
 
-=item get_institution_by_ip_address
+=item __get_institution_by_ip_address
+
+*** PRIVATE CLASS METHOD ***
 
 Note this associates the REMOTE_ADDR via a list of institutions codes
 maintained by Core Services for Apache.
 
+Clients of this class should use get_institution_code()
+
 =cut
 
 # ---------------------------------------------------------------------
-sub get_institution_by_ip_address {
-    my $self = shift;
+sub __get_institution_by_ip_address {
     return $ENV{'SDRINST'};
 }
 
 # ---------------------------------------------------------------------
 
-=item get_institution
+=item get_institution_code
 
 Note this maps users eduPersonScopedAffiliation to the institution code. 
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_institution {
+sub get_institution_code {
     my $self = shift;
     my $C = shift;
-    
+
     my $aff = $self->get_eduPersonScopedAffiliation($C);
     my $map_ref = $self->get_institution_map();
     
-    my $inst;
+    my $inst_code;
     
     if ($aff) {    
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain}->{sdrinst};
+        $inst_code = $map_ref->{$domain}->{sdrinst};
+    }
+    else { 
+        my $inst = __get_institution_by_ip_address();
+        # Try a lookup by SDRINST
+        foreach my $domain (keys %$map_ref) {
+            if ($map_ref->{$domain}->{sdrinst} eq $inst) {
+                $inst_code = $map_ref->{$domain}->{sdrinst};
+                last;
+            }
+        }
     }
 
-    return $inst;
+    return $inst_code;
 }
 
 # ---------------------------------------------------------------------
@@ -524,7 +542,7 @@ sub get_institution_name {
         $inst_name = $map_ref->{$domain}->{name};
     }
     else { 
-        my $inst = $self->get_institution_by_ip_address();
+        my $inst = __get_institution_by_ip_address();
         # Try a lookup by SDRINST
         foreach my $domain (keys %$map_ref) {
             if ($map_ref->{$domain}->{sdrinst} eq $inst) {
@@ -563,7 +581,7 @@ ranges.
 sub is_in_library {
     my $self = shift;
 
-    my $institution = $self->get_institution_by_ip_address();     
+    my $institution = __get_institution_by_ip_address();     
     return ($institution && $ENV{SDRLIB});
 }
 
@@ -579,7 +597,7 @@ See is_in_library
 # ---------------------------------------------------------------------
 sub is_in_uom_library {
     my $self = shift;
-    my $institution = $self->get_institution_by_ip_address();
+    my $institution = __get_institution_by_ip_address();
     
     return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
 }
