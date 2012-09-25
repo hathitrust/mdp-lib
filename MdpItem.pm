@@ -236,10 +236,14 @@ sub GetMdpItem
         # don't cache if we've got a metadatafailure
         if ( $cache_mdpItem && ! $mdpItem->Get('metadatafailure') ) {
             DEBUG('pt,mdpitem,cache', qq{<h3>Cache MdpItem: $id : $cache_key</h3>});
+
+            # do some zigzag to avoid serializing the XML::LibXML structure
+            my $dom = delete $$mdpItem{_METS};
             $cache->Set($id, $cache_key, $mdpItem, $ignore_existing_cache);
+            $$mdpItem{_METS} = $dom;
         }
     }
-    
+
     DEBUG('mdpitem,all',
           sub
           {
@@ -249,6 +253,7 @@ sub GetMdpItem
     if (DEBUG('noocr')) {
         $mdpItem->Set('has_ocr', 0);
     }
+
     return $mdpItem;
 }
 
@@ -320,6 +325,7 @@ sub _initialize
 
     $self->Set( 'metadatafailure', $metadata_failed );
 
+    $self->SetItemType();
     $self->SetPageInfo();
 }
 
@@ -343,6 +349,49 @@ sub SetId
     my $self = shift;
     my $id = shift;
     $self->{ 'id' } = $id;
+}
+
+sub _GetMetsRoot {
+    my $self = shift;
+    unless ( ref($$self{_METS}) ) {
+        my $metsXmlRef = $self->Get( 'metsxml' );
+        my $parser = XML::LibXML->new();
+        my $tree = $parser->parse_string($$metsXmlRef);
+        my $root = $tree->getDocumentElement();
+        $$self{_METS} = $root;
+    }
+    return $$self{_METS};
+}
+
+sub SetItemType {
+    my $self = shift;
+
+    my $root = $self->_GetMetsRoot();
+    my $item_type;
+
+    my $item_type;
+    foreach my $path_expr qw( //METS:structMap[@TYPE='logical']/METS:div/@TYPE  //METS:structMap[@TYPE='logical']/METS:div/@TYPE ) {
+        $item_type = $root->findvalue($path_expr);
+        last if ( $item_type );
+    }
+
+    # set default item type
+    unless ( $item_type ) { $item_type = 'volume'; } 
+
+    $self->Set('item_type', $item_type);
+
+    # intiaizlie subclass...
+    if ( $item_type ne 'volume' ) {
+        my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
+        eval "require MdpItem::$subclass";
+        bless $self, "MdpItem::$subclass";
+    }
+
+}
+
+sub GetItemType {
+    my $self = shift;
+    return $self->Get('item_type');
 }
 
 sub GetMetadataFailure
@@ -859,9 +908,53 @@ sub GetStoredFileType
     my $self = shift;
     my $pageSequence = shift;
 
+    if ( $pageSequence !~ m,^\d+$, ) {
+        # not a number!
+        my $fileGrpHash = $$self{fileGrpHash};
+        if ( $$fileGrpHash{$pageSequence} ) {
+            return $$fileGrpHash{$pageSequence}{filetype};
+        }
+    }
+
     my $pageInfoHashRef = $self->{ 'pageinfo' };
 
     return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filetype' };
+}
+
+sub GetStoredFileGroup
+{
+    my $self = shift;
+    my $pageSequence = shift;
+
+    if ( $pageSequence !~ m,^\d+$, ) {
+        # not a number!
+        my $fileGrpHash = $$self{fileGrpHash};
+        if ( $$fileGrpHash{$pageSequence} ) {
+            return $$fileGrpHash{$pageSequence}{filegrp};
+        }
+    }
+
+    my $pageInfoHashRef = $self->{ 'pageinfo' };
+
+    return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filegrp' };
+}
+
+sub GetStoredFileMimeType
+{
+    my $self = shift;
+    my $pageSequence = shift;
+
+    if ( $pageSequence !~ m,^\d+$, ) {
+        # not a number!
+        my $fileGrpHash = $$self{fileGrpHash};
+        if ( $$fileGrpHash{$pageSequence} ) {
+            return $$fileGrpHash{$pageSequence}{mimetype};
+        }
+    }
+
+    my $pageInfoHashRef = $self->{ 'pageinfo' };
+
+    return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filegrp' };
 }
 
 sub GetFullTitle
@@ -908,7 +1001,7 @@ sub GetAuthor
     my $parser = XML::LibXML->new();
     my $tree = $parser->parse_string($$marcMetadataRef);
     my $root = $tree->getDocumentElement();
-    
+
     foreach my $node ( $root->findnodes(qq{/present/record/metadata/oai_marc/varfield[\@id='100']}) ) {
         # a - Personal name
         # b - Numeration
@@ -1107,7 +1200,44 @@ sub BuildFileGrpHash {
     my $self = shift;
     my $root = shift;
     my $fileGrpHashRef = shift;
+
+    my %type_map = (
+        'zip archive' => 'zip',
+    );
     
+    my $fileGrps = $root->findnodes(q{/METS:mets/METS:fileSec/METS:fileGrp[METS:file]});
+    foreach my $fileGrpNode ( $fileGrps->get_nodelist ) {
+        my $filegrp = $fileGrpNode->getAttribute('USE');
+        if ( $type_map{$filegrp} ) { $filegrp = $type_map{$filegrp}; }
+
+        my $fileNodes = $fileGrpNode->findnodes(q{METS:file});
+        my $has_key = qq{has_$filegrp};
+        $self->Set($has_key, scalar @$fileNodes);
+
+        if ( $self->Get($has_key) ) {
+            my $totalFileSize = 0;
+            foreach my $node ( $fileNodes->get_nodelist ) {
+                my $id = $node->getAttribute('ID');
+                my $filesize = $node->getAttribute('SIZE');
+                my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+                my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+                my $filemimetype = $node->getAttribute('MIMETYPE');
+
+                $fileGrpHashRef->{$id}{filename} = $filename;
+                $fileGrpHashRef->{$id}{filetype} = $filetype;
+                $fileGrpHashRef->{$id}{mimetype} = $filemimetype;                
+                $fileGrpHashRef->{$id}{filesize} = $filesize;
+                $fileGrpHashRef->{$id}{filegrp} =  $filegrp . 'file'; # compatibility?
+                $totalFileSize += $filesize;
+            }
+
+            $self->Set($has_key, 0) if ($totalFileSize == 0);
+
+        }
+    }
+
+    return;
+
     # Image fileGrp - tombstone objects lack this group
     my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
     my $imageFileGrp = $root->findnodes($xpath);
@@ -1303,6 +1433,27 @@ sub ParseVersionFromPREMIS {
     return ($most_recent, $was_deleted);
 }
 
+sub SetFileGroupMap {
+    my $self = shift;
+    my $fileGrpHash = shift;
+    $$self{fileGrpHash} = $fileGrpHash;
+}
+
+sub GetFileGroupMap {
+    my $self = shift;
+    return $$self{fileGrpHash};
+}
+
+sub GetFileById {
+    my $self = shift;
+    my $fileid = shift;
+    my $fileGrpHash = $self->GetFileGroupMap;
+    if ( $$fileGrpHash{$fileid} ) {
+        return $$fileGrpHash{$fileid}{filename};
+    }
+    return undef;
+}
+
 # ---------------------------------------------------------------------
 
 =item SetPageInfo
@@ -1317,10 +1468,7 @@ sub SetPageInfo {
 
     DEBUG('time', qq{<h3>MdpItem::SetPageInfo(START)</h3>} . Utils::display_stats());
 
-    my $metsXmlRef = $self->Get( 'metsxml' );
-    my $parser = XML::LibXML->new();
-    my $tree = $parser->parse_string($$metsXmlRef);
-    my $root = $tree->getDocumentElement();
+    my $root = $self->_GetMetsRoot();
 
     my %fileGrpHash = ();
 
@@ -1330,6 +1478,8 @@ sub SetPageInfo {
        \%fileGrpHash
       );
     
+    $self->SetFileGroupMap(\%fileGrpHash);
+
     my %pageInfoHash = ();
     my %seq2PageNumberHash = ();
     my %featureRecord = ();
@@ -1364,7 +1514,7 @@ sub SetPageInfo {
        \%pageInfoHash,
       );
     
-    my ($version, $was_deleted) = $self-> ParseVersionFromPREMIS($tree);
+    my ($version, $was_deleted) = $self-> ParseVersionFromPREMIS($root);
     $self->Version($version, $was_deleted);
     
     $self->{pageinfo} = \%pageInfoHash;
@@ -1592,6 +1742,7 @@ sub GetFileSizeBySequence
 }
 
 
+
 # ----------------------------------------------------------------------
 # NAME         : GetDirPathMaybeExtract
 # PURPOSE      : Extract all ocr or img files for a given id from zip archive and drop
@@ -1654,7 +1805,14 @@ sub GetFilePathMaybeExtract
     
     my $filePath;
 
-    my $fileName = $self->GetFileNameBySequence($sequence, $which);
+    my $fileName;
+    if ( $sequence =~ m,^\d+, && $which ) {
+        # it's really a sequence
+        $fileName = $self->GetFileNameBySequence($sequence, $which);
+    } else {
+        # treat $sequence as a fileid
+        $fileName = $self->GetFileById($sequence);
+    }
     return (undef, undef) 
       if (! $fileName);
     # POSSIBLY NOTREACHED
