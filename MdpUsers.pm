@@ -154,6 +154,42 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
 
    # CRMS World, assorted institutions
 
+   'srobbins@illinois.edu'
+   => {
+       'displayname' => 'Robbins, Seth',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^130\.126\.34\.194$',
+                         '^130\.126\.34\.197$',
+                        ],
+      },
+   'jnash4@illinois.edu'
+   => {
+       'displayname' => 'Nash, Jake',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^130\.126\.34\.194$',
+                         '^130\.126\.34\.197$',
+                        ],
+      },
+   'shelly2@illinois.edu'
+   => {
+       'displayname' => 'Shelly, Joshua',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^130\.126\.36\.73$',
+                         '^192\.17\.251\.93$',
+                        ],
+      },
    'bxb39@psu.edu'
    => {
        'displayname' => 'Blakeslee-Drain, Benjamin',
@@ -213,7 +249,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    => {
        'displayname' => 'Morikawa, Hiromi',
        'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
+       'expires'     => '2012-10-06 23:59:59', # Remove after
        'usertype'    => 'external',
        'role'        => 'crms',
        'iprestrict'  => [
