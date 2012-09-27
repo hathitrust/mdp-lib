@@ -683,9 +683,9 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
       },
 
    # Indiana CRMS
-   'eringree@indiana.edu'
+   'tbullard@indiana.edu'
    => {
-       'displayname' => 'Green, Erin',
+       'displayname' => 'Bullard, Thomas',
        'supervisor'  => 'jaheim',
        'expires'     => $gCRMS_ExpireDate,
        'usertype'    => 'external',
