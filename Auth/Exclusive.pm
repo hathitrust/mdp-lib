@@ -125,6 +125,38 @@ sub check_exclusive_access {
     return ($granted, $owner, $expires);
 }
 
+# ---------------------------------------------------------------------
+
+=item update_exclusive_access
+
+An unauthenticated user in a library can acquire exclusive access. If
+that user then authenticates, update the exclusivity record with the
+users new persistent ID so xe can continue to have access.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub update_exclusive_access {
+    my ($C, $temporary_user_id, $persistent_user_id) = @_;
+
+    # Get current user's identity and expiration date
+    my $dbh = $C->get_object('Database')->get_DBH();
+
+    my ($sth, $statement);
+    $statement = qq{LOCK TABLES n_exclusivity WRITE};
+    DEBUG('auth', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+    # Update owner field for all IDs
+    $statement = qq{UPDATE n_exclusivity SET owner=? WHERE owner=?};
+    DEBUG('auth', qq{DEBUG: $statement : $persistent_user_id $temporary_user_id});
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $persistent_user_id, $temporary_user_id);
+
+    $statement = qq{UNLOCK TABLES};
+    DEBUG('auth', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -157,6 +189,8 @@ sub __grant_access {
         (! $inst_code)
         ||
         ($num_held == 0)
+        ||
+        DEBUG('nogrant')
        ) {
         return ($granted, $grant_owner, $expires);
     }        
@@ -185,6 +219,11 @@ sub __grant_access {
             $identity_expire_date = $hashref->{expires};
             last;
         }
+    }
+
+    # Act like identity has already been granted access
+    if (DEBUG('grant')) {
+        $identity_has_slot = 1;
     }
 
     # identity occupies a slot

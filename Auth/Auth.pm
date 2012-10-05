@@ -73,13 +73,14 @@ use XML::LibXML;
 use Utils;
 use Debug::DUtils;
 use Session;
+use Auth::Exclusive;
 
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
 # eduPersonENtitlement attribute values that qualify as print disabled
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
   qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
 # Which eduPersonScopedAffiliation attribute values can be considered
@@ -87,8 +88,8 @@ my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
 
-use constant UMICH_SSD_LIST => 
-  qw ( 
+use constant UMICH_SSD_LIST =>
+  qw (
       aaehawki
       benmb
       bervilla
@@ -118,10 +119,10 @@ use constant UMICH_SSD_LIST =>
       rparten
       rubind
       shanorwo
-      sileo 
+      sileo
       sydfried
     );
- 
+
 sub new {
     my $class = shift;
     my $C = shift;
@@ -168,7 +169,7 @@ sub _initialize {
     my $C = shift;
 
     $self->{institution_map} = __load_institutions_xml($C);
-    
+
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
         my $was_logged_in_via = __get_auth_sys($ses);
@@ -178,6 +179,15 @@ sub _initialize {
             my $now_logged_in_via = __get_auth_sys($ses);
 
             $self->set_isa_new_login($was_logged_in_via ne $now_logged_in_via);
+
+            if ($self->isa_new_login()) {
+                Auth::Exclusive::update_exclusive_access(
+                                                         $C,
+                                                         $ses->get_session_id(),
+                                                         $self->get_user_name($C),
+                                                        );
+            }
+
             $self->__debug_auth($C, $ses);
         }
         else {
@@ -204,7 +214,7 @@ sub __load_institutions_xml {
 
     my $app = $C->get_object('App')->get_app_name($C);
     my $institution_file = qq{$ENV{SDRROOT}/$app/web/common-web/institutions.xml};
-    
+
     my $xml_ref = Utils::read_file($institution_file);
     my $parser = XML::LibXML->new();
     my $tree = $parser->parse_string($$xml_ref);
@@ -213,7 +223,7 @@ sub __load_institutions_xml {
     my $xpath = q{/Institutions/Inst};
     my $xml_instMap = $root->findnodes($xpath);
     my $inst_map = {};
-    
+
     foreach my $inst ($xml_instMap->get_nodelist) {
         my $domain = $inst->getAttribute('domain');
         $inst_map->{$domain} = {
@@ -237,7 +247,7 @@ Description
 # ---------------------------------------------------------------------
 sub get_institution_map {
     my $self = shift;
-    return $self->{institution_map}    
+    return $self->{institution_map}
 }
 
 # ---------------------------------------------------------------------
@@ -406,7 +416,7 @@ sub auth_sys_is_SHIBBOLETH {
     }
 
     return $is;
-    
+
 }
 
 # ---------------------------------------------------------------------
@@ -461,7 +471,7 @@ sub __get_institution_by_ip_address {
 
 =item get_institution_code
 
-Note this maps users eduPersonScopedAffiliation to the institution code. 
+Note this maps users eduPersonScopedAffiliation to the institution code.
 
 =cut
 
@@ -472,14 +482,14 @@ sub get_institution_code {
 
     my $aff = $self->get_eduPersonScopedAffiliation($C);
     my $map_ref = $self->get_institution_map();
-    
+
     my $inst_code;
-    
-    if ($aff) {    
+
+    if ($aff) {
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
         $inst_code = $map_ref->{$domain}->{sdrinst};
     }
-    else { 
+    else {
         my $inst = __get_institution_by_ip_address();
         # Try a lookup by SDRINST
         foreach my $domain (keys %$map_ref) {
@@ -505,11 +515,11 @@ Is user's institution in the US?
 sub get_institution_us_status {
     my $self = shift;
     my $C = shift;
-    
+
     my $status = 'notaff';
-    
+
     my $aff = $self->get_eduPersonScopedAffiliation($C);
-    if ($aff) {    
+    if ($aff) {
         my $map_ref = $self->get_institution_map();
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
         $status = $map_ref->{$domain}->{us} ? 'affus' : 'affnonus';
@@ -531,17 +541,17 @@ eduPersonScopedAffiliation to the institution name.
 sub get_institution_name {
     my $self = shift;
     my $C = shift;
-    
+
     my $aff = $self->get_eduPersonScopedAffiliation($C);
     my $map_ref = $self->get_institution_map();
-    
+
     my $inst_name;
-    
-    if ($aff) {    
+
+    if ($aff) {
         my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
         $inst_name = $map_ref->{$domain}->{name};
     }
-    else { 
+    else {
         my $inst = __get_institution_by_ip_address();
         # Try a lookup by SDRINST
         foreach my $domain (keys %$map_ref) {
@@ -581,7 +591,7 @@ ranges.
 sub is_in_library {
     my $self = shift;
 
-    my $institution = __get_institution_by_ip_address();     
+    my $institution = __get_institution_by_ip_address();
     return ($institution && $ENV{SDRLIB});
 }
 
@@ -598,7 +608,7 @@ See is_in_library
 sub is_in_uom_library {
     my $self = shift;
     my $institution = __get_institution_by_ip_address();
-    
+
     return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
 }
 

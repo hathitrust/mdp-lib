@@ -168,6 +168,33 @@ sub handle_ACCESS_USE_PI
 
 # ---------------------------------------------------------------------
 
+=item handle_IN_LIBRARY_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_IN_LIBRARY_PI
+    : PI_handler(IN_LIBRARY)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+
+    my $inst = $auth->get_institution_code($C);
+    my $is_in = $auth->is_in_library($C) ? 'YES' : 'NO';
+
+    my $s;
+    $s .= wrap_string_in_tag($is_in, 'Status');
+    $s .= wrap_string_in_tag($inst, 'Institution');
+
+    return $s;
+}
+
+
+# ---------------------------------------------------------------------
+
 =item handle_ACCESS_HOLDINGS_PI
 
 Description
