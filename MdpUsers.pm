@@ -442,6 +442,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'crms',
        'iprestrict'  => [
                          '^129\.170\.88\.49$',
+                         '^129\.170\.88\.62$',
                         ],
       },
    's-morrison@northwestern.edu'
