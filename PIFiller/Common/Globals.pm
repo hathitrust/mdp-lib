@@ -27,6 +27,7 @@ use Access::Statements;
 use Access::Rights;
 use Access::Holdings;
 use Auth::Auth;
+use Institutions;
 
 # ---------------------------------------------------------------------
 
@@ -182,12 +183,34 @@ sub handle_IN_LIBRARY_PI
 
     my $auth = $C->get_object('Auth');
 
-    my $inst = $auth->get_institution_code($C);
+    my $inst = $auth->get_institution_code($C, 'mapped');
     my $is_in = $auth->is_in_library($C) ? 'YES' : 'NO';
 
     my $s;
     $s .= wrap_string_in_tag($is_in, 'Status');
     $s .= wrap_string_in_tag($inst, 'Institution');
+
+    return $s;
+}
+
+# ---------------------------------------------------------------------
+
+=item handle_INSTITUTION_NAME_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_INSTITUTION_NAME_PI
+    : PI_handler(INSTITUTION_NAME)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
+    my $institution_name = Institutions::get_institution_sdrinst_field_val($C, $inst, 'name', 'mapped');
+
+    my $s = wrap_string_in_tag($institution_name, 'InstitutionName');
 
     return $s;
 }
@@ -212,7 +235,7 @@ sub handle_ACCESS_HOLDINGS_PI
     
     my $id = $C->get_object('CGI')->param('id');
     if ($id) {
-        $inst = $C->get_object('Auth')->get_institution_code($C);
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         if (Access::Holdings::id_is_held($C, $id, $inst)) {
             $held = 'YES';
         }

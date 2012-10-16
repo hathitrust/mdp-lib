@@ -133,6 +133,15 @@ An unauthenticated user in a library can acquire exclusive access. If
 that user then authenticates, update the exclusivity record with the
 users new persistent ID so xe can continue to have access.
 
+There is no need to update the institution code (affiliation field)
+because if the user was in a library, SDRINST (institution code) will
+have been set. 
+
+The current rules will not allow the implementation of support for
+unauthenticated users outside a library to acquire exclusive
+access. Their institution will be undef so here is no way to determine
+number of copies held.
+
 =cut
 
 # ---------------------------------------------------------------------
@@ -178,7 +187,7 @@ sub __grant_access {
     my $expires;
 
     my $auth = $C->get_object('Auth');
-    my $inst_code = $auth->get_institution_code($C);
+    my $inst_code = $auth->get_institution_code($C, 'mapped');
     my $identity = $auth->get_user_name($C);
 
     my $num_held = Access::Holdings::id_is_held($C, $id, $inst_code);

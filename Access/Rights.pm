@@ -1324,7 +1324,7 @@ sub _resolve_access_by_held_and_agreement {
     
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
-        $inst = $C->get_object('Auth')->get_institution_code($C);
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         $agreed = Access::Orphans::institution_agreement($C, $inst);
         if ($agreed) {
             $held = Access::Holdings::id_is_held($C, $id, $inst);
@@ -1363,7 +1363,7 @@ sub _resolve_ssd_access_by_held {
     
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
-        $inst = $C->get_object('Auth')->get_institution_code($C);
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         $held = Access::Holdings::id_is_held($C, $id, $inst);
         if ($held) {
             if ($assert_ownership) {
@@ -1403,7 +1403,7 @@ sub _resolve_ssd_access_by_held_by_GeoIP {
     
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
-        $inst = $C->get_object('Auth')->get_institution_code($C);
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         $held = Access::Holdings::id_is_held($C, $id, $inst);
         if ($held) {
             if ($assert_ownership) {
@@ -1441,7 +1441,7 @@ Description
 sub _institution_has_orphan_agreement {
     my $C = shift;
 
-    my $inst = $C->get_object('Auth')->get_institution_code($C);
+    my $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
     return Access::Orphans::institution_agreement($C, $inst);
 }
 

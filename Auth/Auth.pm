@@ -74,6 +74,7 @@ use Utils;
 use Debug::DUtils;
 use Session;
 use Auth::Exclusive;
+use Institutions;
 
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
@@ -147,28 +148,25 @@ sub __debug_auth {
     my $self = shift;
     my ($C, $ses) = @_;
 
-    DEBUG('auth',
-          sub {
-              q{AUTH: user=} . $self->get_user_name($C) . q{ disp=} . $self->get_user_display_name($C)
-                . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
-                  . q{ authsys=} . __get_auth_sys($ses)
-                    . q{ newlogin=} . $self->isa_new_login()
-                      . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                        . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                          . q{ institution code=} . $self->get_institution_code($C)
-                            . q{ institution name=} . $self->get_institution_name($C)
-                              . q{ is_umich=} . $self->affiliation_is_umich($C)
-                                . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                  . q{ entitlement=} . $ENV{entitlement}
-                                    . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
-          });
+    if (DEBUG('auth')) {
+        q{AUTH: user=} . $self->get_user_name($C) . q{ display=} . $self->get_user_display_name($C)
+          . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+            . q{ authsys=} . __get_auth_sys($ses)
+              . q{ newlogin=} . $self->isa_new_login()
+                . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                  . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                    . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
+                      . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
+                        . q{ is_umich=} . $self->affiliation_is_umich($C)
+                          . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                            . q{ entitlement=} . $ENV{entitlement}
+                              . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                          }
 }
 
 sub _initialize {
     my $self = shift;
     my $C = shift;
-
-    $self->{institution_map} = __load_institutions_xml($C);
 
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
@@ -198,56 +196,6 @@ sub _initialize {
             # POSSIBLY NOTREACHED
         }
     }
-}
-
-# ---------------------------------------------------------------------
-
-=item __load_institutions_xml
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __load_institutions_xml {
-    my $C = shift;
-
-    my $app = $C->get_object('App')->get_app_name($C);
-    my $institution_file = qq{$ENV{SDRROOT}/$app/web/common-web/institutions.xml};
-
-    my $xml_ref = Utils::read_file($institution_file);
-    my $parser = XML::LibXML->new();
-    my $tree = $parser->parse_string($$xml_ref);
-    my $root = $tree->getDocumentElement();
-
-    my $xpath = q{/Institutions/Inst};
-    my $xml_instMap = $root->findnodes($xpath);
-    my $inst_map = {};
-
-    foreach my $inst ($xml_instMap->get_nodelist) {
-        my $domain = $inst->getAttribute('domain');
-        $inst_map->{$domain} = {
-            'sdrinst' => $inst->getAttribute('sdrinst'),
-            'us'      => $inst->getAttribute('us'),
-            'name'    => $inst->textContent
-        };
-    }
-
-    return $inst_map;
-}
-
-# ---------------------------------------------------------------------
-
-=item get_institution_map
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub get_institution_map {
-    my $self = shift;
-    return $self->{institution_map}
 }
 
 # ---------------------------------------------------------------------
@@ -432,6 +380,9 @@ priority scheme) that we recognize as asserting authentication
 # ---------------------------------------------------------------------
 sub is_logged_in {
     my $self = shift;
+
+    return 0 if (DEBUG('notlogged'));
+
     return exists($ENV{'REMOTE_USER'});
 }
 
@@ -469,9 +420,26 @@ sub __get_institution_by_ip_address {
 
 # ---------------------------------------------------------------------
 
+=item __get_domain_from_affiliation
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_domain_from_affiliation {
+    my $aff = shift;
+    my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+
+    return $domain;
+}
+
+# ---------------------------------------------------------------------
+
 =item get_institution_code
 
-Note this maps users eduPersonScopedAffiliation to the institution code.
+Note this maps users eduPersonScopedAffiliation to the (possibly
+mapped) institution code.
 
 =cut
 
@@ -479,25 +447,18 @@ Note this maps users eduPersonScopedAffiliation to the institution code.
 sub get_institution_code {
     my $self = shift;
     my $C = shift;
-
-    my $aff = $self->get_eduPersonScopedAffiliation($C);
-    my $map_ref = $self->get_institution_map();
+    my $mapped = shift;
 
     my $inst_code;
 
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
     if ($aff) {
-        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst_code = $map_ref->{$domain}->{sdrinst};
+        my $domain = __get_domain_from_affiliation($aff);
+        $inst_code = Institutions::get_institution_domain_field_val($C, $domain, 'sdrinst', $mapped);
     }
     else {
         my $inst = __get_institution_by_ip_address();
-        # Try a lookup by SDRINST
-        foreach my $domain (keys %$map_ref) {
-            if ($map_ref->{$domain}->{sdrinst} eq $inst) {
-                $inst_code = $map_ref->{$domain}->{sdrinst};
-                last;
-            }
-        }
+        $inst_code = Institutions::get_institution_sdrinst_field_val($C, $inst, 'sdrinst', $mapped);
     }
 
     return $inst_code;
@@ -520,9 +481,10 @@ sub get_institution_us_status {
 
     my $aff = $self->get_eduPersonScopedAffiliation($C);
     if ($aff) {
-        my $map_ref = $self->get_institution_map();
-        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $status = $map_ref->{$domain}->{us} ? 'affus' : 'affnonus';
+        my $domain = __get_domain_from_affiliation($aff);
+        my $us = Institutions::get_institution_domain_field_val($C, $domain, 'us');
+
+        $status = $us ? 'affus' : 'affnonus';
     }
 
     return $status;
@@ -541,25 +503,18 @@ eduPersonScopedAffiliation to the institution name.
 sub get_institution_name {
     my $self = shift;
     my $C = shift;
-
-    my $aff = $self->get_eduPersonScopedAffiliation($C);
-    my $map_ref = $self->get_institution_map();
+    my $mapped = shift;
 
     my $inst_name;
 
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
     if ($aff) {
-        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst_name = $map_ref->{$domain}->{name};
+        my $domain = __get_domain_from_affiliation($aff);
+        $inst_name = Institutions::get_institution_domain_field_val($C, $domain, 'name', $mapped);
     }
     else {
         my $inst = __get_institution_by_ip_address();
-        # Try a lookup by SDRINST
-        foreach my $domain (keys %$map_ref) {
-            if ($map_ref->{$domain}->{sdrinst} eq $inst) {
-                $inst_name = $map_ref->{$domain}->{name};
-                last;
-            }
-        }
+        $inst_name = Institutions::get_institution_sdrinst_field_val($C, $inst, 'name', $mapped);
     }
 
     return $inst_name;
@@ -591,6 +546,9 @@ ranges.
 sub is_in_library {
     my $self = shift;
 
+    return 0 if (DEBUG('nonlib'));
+    return 1 if (DEBUG('inlib'));
+
     my $institution = __get_institution_by_ip_address();
     return ($institution && $ENV{SDRLIB});
 }
@@ -608,6 +566,8 @@ See is_in_library
 sub is_in_uom_library {
     my $self = shift;
     my $institution = __get_institution_by_ip_address();
+
+    return 0 if (DEBUG('nonlib'));
 
     return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
 }
@@ -689,6 +649,34 @@ sub get_eduPersonScopedAffiliation {
     }
 
     return $eduPersonScopedAffiliation;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_eduPersonUnScopedAffiliation
+
+This is the full eduPersonScopedAffiliation, e.g. member@umich.edu
+with stripped of the acope.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_eduPersonUnScopedAffiliation {
+    my $self = shift;
+    my $C = shift;
+
+    my $eduPersonUnScopedAffiliation;
+
+    if ($self->auth_sys_is_COSIGN($C)) {
+        if (! $self->login_realm_is_friend()) {
+            $eduPersonScopedAffiliation = 'member';
+        }
+    }
+    elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
+        $eduPersonUnScopedAffiliation = $self->__get_prioritized_unscoped_affiliation();
+    }
+
+    return $eduPersonUnScopedAffiliation;
 }
 
 # ---------------------------------------------------------------------
@@ -815,16 +803,20 @@ sub __get_parsed_displayName {
 
 # ---------------------------------------------------------------------
 
-=item get_displayName
+=item __get_displayName
 
 This is the displayName attribute, e.g. Franklin Lumpkin, Esq.
 
 http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#displayName
 
+users of Auth::Auth should call:
+
+$self->get_user_display_name($C,  [scoped|unscoped])
+
 =cut
 
 # ---------------------------------------------------------------------
-sub get_displayName {
+sub __get_displayName {
     my $self = shift;
     my $C = shift;
 
@@ -926,7 +918,8 @@ Shibboleth displayName, eppn, etc.
 sub get_user_display_name {
     my $self = shift;
     my $C = shift;
-
+    my $unscoped = shift;
+    
     my $user_display_name = 'anonymous';
 
     if ($C->has_object('Session')) {
@@ -936,8 +929,11 @@ sub get_user_display_name {
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name =
-                    $self->get_displayName($C)
-                            || $self->get_eduPersonScopedAffiliation($C);
+                    $self->__get_displayName($C)
+                      || ( $unscoped
+                           ? $self->get_eduPersonUnScopedAffiliation($C)
+                           : $self->get_eduPersonScopedAffiliation($C)
+                         );
             }
         }
         else {
@@ -1024,7 +1020,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-2010 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007, 2010, 2012 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

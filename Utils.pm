@@ -358,10 +358,10 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_tmp_logdir {
-    my $logdir = $ENV{SDRROOT} . '/logs/tmp'; 
+    my $logdir = $ENV{SDRROOT} . '/logs/tmp';
     Utils::mkdir_path($logdir);
     chmod(0777, $logdir) if (-o $logdir);
-    
+
     return $logdir;
 }
 
@@ -805,15 +805,15 @@ Construct $SDRROOT/{cache|cache-full}/$key
 sub get_true_cache_dir {
     my $C = shift;
     my $cache_dir_key = shift;
-    
+
     # polymorphic : allow MdpConfig or Context as parameter
     my $config = ref($C) eq 'Context' ? $C->get_object('MdpConfig') : $C;
 
     my $cache_dir = $ENV{SDRROOT} . $config->get($cache_dir_key);
     my $true_cache_component = ($ENV{SDRVIEW} eq 'full') ? 'cache-full' : 'cache';
-    
+
     $cache_dir =~ s,___CACHE___,$true_cache_component,;
-    
+
     return $cache_dir;
 }
 
@@ -978,7 +978,7 @@ sub write_data_to_file
 
 =item resolve_data_root
 
-Support alternative data root for sample HTDE environment 
+Support alternative data root for sample HTDE environment
 
 =cut
 
@@ -991,7 +991,7 @@ sub resolve_data_root {
     if (! defined $config) {
         return '/dev/null';
     }
-    
+
     if ( $config->has('localdataroot') ) {
         return $ENV{SDRDATAROOT} = $config->get('localdataroot');
     }
@@ -1217,7 +1217,7 @@ add HTTP response header to HTTP::Headers object in Config.
 =cut
 
 # ---------------------------------------------------------------------
-sub add_header 
+sub add_header
 {
     my ($C, $key, $value) = @_;
     my $headers_ref = $C->get_object('HTTP::Headers', 1);
@@ -1238,22 +1238,27 @@ sub add_header
 sub get_user_status_cookie
 {
     my ($C, $auth) = @_;
-    
-    my $displayName = $auth->get_displayName($C);
-    my $institution = $auth->get_institution_code($C);
-    my $institution_name = $auth->get_institution_name($C);
+
+    my $displayName = $auth->get_user_display_name($C, 'unscoped');
+    my $institution = $auth->get_institution_code($C, 'mapped');
+    my $institution_name = $auth->get_institution_name($C, 'mapped');
     my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
-    my $auth_type = lc($ENV{AUTH_TYPE}); # should this require session?
-    
+    my $auth_type;
+    if ( $auth->auth_sys_is_SHIBBOLETH($C) ) {
+        $auth_type = 'shibboleth';
+    }
+    elsif ( $auth->auth_sys_is_COSIGN($C) ) {
+        $auth_type = 'cosign';
+    }
     my $status = { authType => $auth_type, displayName => $displayName, institution => $institution, affiliation => $institution_name, u => $print_disabled };
-    
+
     my $cookie = new CGI::Cookie(
-        -name => "HTstatus", 
-        -path => "/", 
-        -domain => get_cookie_domain(), 
+        -name => "HTstatus",
+        -path => "/",
+        -domain => get_cookie_domain(),
         -value => encode_json($status)
     );
-    
+
     return $cookie;
 }
 
@@ -1267,7 +1272,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
