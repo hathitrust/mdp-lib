@@ -445,6 +445,28 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^129\.170\.88\.62$',
                         ],
       },
+   'jan.e.peltzer@dartmouth.edu'
+   => {
+       'displayname' => 'Peltzer, Jan',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.170\.88\.62$',
+                        ],
+      },
+   'lori.a.heath@dartmouth.edu'
+   => {
+       'displayname' => 'Heath, Lori',
+       'supervisor'  => 'glusko',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^129\.170\.88\.62$',
+                        ],
+      },
    's-morrison@northwestern.edu'
    => {
        'displayname' => 'Morrison, Shelley',

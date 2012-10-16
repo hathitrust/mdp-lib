@@ -127,7 +127,7 @@ sub a_Authorized {
               my $time = time;
               my @users = (sort keys %$ref);
               my @debug_users = ();
-              foreach my $user (@users) {
+              foreach my $user (sort { $a cmp $b } @users) {
                   if (DEBUG($user)) {
                       push(@debug_users, $user);
                   }
