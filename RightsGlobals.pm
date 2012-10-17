@@ -16,6 +16,7 @@ package RightsGlobals;
  10        purd           Purdue University
  11        getty          Getty Research Institute
  12        um-dc-mp       University of Michigan, Duderstadt Center, Millennium Project
+ 13        uiuc           University of Illinois at Urbana-Champaign 
 
  ATTRIBUTES
  id        name        type      dscr
@@ -162,6 +163,7 @@ our $HT_AFFILIATE        = 5;
    '10' => 'purd',
    '11' => 'getty',
    '12' => 'um-dc-mp',
+   '13' => 'uiuc',
   );
 
 @g_stmt_fields = 
@@ -445,6 +447,7 @@ $g_orphan_candidate_attribute_value = 16;
                                            10, # purd
                                            11, # getty
                                            12, # um-dc-mp
+                                           13, # uiuc
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
