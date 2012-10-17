@@ -299,18 +299,18 @@ sub handle_template_file {
     my $msg = shift;
 
     my $template_ref;
+    my $appname = ___determine_app();
 
     if (defined($ENV{'UNAVAILABLE'})) {
-        my $filename = $ENV{'SDRROOT'} . '/mdp-web/MBooks_unavailable.html';
+        my $filename = $ENV{'SDRROOT'} . '/$appname/common-web/MBooks_unavailable.html';
         $template_ref = Utils::read_file($filename, 1);
         process_availability_file_msg($template_ref, $msg);
     }
     else {
-        my $filename = $ENV{'SDRROOT'} . '/mdp-web/production_error.html';
+        my $filename = $ENV{'SDRROOT'} . '/$appname/common-web/production_error.html';
         $template_ref = Utils::read_file($filename, 1);
     }
 
-    my $appname = ___determine_app();
     $$template_ref =~ s,\./,/$appname/common-web/,g;
 
     CGI::Carp::DebugScreen->set_error_template($$template_ref)
