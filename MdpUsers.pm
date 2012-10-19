@@ -1145,15 +1145,6 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
        'role'        => 'superuser',
        'iprestrict'  => $gSuperuserSubnetRangesRef,
       },
-   'ezbrooks'
-   => {
-       'displayname' => 'Brooks, Ezra',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
    'nasirg'
    => {
        'displayname' => 'Grewal, Nasir',
@@ -1175,6 +1166,15 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
    'srmishra'
    => {
        'displayname' => 'Mishra, Sonali',
+       'supervisor'  => 'pfarber',
+       'expires'     => $gSuperuserExpireDate,
+       'usertype'    => 'staff',
+       'role'        => 'superuser',
+       'iprestrict'  => $gSuperuserSubnetRangesRef,
+      },
+   'jgmorse'
+   => {
+       'displayname' => 'Morse, Jeremy',
        'supervisor'  => 'pfarber',
        'expires'     => $gSuperuserExpireDate,
        'usertype'    => 'staff',
