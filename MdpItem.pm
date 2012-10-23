@@ -70,6 +70,16 @@ sub GetMetsXmlFilename
     return $itemFileSystemLocation . qq{/$stripped_id} . $MdpGlobals::gMetsFileExtension;
 }
 
+sub GetMetsXmlModTime {
+    my ( $id ) = @_;
+    my $itemFileSystemLocation = Identifier::get_item_location($id);
+    my $barcode = Identifier::get_id_wo_namespace($id);
+    my $mets_filename = qq{$itemFileSystemLocation/$barcode.mets.xml};
+
+    my $mets_mtime = (stat($mets_filename))[9];
+    return $mets_mtime;
+}
+
 # ----------------------------------------------------------------------
 # NAME         :
 # PURPOSE      :
@@ -170,7 +180,7 @@ sub __handle_mdpitem_cache_setup {
             DEBUG('time', qq{<h3>Start mdp item uncache</h3>} . Utils::display_stats());
         
             my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
-            $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age);
+            $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age, GetMetsXmlModTime($id));
             $mdpItem = $cache->Get($id, $cache_key);
             DEBUG('time', qq{<h3>Finish mdp item uncache</h3>} . Utils::display_stats());
 
@@ -2000,39 +2010,17 @@ sub GetOrientationInDegrees
 
 # ---------------------------------------------------------------------
 
-=item file_exists_n_newer
+=item get_modtime
 
-Check existence of web derivative and that its mtime is newer that
-mtime of zip file it was derived from.  Assumes all archival files are
-in zip files. That should now be the case.
+Class method call to GetMetsXmlModTime
 
 =cut
 
 # ---------------------------------------------------------------------
-sub file_exists_n_newer {
+sub get_modtime {
     my $self = shift;
-    my $derivative = shift;
-    
-    my $id = $self->GetId();
-
-    my $exists_n_newer = 0;
-    
-    if (Utils::file_exists($derivative)) {
-        my $itemFileSystemLocation = Identifier::get_item_location($id);
-        my $barcode = Identifier::get_id_wo_namespace($id);
-        my $zipfile = qq{$itemFileSystemLocation/$barcode.zip};
-
-        my $zip_mtime = (stat($zipfile))[9];
-        my $der_mtime = (stat($derivative))[9];
-
-        if ($der_mtime > $zip_mtime) {
-            $exists_n_newer = 1;
-        }
-    }
-
-    return $exists_n_newer;
+    return GetMetsXmlModTime($self->GetId());
 }
-
 
 1;
 
