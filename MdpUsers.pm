@@ -634,6 +634,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
       },
 
    # Minnesota CRMS
+
    'dewey002@umn.edu'
    => {
        'displayname' => 'Urban, Carla Dewey',
@@ -645,6 +646,7 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^160\.94\.15\.154$',
                          '^160\.94\.15\.188$',
                          '^160\.94\.20\.253$',
+                         '^160\.94\.15\.191$',
                         ],
       },
    's-zuri@umn.edu'
@@ -658,6 +660,40 @@ $gCRMS_ExpireDate = '2012-12-01 23:59:59';
                          '^160\.94\.224\.166$',
                         ],
       },
+   'wilhe040@umn.edu'
+   => {
+       'displayname' => 'Wilhelmi, Mark',
+       'supervisor'  => 'jaheim',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^160\.94\.15\.133$',
+                        ],
+      },
+   'd-lien@umn.edu'
+   => {
+       'displayname' => 'Lien, Dennis',
+       'supervisor'  => 'jaheim',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^160\.94\.223\.150$',
+                        ],
+      },
+   's-koeh@umn.edu'
+   => {
+       'displayname' => 'Koehler, Steve',
+       'supervisor'  => 'jaheim',
+       'expires'     => $gCRMS_ExpireDate,
+       'usertype'    => 'external',
+       'role'        => 'crms',
+       'iprestrict'  => [
+                         '^134\.84\.28\.148$',
+                        ],
+      },
+
 
    # Wisconsin CRMS
    'krattunde@library.wisc.edu'
