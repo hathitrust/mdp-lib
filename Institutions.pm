@@ -40,13 +40,11 @@ use Context;
 use Database;
 use DbUtils;
 
-my $Institution_Domain_Hash;
-my $Institution_SDRINST_Hash;
+my $Institution_Hash;
 
 sub __load_institution_hash {
     my $C = shift;
-    my $key = shift;
-    my $value = shift;
+    my ($selector, $key, $value) = @_;
 
     my $dbh = $C->get_object('Database')->get_DBH;
 
@@ -54,7 +52,7 @@ sub __load_institution_hash {
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
-    $Institution_Domain_Hash->{$value} =
+    $Institution_Hash->{$selector}->{$value} =
       {
        'sdrinst'       => $ref_to_arr_of_hashref->[0]->{sdrinst},
        'name'          => $ref_to_arr_of_hashref->[0]->{name},
@@ -70,22 +68,22 @@ sub __load_institution_hash {
       };
 }
 
-sub __load_institution_domain_hash {
+sub _load_institution_domain_hash {
     my $C = shift;
     my $domain = shift;
 
-    return if (defined $Institution_Domain_Hash->{$domain});
+    return if (defined $Institution_Hash->{domains}->{$domain});
 
-    __load_institution_hash($C, 'domain', $domain);
+    __load_institution_hash($C, 'domains', 'domain', $domain);
 }
 
-sub __load_institution_sdrinst_hash {
+sub _load_institution_sdrinst_hash {
     my $C = shift;
     my $sdrinst = shift;
 
-    return if (defined $Institution_SDRINST_Hash->{$sdrinst});
+    return if (defined $Institution_Hash->{sdrinsts}->{$sdrinst});
 
-    __load_institution_hash($C, 'sdrinst', $sdrinst);
+    __load_institution_hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
 }
 
 
@@ -102,25 +100,25 @@ sub get_institution_domain_field_val {
     my $C = shift;
     my ($domain, $field, $mapped) = @_;
 
-    __load_institution_domain_hash($C, $domain);
+    _load_institution_domain_hash($C, $domain);
 
     my $val;
 
     if (! $mapped) {
-        $val = $Institution_Domain_Hash->{$domain}->{$field};
+        $val = $Institution_Hash->{domains}->{$domain}->{$field};
     }
     else {
-        if ($field eq 'name' && $Institution_Domain_Hash->{$domain}->{mapto_name}) {
-            $val = $Institution_Domain_Hash->{$domain}->{mapto_name};
+        if ($field eq 'name' && $Institution_Hash->{domains}->{$domain}->{mapto_name}) {
+            $val = $Institution_Hash->{domains}->{$domain}->{mapto_name};
         }
-        elsif ($field eq 'domain' && $Institution_Domain_Hash->{$domain}->{mapto_domain}) {
-            $val = $Institution_Domain_Hash->{$domain}->{mapto_domain};
+        elsif ($field eq 'domain' && $Institution_Hash->{domains}->{$domain}->{mapto_domain}) {
+            $val = $Institution_Hash->{domains}->{$domain}->{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Domain_Hash->{$domain}->{mapto_sdrinst}) {
-            $val = $Institution_Domain_Hash->{$domain}->{mapto_sdrinst};
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{domains}->{$domain}->{mapto_sdrinst}) {
+            $val = $Institution_Hash->{domains}->{$domain}->{mapto_sdrinst};
         }
         else {
-            $val = $Institution_Domain_Hash->{$domain}->{$field};
+            $val = $Institution_Hash->{domains}->{$domain}->{$field};
         }
     }
 
@@ -140,25 +138,25 @@ sub get_institution_sdrinst_field_val {
     my $C = shift;
     my ($sdrinst, $field, $mapped) = @_;
 
-    __load_institution_sdrinst_hash($C, $sdrinst);
+    _load_institution_sdrinst_hash($C, $sdrinst);
 
     my $val;
 
     if (! $mapped) {
-        $val = $Institution_Domain_Hash->{$sdrinst}->{$field};
+        $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{$field};
     }
     else {
-        if ($field eq 'name' && $Institution_Domain_Hash->{$sdrinst}->{mapto_name}) {
-            $val = $Institution_Domain_Hash->{$sdrinst}->{mapto_name};
+        if ($field eq 'name' && $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_name}) {
+            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_name};
         }
-        elsif ($field eq 'domain' && $Institution_Domain_Hash->{$sdrinst}->{mapto_domain}) {
-            $val = $Institution_Domain_Hash->{$sdrinst}->{mapto_domain};
+        elsif ($field eq 'domain' && $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_domain}) {
+            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Domain_Hash->{$sdrinst}->{mapto_sdrinst}) {
-            $val = $Institution_Domain_Hash->{$sdrinst}->{mapto_sdrinst};
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_sdrinst}) {
+            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_sdrinst};
         }
         else {
-            $val = $Institution_Domain_Hash->{$sdrinst}->{$field};
+            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{$field};
         }
     }
 

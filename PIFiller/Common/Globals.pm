@@ -27,7 +27,6 @@ use Access::Statements;
 use Access::Rights;
 use Access::Holdings;
 use Auth::Auth;
-use Institutions;
 
 # ---------------------------------------------------------------------
 
@@ -207,12 +206,10 @@ sub handle_INSTITUTION_NAME_PI
 {
     my ($C, $act, $piParamHashRef) = @_;
 
-    my $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
-    my $institution_name = Institutions::get_institution_sdrinst_field_val($C, $inst, 'name', 'mapped');
+    my $auth = $C->get_object('Auth');
+    my $institution_name = $auth->get_institution_name($C, 'mapped');
 
-    my $s = wrap_string_in_tag($institution_name, 'InstitutionName');
-
-    return $s;
+    return $institution_name;
 }
 
 

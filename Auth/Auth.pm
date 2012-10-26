@@ -148,20 +148,19 @@ sub __debug_auth {
     my $self = shift;
     my ($C, $ses) = @_;
 
-    if (DEBUG('auth')) {
-        q{AUTH: user=} . $self->get_user_name($C) . q{ display=} . $self->get_user_display_name($C)
+    DEBUG('auth',
+          q{AUTH: user=} . $self->get_user_name($C) . q{ display=} . $self->get_user_display_name($C)
           . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
-            . q{ authsys=} . __get_auth_sys($ses)
-              . q{ newlogin=} . $self->isa_new_login()
-                . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                  . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                    . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
-                      . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
-                        . q{ is_umich=} . $self->affiliation_is_umich($C)
-                          . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                            . q{ entitlement=} . $ENV{entitlement}
-                              . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                          }
+          . q{ authsys=} . __get_auth_sys($ses)
+          . q{ newlogin=} . $self->isa_new_login()
+          . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+          . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+          . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
+          . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
+          . q{ is_umich=} . $self->affiliation_is_umich($C)
+          . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+          . q{ entitlement=} . $ENV{entitlement}
+          . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C));
 }
 
 sub _initialize {
@@ -185,7 +184,7 @@ sub _initialize {
                                                          $self->get_user_name($C),
                                                         );
             }
-
+            
             $self->__debug_auth($C, $ses);
         }
         else {

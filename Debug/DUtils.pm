@@ -48,15 +48,15 @@ my $non_HathiTrust_IP = '0.0.0.0';
 my %HathiTrust_IP_hash =
   (
    'wisc' => {'ip' => '198.150.174.127', 'name' => 'University of Wisconsin',   'aff' => 'member@wisc.edu',},
-   'ind'  => {'ip' => '192.203.115.127', 'name' => 'University of Indiana',     'aff' => 'member@ind.edu',},
-   'ucal' => {'ip' => '128.195.127.127', 'name' => 'University of California',  'aff' => 'member@ucal.edu',},
+   'ind'  => {'ip' => '192.203.115.127', 'name' => 'University of Indiana',     'aff' => 'member@iu.edu',},
+   'ucsd' => {'ip' => '128.195.127.127', 'name' => 'University of California, San Diego',  'aff' => 'member@ucsd.edu',},
    'msu'  => {'ip' => '207.73.115.127' , 'name' => 'Michigan State University', 'aff' => 'member@msu.edu',},
    'nwu'  => {'ip' => '209.100.79.127' , 'name' => 'Northwestern University',   'aff' => 'member@nwu.edu',},
    'osu'  => {'ip' => '128.146.127.127', 'name' => 'Ohio State University',     'aff' => 'member@osu.edu',},
    'ias'  => {'ip' => '128.112.203.62' , 'name' => 'Princeton University',      'aff' => 'member@ias.edu',},
    'prnc' => {'ip' => '128.112.203.127', 'name' => 'Princeton University',      'aff' => 'member@princeton.edu',},
    'psu'  => {'ip' => '150.231.127.127', 'name' => 'Penn State University',     'aff' => 'member@psu.edu',},
-   'ucm'  => {'ip' => '147.96.1.135',    'name' => 'Universidad Complutense de Madrid', 'aff' => 'member@ucm.edu',}, # non-US
+   'ucm'  => {'ip' => '147.96.1.135',    'name' => 'Universidad Complutense de Madrid', 'aff' => 'member@ucm.es',}, # non-US
   );
 
 # ---------------------------------------------------------------------
@@ -124,6 +124,7 @@ sub set_HathiTrust_debug_environment {
                 $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{$inst_code}{ip};
                 $ENV{affiliation} = $HathiTrust_IP_hash{$inst_code}{aff};
                 $ENV{AUTH_TYPE} = 'shibboleth';
+                $ENV{REMOTE_USER} = 'somepersistentshibidentifier';
                 last;
             }
         }
