@@ -786,8 +786,12 @@ sub get_eduPersonTargetedID {
 
 =item __get_parsed_displayName
 
-Parse eduperson displayName returning first element in case multiple
-values are released.
+Parse eduPerson displayName. We've seen the environment return
+exactly: '&amp;eacute\;' as part of a name which is a mess to handle
+and invalid in XML if we try to unescape it so if we see '&amp;' that
+is not the beginning of an escaped numeric character reference
+(&amp;#x0123;) in the environment we substitute '' to let downstream
+code (e.g. get_eduPersonUnScopedAffiliation) deal.
 
 =cut
 
@@ -795,9 +799,12 @@ values are released.
 sub __get_parsed_displayName {
     my $self = shift;
 
-    my @elems = split(/\s*;\s*/, $ENV{displayName});
-
-    return $elems[0];
+    my $name = $ENV{displayName};
+    if ($name =~ m,&amp;[^#],) {
+        $name = '';
+    }
+    
+    return $name;
 }
 
 # ---------------------------------------------------------------------
@@ -810,7 +817,7 @@ http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-2008
 
 users of Auth::Auth should call:
 
-$self->get_user_display_name($C,  [scoped|unscoped])
+$self->get_user_display_name($C, [scoped(0)|unscoped(1)])
 
 =cut
 
