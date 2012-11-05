@@ -1,25 +1,30 @@
 package MdpUsers;
 
-# Copyright 2010 The Regents of The University of Michigan, All Rights Reserved
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject
-# to the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
+=head1 NAME
 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+MdpUsers;
+
+=head1 DESCRIPTION
+
+This class is a perl interface to ht_repository.ht_users
+
+=head1 SYNOPSIS
+
+Coding example
+
+=head1 METHODS
+
+=over 8
+
+=cut
+
+use strict;
+use warnings;
+
+use Context;
+use Database;
+use DbUtils;
+
 
 # Mon Feb 13 2012 Superusers are restricted to these ranges
 # 141.211.43.128/25   141.211.43.129  - 141.211.43.254  - LIT offices 
@@ -29,1194 +34,194 @@ package MdpUsers;
 # 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center 
 # 141.213.232.192/26  141.213.232.193 - 141.213.232.254 - MACC data center (this will  be retired sometime in 2012)
 #                     141.211.174.173 - 141.211.174.199 - ULIC Shapiro 4th floor
-
-$gSuperuserSubnetRangesRef =
-  [
-   q{^141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.211\.84\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.211\.168\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.213\.128\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.213\.232\.(1(9[3-9])|2([0-4][0-9]|5[0-4]))$},
-   q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$},
-  ];
+# 
+my $superuser_subnet_ranges = 
+  q{^(141.211.43.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.84.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.168.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.(1(7[2-5])).([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.213.128.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.213.232.(1(9[3-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.174.(1(7[3-9]|[8-9][0-9])))$};
 
 # Staff, students are restricted to internal subnets. Friend-accounts
 # are locked to an exact IP address that should be hardcoded for the
-# 'iprestrict' key.
-# Mon Apr 23 10:58:29 2012: Updated subset to match superuser defns above
-$gStaffSubnetRangesRef =
-  [
-   q{^141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4]))$}, # Hatcher/Shapiro/CRMS
-   q{^141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4]))$}, # LIT 3rd floor Hatcher
-  ];
+# 'iprestrict' key.  
+#
+# Mon Apr 23 10:58:29 2012: Updated subset to match superuser defns
+# above
+#
+my $staff_subnet_ranges = 
+  q{^(141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
 
 # ULIC 141.211.174.173 - 141.211.174.199
-$gULIC_SubnetRangesRef = [
-                          q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$},
-                         ];
-$gCRMS_WorkshopExpireDate = '2012-05-04 23:59:59';
+#
+my $ULIC_subnet_ranges = 
+  q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$};
+
+# black hole
+#
+my $null_range = '^0\.0\.0\.0$';
 
 
 # Superuser access expires on date:
-$gSuperuserExpireDate = '2012-12-31 23:59:59';
-# Staff, student,friend access expires on date:
-$gStaffExpireDate = '2012-12-31 23:59:59';
-# CRMS users
-$gCRMS_ExpireDate = '2012-12-01 23:59:59';
+my $superuser_expire_date = '2012-12-31 23:59:59';
 
-# Send warnings of inpending expiration to supervisors this many days
-# from the end
-@gAccessExpireWarningDays = (30, 15);
+# Staff, student access expires on date:
+my $staff_expire_date = '2012-12-31 23:59:59';
 
-# New users should be configured with the same inception date as all
-# the other staff of the given supervisor.
+# Friend access expires on date:
+my $external_expire_date = '2012-12-31 23:59:59';
+
+# CRMS users access expires on date:
+my $CRMS_expire_date = '2012-12-01 23:59:59';
+
 #
-# WARNING: keys to this hash must be lower-case to work vs. ACL.pm
+# The ACL
 #
-# NOTE: usertypes are 'staff' (UM), 'student' (UM), 'external' (non-UM)
-#       roles are (currently) 'superuser', 'generalhathi', 'crms', 'orphan', 'digitization', 'quality', 'cataloging'
-%gAccessControlList =
-  (
-   # Shibboleth development e.g. persistent-id=...
-   'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0hwjoiebxqgt6dfxh65zxsok=' 
-   =>
-   {
-    'displayname' => 'Farber, Phillip Shibboleth development',
-    'supervisor'  => 'pfarber',
-    'expires'     => $gSuperuserExpireDate,
-    'usertype'    => 'staff',
-    'role'        => 'superuser',
-    'iprestrict'  => [
-                      '^141\.211\.43\.195$',
-                     ],
-   },
+my %gAccessControlList;
 
-   # HathiTrust staff
-   'azaytsev'
-   => {
-       'displayname' => 'Zaytsev, Angelina',
-       'supervisor'  => 'jjyork',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'generalhathi',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
+# ---------------------------------------------------------------------
 
-   # Michigan cataloging
-   'ekflanag'
-   => {
-       'displayname' => 'Campbell, Emily',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'cataloging',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'amuro'
-   => {
-       'displayname' => 'Knott, Martin ',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'cataloging',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'cmcguire'
-   => {
-       'displayname' => 'McGuire, Connie',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'cataloging',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'emustard'
-   => {
-       'displayname' => 'Mustard, Liz',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'cataloging',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'ellenkw'
-   => {
-       'displayname' => 'Wilson, Ellen',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'cataloging',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   
-   # === CRMS - see Bobby Glushko <rglushko@umich.edu> ===
+=item __load_access_control_list
 
-   # CRMS World, assorted institutions
+PRIVATE 
 
-   'srobbins@illinois.edu'
-   => {
-       'displayname' => 'Robbins, Seth',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^130\.126\.34\.194$',
-                         '^130\.126\.34\.197$',
-                        ],
-      },
-   'jnash4@illinois.edu'
-   => {
-       'displayname' => 'Nash, Jake',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^130\.126\.34\.194$',
-                         '^130\.126\.34\.197$',
-                        ],
-      },
-   'shelly2@illinois.edu'
-   => {
-       'displayname' => 'Shelly, Joshua',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^130\.126\.36\.73$',
-                         '^192\.17\.251\.93$',
-                        ],
-      },
-   'bxb39@psu.edu'
-   => {
-       'displayname' => 'Blakeslee-Drain, Benjamin',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.118\.152\.183$',
-                        ],
-      },
-    'ccb4@psu.edu'
-   => {
-       'displayname' => 'Bridgens, Carol',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.118\.90\.34$',
-                        ],
-      },
-    'nlb125@psu.edu'
-   => {
-       'displayname' => 'Nicastro, Nicolle',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.118\.153\.92$',
-                        ],
-      },
-    'msf13@psu.edu'
-   => {
-       'displayname' => 'Rinker, Melanie',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.118\.152\.80$',
-                        ],
-      },
-   'keden'
-   => {
-       'displayname' => 'Eden, Kristina',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^141\.211\.173\.213$',
-                        ],
-      },
-   'morikaw1@illinois.edu'
-   => {
-       'displayname' => 'Morikawa, Hiromi',
-       'supervisor'  => 'glusko',
-       'expires'     => '2012-10-06 23:59:59', # Remove after
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^130\.126\.36\.73$',
-                         '^192\.17\.251\.93$',
-                        ],
-      },
-   'ariggio@library.ucla.edu'
-   => {
-       'displayname' => 'Riggio, Angela',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^164\.67\.17\.137$',
-                        ],
-      },
-   'a-gibbs@northwestern.edu'
-   => {
-       'displayname' => 'DuncanGibbs, Ann',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.105\.29\.27$',
-                        ],
-      },
-   'betsyk@illinois.edu'
-   => {
-       'displayname' => 'Kruger, Betsy',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^130\.126\.36\.71$',
-                        ],
-      },
-   'hughes@uci.edu'
-   => {
-       'displayname' => 'Hughes, Carol',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.195\.145\.101$',
-                        ],
-      },
-   'holobar@psu.edu'
-   => {
-       'displayname' => 'Holobar, Chris',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.118\.90\.188$',
-                        ],
-      },
-   'ccase2@jhu.edu'
-   => {
-       'displayname' => 'Case, Christopher',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.220\.8\.213$',
-                        ],
-      },
-   'd-zellner@northwestern.edu'
-   => {
-       'displayname' => 'Zellner, Dan',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.105\.184\.28$',
-                        ],
-      },
-   'david.macfarland@ucsf.edu'
-   => {
-       'displayname' => 'MacFarland, David',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.218\.15\.136$',
-                        ],
-      },
-   'denyse_rodgers@baylor.edu'
-   => {
-       'displayname' => 'Rodgers, Denyse',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.62\.35\.254$',
-                        ],
-      },
-   'gem10@psu.edu'
-   => {
-       'displayname' => 'Brooks, Grace',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.118\.90\.48$',
-                        ],
-      },
-   'jblock@princeton.edu'
-   => {
-       'displayname' => 'Block, Jennifer',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.112\.200\.247$',
-                        ],
-      },
-   'j-young2@northwestern.edu'
-   => {
-       'displayname' => 'Young, Jennifer',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.105\.203\.57$',
-                        ],
-      },
-   'judy.bailey@duke.edu'
-   => {
-       'displayname' => 'Bailey, Judy',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^152\.3\.116\.242$',
-                        ],
-      },
-   'katiebrown@northwestern.edu'
-   => {
-       'displayname' => 'Brown, Katie',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.105\.29\.57$',
-                        ],
-      },
-   'kdesous2@jhu.edu'
-   => {
-       'displayname' => 'DeSousa, Katie',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.220\.8\.217$',
-                        ],
-      },
-   'martinjbrennan@library.ucla.edu'
-   => {
-       'displayname' => 'Brennan, Martin',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^164\.67\.19\.44$',
-                        ],
-      },
-   'sarah.mcbride@dartmouth.edu'
-   => {
-       'displayname' => 'McBride, Sarah',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.170\.88\.49$',
-                         '^129\.170\.88\.62$',
-                        ],
-      },
-   'jan.e.peltzer@dartmouth.edu'
-   => {
-       'displayname' => 'Peltzer, Jan',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.170\.88\.62$',
-                        ],
-      },
-   'lori.a.heath@dartmouth.edu'
-   => {
-       'displayname' => 'Heath, Lori',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.170\.88\.62$',
-                        ],
-      },
-   's-morrison@northwestern.edu'
-   => {
-       'displayname' => 'Morrison, Shelley',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.105\.29\.26$',
-                        ],
-      },
-   'towen@umd.edu'
-   => {
-       'displayname' => 'Owen, Terry',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.2\.18\.73$',
-                        ],
-      },
-   'winston.atkins@duke.edu'
-   => {
-       'displayname' => 'Atkins, Winston',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^152\.3\.116\.104$',
-                        ],
-      },
-   'zl2114@columbia.edu'
-   => {
-       'displayname' => 'Lane, Zack',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.59\.154\.21$',
-                        ],
-      },
-   'curtis.lavery@ucop.edu'
-   => {
-       'displayname' => 'Lavery, Curtis',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.48\.39\.98$',
-                        ],
-      },
-   'virginia.sinclair@ucop.edu'
-   => {
-       'displayname' => 'Sinclair, Virginia',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.48\.204\.180$',
-                        ],
-      },
-   'nancy.scott-noennig@ucop.edu'
-   => {
-       'displayname' => 'ScottNoennig, Nancy',
-       'supervisor'  => 'glusko',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.48\.39\.107$',
-                        ],
-      },
-   
-   # Michigan CRMS   
-   'mslevine'
-   => {
-       'displayname' => 'Levine, Melissa',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'rglushko'
-   => {
-       'displayname' => 'Glushko, Bobby',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'rcadler'
-   => {
-       'displayname' => 'Adler, Rich',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'jaheim'
-   => {
-       'displayname' => 'Ahronheim, Judith R',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'gnichols'
-   => {
-       'displayname' => 'Nichols, Gregory C ',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'cwilcox'
-   => {
-       'displayname' => 'Wilcox, Christine R',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'dmcw'
-   => {
-       'displayname' => 'McWhinnie, Dennis A ',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'hnhampt'
-   => {
-       'displayname' => 'Hampton, Heather',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'crms',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
+WARNING: keys to this hash must be lower-case to work vs. ACL.pm
 
-   # Columbia CRMS
-   'zl2114@columbia.edu'
-   => {
-       'displayname' => 'Lane, Zack',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.59\.154\.122$',
-                         '^128\.59\.154\.21$',
-                        ],
-      },
+usertypes are 'staff' (UM), 'student' (UM), 'external' (non-UM)
 
-   # Minnesota CRMS
+roles are (currently) 'superuser', 'generalhathi', 'crms', 'orphan',
+'digitization', 'quality', 'cataloging'
 
-   'dewey002@umn.edu'
-   => {
-       'displayname' => 'Urban, Carla Dewey',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^160\.94\.15\.154$',
-                         '^160\.94\.15\.188$',
-                         '^160\.94\.20\.253$',
-                         '^160\.94\.15\.191$',
-                        ],
-      },
-   's-zuri@umn.edu'
-   => {
-       'displayname' => 'Zuriff, Sue',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^160\.94\.224\.166$',
-                        ],
-      },
-   'wilhe040@umn.edu'
-   => {
-       'displayname' => 'Wilhelmi, Mark',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^160\.94\.15\.133$',
-                        ],
-      },
-   'd-lien@umn.edu'
-   => {
-       'displayname' => 'Lien, Dennis',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^160\.94\.223\.150$',
-                        ],
-      },
-   's-koeh@umn.edu'
-   => {
-       'displayname' => 'Koehler, Steve',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^134\.84\.28\.148$',
-                        ],
-      },
+ CREATE TABLE `ht_users` (
+       `userid` varchar(256) DEFAULT NULL,
+       `displayname` varchar(128) DEFAULT NULL,
+       `usertype` varchar(32) DEFAULT NULL,
+       `role` varchar(32) DEFAULT NULL, 
+       `expires` varchar(32) DEFAULT NULL, 
+       `iprestrict` varchar(1024) DEFAULT NULL, 
+                 PRIMARY KEY (`userid`));
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __load_access_control_list {
+    
+    return if (scalar keys %gAccessControlList);
+    
+    my $C = new Context;
+    my $dbh = $C->get_object('Database')->get_DBH;
+
+    my $statement = qq{SELECT * FROM ht_users};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+
+    foreach my $hashref (@$ref_to_arr_of_hashref) {
+        my $userid = $hashref->{userid};
+        
+        $gAccessControlList{$userid}{displayname} = $hashref->{displayname};
+        $gAccessControlList{$userid}{usertype} = $hashref->{usertype};
+        $gAccessControlList{$userid}{role} = $hashref->{role};
+
+        my $expires = $hashref->{expires};
+        my $iprestrict = $hashref->{iprestrict};
+        
+        # Stored IP range and expiration date are in control, if
+        # defined, else we use one of the above hardcoded ranges
+        # depending on usertype and role.
+        if (defined($iprestrict)) {
+            $gAccessControlList{$userid}{iprestrict} = $iprestrict;
+        }
+        if (defined($expires)) {
+            $gAccessControlList{$userid}{expires} = $expires;
+        }
+        
+        if ($gAccessControlList{$userid}{usertype} eq 'staff') {
+            if ($gAccessControlList{$userid}{role} eq 'superuser') {
+                $gAccessControlList{$userid}{expires} = $superuser_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $superuser_subnet_ranges unless (defined $iprestrict);
+            }
+            else {
+                $gAccessControlList{$userid}{expires} = $staff_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $staff_subnet_ranges unless (defined $iprestrict);
+            }
+        }
+        elsif ($gAccessControlList{$userid}{usertype} eq 'external') {
+            if ($gAccessControlList{$userid}{role} eq 'crms') {
+                $gAccessControlList{$userid}{expires} = $CRMS_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $null_range unless (defined $iprestrict);
+            }
+            else {
+                $gAccessControlList{$userid}{expires} = $external_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $null_range unless (defined $iprestrict);
+            }
+        }
+    }
+}
 
 
-   # Wisconsin CRMS
-   'krattunde@library.wisc.edu'
-   => {
-       'displayname' => 'Rattunde, Karen',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.104\.61\.15$',
-                        ],
-      },
-   'lnachreiner@library.wisc.edu'
-   => {
-       'displayname' => 'Nachreiner, Lisa',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.104\.61\.101$',
-                        ],
-      },
-   'rroemer@library.wisc.edu'
-   => {
-       'displayname' => 'Roemer, Rita',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.104\.61\.41$',
-                        ],
-      },
-   'aseeger@library.wisc.edu'
-   => {
-       'displayname' => 'Seeger, Al',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^128\.104\.61\.100$',
-                        ],
-      },
+# ---------------------------------------------------------------------
 
-   # Indiana CRMS
-   'tbullard@indiana.edu'
-   => {
-       'displayname' => 'Bullard, Thomas',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.79\.35\.87$',
-                        ],
-      },
-   'marlett@indiana.edu'
-   => {
-       'displayname' => 'Marlett, Kathy',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.79\.35\.84$',
-                        ],
-      },
-   'shmichae@indiana.edu'
-   => {
-       'displayname' => 'Michaels, Sherri',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.79\.35\.85$',
-                         '^129\.79\.35\.89$',
-                        ],
-      },
-   'jmcclamr@indiana.edu'
-   => {
-       'displayname' => 'McClamroch, Jo',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.79\.35\.88$',
-                        ],
-      },
-   'jamblack@indiana.edu'
-   => {
-       'displayname' => 'Black, Janet',
-       'supervisor'  => 'jaheim',
-       'expires'     => $gCRMS_ExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'crms',
-       'iprestrict'  => [
-                         '^129\.79\.35\.86$',
-                        ],
-      },
+=item get_user_attributes
 
-   # Orphan works review - see Melissa Levine <mslevine@umich.edu>
-   'bentobey'
-   => {
-       'displayname' => 'Tobey, Benjamin',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^141\.211\.173\.203$',
-                         '^141\.211\.173\.204$',
-                         '^141\.211\.173\.205$',
-                         '^141\.211\.173\.212$',
-                         '^141\.211\.173\.138$',
-                        ],
-      },
-   'adamsn'
-   => {
-       'displayname' => 'Adams, Neena',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^141\.211\.173\.203$',
-                         '^141\.211\.173\.204$',
-                         '^141\.211\.173\.205$',
-                         '^141\.211\.173\.212$',
-                         '^141\.211\.173\.138$',
-                        ],
-      },
-   'bryanbir'
-   => {
-       'displayname' => 'Birchmeier, Bryan',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^141\.211\.173\.203$',
-                         '^141\.211\.173\.204$',
-                         '^141\.211\.173\.205$',
-                         '^141\.211\.173\.212$',
-                         '^141\.211\.173\.138$',
-                        ],
-      },
-   'monicats'
-   => {
-       'displayname' => 'Tsuneishi, Monica',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^141\.211\.173\.203$',
-                         '^141\.211\.173\.204$',
-                         '^141\.211\.173\.205$',
-                         '^141\.211\.173\.212$',
-                         '^141\.211\.173\.138$',
-                        ],
-      },
-   'kujalak'
-   => {
-       'displayname' => 'Kujala, Katie',
-       'supervisor'  => 'mslevine',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^141\.211\.173\.203$',
-                         '^141\.211\.173\.204$',
-                         '^141\.211\.173\.205$',
-                         '^141\.211\.173\.212$',
-                         '^141\.211\.173\.138$',
-                        ],
-      },
+Description
 
-   # Quality Review Access - see
-   # https://wush.net/jira/hathitrust/browse/HTS-5432
-   # https://wush.net/jira/hathitrust/browse/HTS-9592 Note because
-   # email addresses are lower-cased for comparison we also lower-case
-   # shib IDs.
-   'bronick'
-   => {
-       'displayname' => 'Bronicki, Jackie',
-       'supervisor'  => 'layers',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'quality',
-       'iprestrict'  => $gStaffSubnetRangesRef,
-      },
-   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!hsqca1zjiq0b2eda6ucqsl5f2pc='
-   => {
-       'displayname' => 'Wange-Connelly, Marie',
-       'supervisor'  => 'jjyork',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^128\.112\.201\.208$',
-                        ],
-      },
-   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!/stdct3tahkrxptxv4cgvhbfnok'
-   => {
-       'displayname' => 'Kaytus, Patricia',
-       'supervisor'  => 'jjyork',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^128\.112\.177\.64$',
-                        ],
-      },
-   'https://idp.princeton.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!to3uuan+njxe9luurm+ys4nzvbg='
-   => {
-       'displayname' => 'Stroop, Jon',
-       'supervisor'  => 'jjyork',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'external',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^173\.61\.191\.73$',
-                        ],
-      },
-   'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!cqblrdcxsaov0z5lnvw+lwq54lg='
-   => {
-       'displayname' => 'Klingenberger, Robert',
-       'supervisor'  => 'jjyork',
-       'expires'     => '2012-11-30 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^130\.132\.179\.11$',
-                        ],
-      },
-   'https://auth.yale.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!kbr5pq0qoupxfoqso5vo1loztsa='
-   => {
-       'displayname' => 'Kennedy, Tara',
-       'supervisor'  => 'jjyork',
-       'expires'     => '2012-11-30 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'quality',
-       'iprestrict'  => [
-                         '^130\.132\.80\.222$',
-                        ],
-      },
+=cut
 
-   # UCLA Team orphan - see Melissa Levine <mslevine@umich.edu>
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!6y58l1vyoiieqblvz2obkjunnja='
-   => {
-       'displayname' => 'Riggio, Angela',
-       'supervisor'  => 'mslevine',
-       'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^164\.67\.19\.54$',
-                        ],
-      },
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!2imw9uc3xmq1emhijfybkpup7ea='
-   => {
-       'displayname' => 'Gurman, Diane',
-       'supervisor'  => 'mslevine',
-       'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^164\.67\.19\.50$',
-                        ],
-      },
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!oe10hzwiuqbr5f+j+3bxfxl2otk='
-   => {
-       'displayname' => 'Brennan, Martin J.',
-       'supervisor'  => 'mslevine',
-       'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^164\.67\.19\.49$',
-                        ],
-      },
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!itreozgpcvtgbuhyienp9g+bc/c='
-   => {
-       'displayname' => 'McMichael, Leslie',
-       'supervisor'  => 'mslevine',
-       'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^164\.67\.17\.18$',
-                        ],
-      },
-   'urn:mace:incommon:ucla.edu!http://www.hathitrust.org/shibboleth-sp!qignq2cds/bk7+p7ma/m7y3fdua='
-   => {
-       'displayname' => 'Farb, Sharon',
-       'supervisor'  => 'mslevine',
-       'expires'     => '2012-01-31 23:59:59',
-       'usertype'    => 'external',
-       'role'        => 'orphan',
-       'iprestrict'  => [
-                         '^164\.67\.17\.19$',
-                        ],
-      },
+# ---------------------------------------------------------------------
+sub get_user_attributes {
+    my $req_attribute = shift;
+    my $user = shift;
+    
+    __load_access_control_list();
+    
+    my $key = defined($user) ? $user : lc($ENV{'REMOTE_USER'});
+    my $attrval = $gAccessControlList{$key}{$req_attribute};
 
-   # Digitization - see Kat Hagedorn <khage@umich.edu>
-   'lwentzel'
-   => {
-       'displayname' => 'Wentzel, Lawrence R',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'digitization',
-       'iprestrict'  => [
-                         '^141\.211\.84\.36$',
-                        ],
-      },
-   'ldunger'
-   => {
-       'displayname' => 'Unger, Lara D',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gStaffExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'digitization',
-       'iprestrict'  => [
-                         '^141\.211\.84\.27$',
-                        ],
-      },
+    return $attrval;
+}
 
-   # Superusers - see Phillip Farber <pfarber@umich.edu>
-   'tburtonw'
-   => {
-       'displayname' => 'Burton-West, Tom',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'suzchap'
-   => {
-       'displayname' => 'Chapman, Suzanne',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'pfarber'
-   => {
-       'displayname' => 'Farber, Phillip',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'roger'
-   => {
-       'displayname' => 'Espinosa, Roger',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'pulintz'
-   => {
-       'displayname' => 'Ulintz, Peter',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'khage'
-   => {
-       'displayname' => 'Hagedorn, Kat',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'moseshll'
-   => {
-       'displayname' => 'Hall, Brian',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'skorner'
-   => {
-       'displayname' => 'Korner, Sebastien',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'sooty'
-   => {
-       'displayname' => 'Powell, Chris',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'timothy'
-   => {
-       'displayname' => 'Prettyman, Tim',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'csnavely'
-   => {
-       'displayname' => 'Snavely, Cory',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'jweise'
-   => {
-       'displayname' => 'Weise, John',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'jpwilkin'
-   => {
-       'displayname' => 'Wilkin, John',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'jjyork'
-   => {
-       'displayname' => 'York, Jeremy',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'aelkiss'
-   => {
-       'displayname' => 'Elkiss, Aaron',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'rrotter'
-   => {
-       'displayname' => 'Rotter, Ryan',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'trmooney'
-   => {
-       'displayname' => 'Mooney, Thomas',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'nasirg'
-   => {
-       'displayname' => 'Grewal, Nasir',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'meldett'
-   => {
-       'displayname' => 'Dettloff, Melissa',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'srmishra'
-   => {
-       'displayname' => 'Mishra, Sonali',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-   'jgmorse'
-   => {
-       'displayname' => 'Morse, Jeremy',
-       'supervisor'  => 'pfarber',
-       'expires'     => $gSuperuserExpireDate,
-       'usertype'    => 'staff',
-       'role'        => 'superuser',
-       'iprestrict'  => $gSuperuserSubnetRangesRef,
-      },
-  );
+# ---------------------------------------------------------------------
+
+=item get_user_id_list
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_user_id_list {
+    my @list = keys %gAccessControlList;
+
+    __load_access_control_list();
+
+    return \@list;
+}
 
 1;
+
+__END__
+
+=head1 AUTHOR
+
+Phillip Farber, University of Michigan, pfarber@umich.edu
+
+=head1 COPYRIGHT
+
+Copyright 2012 ©, The Regents of The University of Michigan, All Rights Reserved
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject
+to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+=cut

@@ -63,16 +63,10 @@ my %HathiTrust_IP_hash =
 
 =item setup_debug_environment
 
-Set DEBUG envvar based on debug CGI param.  We want
-CGI::Carp::DebugScreen when we are not running under the
-debugger.
-
-Under the web server we want the debug screen when in a
-development environment and the error screen when in a production
-environment.
-
-Should be called early in the compilation phase to
-reliably report errors.
+Set DEBUG envvar based on debug CGI param.  Must be called after
+Database is connected because the CL is a database table. Previously
+we had CGI::Carp::DebugScreen. Now we have a debug traceback set up in
+app.choke.
 
 =cut
 
@@ -216,28 +210,6 @@ sub xml_debugging_enabled {
     return $g_xml_debugging;
 }
 
-# ---------------------------------------------------------------------
-
-=item setup_DebugScreen
-
-=cut
-
-# ---------------------------------------------------------------------
-sub setup_DebugScreen {
-    if (under_server()) {
-        my $development = $ENV{'HT_DEV'};
-
-        require CGI::Carp::DebugScreen;
-        import CGI::Carp::DebugScreen ('engine' => 'HTML::Template');
-        CGI::Carp::DebugScreen->debug($development);
-        CGI::Carp::DebugScreen->show_modules(0);
-        CGI::Carp::DebugScreen->show_environment($development);
-        CGI::Carp::DebugScreen->ignore_overload(0);
-        CGI::Carp::DebugScreen->show_raw_error($development);
-    }
-    # Support early DEBUG calls before Session is created.
-    setup_debug_environment();
-}
 
 # ---------------------------------------------------------------------
 
