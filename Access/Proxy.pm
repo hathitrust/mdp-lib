@@ -28,7 +28,14 @@ use Net::DNS;
 use Debug::DUtils;
 
 my $resolver = new Net::DNS::Resolver;
+
+# Default send() is UDP (datagram) unless $resolver->usevc(1). However
+# there seem to be codepaths that will forct TCP so set tcp_timeout
+# too
+$resolver->udp_timeout(1);
 $resolver->tcp_timeout(1);
+$resolver->retrans(0);
+$resolver->retry(0);
 
 my %blacklist_services =
   (
@@ -106,7 +113,9 @@ sub __bl_check_services {
               sub {
                   require Data::Dumper;
                   my $d = Data::Dumper::Dumper($query);
-                  "<pre>Service: $service ::: " . $d . "</pre>";
+                  my $retry = $resolver->retry;
+                  my $retrans = $resolver->retrans;
+                  "<pre>Service: $service ::: " . $d . " retries=$retry retrans=$retrans</pre>";
               });
 
         eval {
