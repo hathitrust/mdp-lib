@@ -173,20 +173,20 @@ sub __handle_mdpitem_cache_setup {
 
     if (defined($config) && defined($cgi)) {
         $cache_mdpItem = ( $config->get('mdpitem_use_cache') eq 'true' );
-        $ignore_existing_cache = ( $cgi->param('newsid') eq "1" );
+        $ignore_existing_cache = ( $cgi->param('newsid') eq "1" ) || 0;
         my $cache_max_age = $config->get('mdpitem_max_age') || 0;
     
         if ( $cache_mdpItem ) {
-            DEBUG('time', qq{<h3>Start mdp item uncache</h3>} . Utils::display_stats());
+            DEBUG('time', qq{<h3>Start get mdpitem from cache, ignore_existing_cache=$ignore_existing_cache </h3>} . Utils::display_stats());
         
             my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
             $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age, GetMetsXmlModTime($id));
             $mdpItem = $cache->Get($id, $cache_key);
-            DEBUG('time', qq{<h3>Finish mdp item uncache</h3>} . Utils::display_stats());
 
             if ( $ignore_existing_cache ) {
                 $mdpItem = undef;
             }
+            DEBUG('time', qq{<h3>Finish get mdpitem from cache</h3>} . Utils::display_stats());
         }
     }
 
