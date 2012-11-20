@@ -145,13 +145,7 @@ sub __handle_mdpitem_cache_setup {
 
     DEBUG('cache', qq{<h3>Finish get mdpitem from cache, got item=} . ($mdpItem ? 'yes' : 'no') . qq{</h3>});
 
-    # TEMPORARY
-    if (! defined $mdpItem->{_mmdo}) {
-        return ($cache, $cache_key, $cache_mdpItem, 1, undef);
-    }
-    else {    
-        return ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem);
-    }
+    return ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem);
 }
 
 # ---------------------------------------------------------------------
