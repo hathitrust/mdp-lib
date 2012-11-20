@@ -25,17 +25,15 @@ BEGIN {
 }
 use Date::Manip qw( Date_Cmp ParseDate );
 
-use MirlynGlobals;
-
 # MDP
 use MdpGlobals;
 use Debug::DUtils;
 use Utils;
-use Utils::Serial;
 use Utils::Extract;
 use Context;
 use Auth::Auth;
 use Identifier;
+use MarcMetadata;
 
 use Utils::Cache::Storable;
 
@@ -53,8 +51,7 @@ use XML::LibXML;
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetMetsXmlFromFile
-{
+sub GetMetsXmlFromFile {
     my $metsXmlFilename = shift;
 
     my $metsXmlRef = Utils::read_file( $metsXmlFilename );
@@ -62,8 +59,7 @@ sub GetMetsXmlFromFile
     return $metsXmlRef;
 }
 
-sub GetMetsXmlFilename
-{
+sub GetMetsXmlFilename {
     my ($itemFileSystemLocation, $id) = @_;
 
     my $stripped_id = Identifier::get_pairtree_id_wo_namespace($id);
@@ -80,72 +76,35 @@ sub GetMetsXmlModTime {
     return $mets_mtime;
 }
 
-# ----------------------------------------------------------------------
-# NAME         :
-# PURPOSE      :
-# CALLS        :
-# INPUT        :
-# RETURNS      :
-# GLOBALS      :
-# SIDE-EFFECTS :
-# NOTES        :
-# ----------------------------------------------------------------------
-sub GetMetadataFromMirlyn
-{
+# ---------------------------------------------------------------------
+
+=item GetMetadata
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub GetMetadata {
+    my $self = shift;
+    return $self->{_mmdo}->get_metadata();
+}
+
+
+# ---------------------------------------------------------------------
+
+=item InitMetadata
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub InitMetadata {
+    my $self = shift;
     my ($C, $id) = @_;
 
-    my $metadata = undef;
-    my $url = $MirlynGlobals::gMirlynMetadataURL;
-    $url =~ s,__METADATA_ID__,$id,;
-
-    DEBUG('pt,mirlyn,all', qq{<h3>Mirlyn metadata URL: $url</h3>});
-    DEBUG('time', qq{<h3>PageTurnerUtils::GetMetadataFromMirlyn(START)</h3>} . Utils::display_stats());
-
-    my $response = Utils::get_user_agent()->get($url);
-    my $responseOk = $response->is_success;
-    my $responseStatus = $response->status_line;
-    my $metadata_failed = 0;
-
-    if ( $responseOk  )
-    {
-        $metadata = $response->content;
-
-        DEBUG('ptdata,mirlyn',
-              sub
-              {
-                  my $data = $metadata; Utils::map_chars_to_cers(\$data, [q{"}, q{'}]);
-                  return qq{<h4>Mirlyn metadata:<br/></h4> $data};
-              });
-
-        # Point to surrogate data if the metadata is empty or there
-        # was an error
-        if ((! $metadata ) || ($metadata =~ m,<error>.*?</error>,))
-        {
-            $metadata_failed = 1;
-            $metadata = <PageTurnerUtils::DATA>
-        }
-    }
-    else
-    {
-        $metadata_failed = 1;
-        $metadata = <PageTurnerUtils::DATA>;
-
-        if (DEBUG('all,pt,mirlyn'))
-        {
-            ASSERT($responseOk,
-                    qq{ERROR in PageTurnerUtils::GetMdpItem: Agent Status: $responseStatus});
-        }
-        else
-        {
-            soft_ASSERT($responseOk,
-                        qq{ERROR in PageTurnerUtils::GetMdpItem: Agent Status: $responseStatus})
-                if ($MdpGlobals::gMirlynErrorReportingEnabled);
-        }
-    }
-    $metadata = Encode::decode_utf8($metadata);
-    DEBUG('time', qq{<h3>PageTurnerUtils::GetMetadataFromMirlyn(END)</h3>} . Utils::display_stats());
-
-    return (\$metadata, $metadata_failed);
+    my $mmdo = $self->{_mmdo} || ( $self->{_mmdo} = new MarcMetadata($C, $id) );
 }
 
 # ---------------------------------------------------------------------
@@ -160,106 +119,115 @@ Description
 sub __handle_mdpitem_cache_setup {
     my $C = shift;
     my $id = shift;
-    
+
     my $cgi = $C->get_object('CGI', 1);
-    my $config = $C->get_object('MdpConfig', 1);    
+    my $config = $C->get_object('MdpConfig', 1);
 
     my $mdpItem;
-    my $cache; 
-    my $cache_key = qq{mdpitem};
 
-    my $cache_mdpItem = 0;
-    my $ignore_existing_cache = 1;
+    my $cache_mdpItem = 1;
+    my $ignore_existing_cache = 0;
+    my $cache_max_age = 0;
 
     if (defined($config) && defined($cgi)) {
-        $cache_mdpItem = ( $config->get('mdpitem_use_cache') eq 'true' );
-        $ignore_existing_cache = ( $cgi->param('newsid') eq "1" ) || 0;
-        my $cache_max_age = $config->get('mdpitem_max_age') || 0;
-    
-        if ( $cache_mdpItem ) {
-            DEBUG('time', qq{<h3>Start get mdpitem from cache, ignore_existing_cache=$ignore_existing_cache </h3>} . Utils::display_stats());
-        
-            my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
-            $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age, GetMetsXmlModTime($id));
-            $mdpItem = $cache->Get($id, $cache_key);
-
-            if ( $ignore_existing_cache ) {
-                $mdpItem = undef;
-            }
-            DEBUG('time', qq{<h3>Finish get mdpitem from cache</h3>} . Utils::display_stats());
-        }
+        $ignore_existing_cache = $cgi->param('newsid') || 0;
+        $cache_mdpItem = ($config->get('mdpitem_use_cache') eq 'true');
+        $cache_max_age = $config->get('mdpitem_max_age') || 0;
     }
+
+    my $cache_key = qq{mdpitem};
+    my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
+    my $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age, GetMetsXmlModTime($id));
+
+    DEBUG('cache', qq{<h3>Start get mdpitem from cache </h3>});
+
+    $mdpItem = $cache->Get($id, $cache_key) unless (! $cache_mdpItem);
+
+    DEBUG('cache', qq{<h3>Finish get mdpitem from cache, got item=} . ($mdpItem ? 'yes' : 'no') . qq{</h3>});
 
     return ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem);
 }
 
+# ---------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# NAME         : GetMdpItem
-# PURPOSE      :
-# CALLS        :
-# INPUT        :
-# RETURNS      :
-# GLOBALS      :
-# SIDE-EFFECTS :
-# NOTES        :
-# ----------------------------------------------------------------------
-sub GetMdpItem
-{
+=item _{delete|restore}_DOM_objects
+
+Support caching of non-serializable data
+
+=cut
+
+# ---------------------------------------------------------------------
+my $_METS_preserved;
+sub _delete_DOM_objects {
+    my $self = shift;
+
+    $_METS_preserved = delete $self->{_METS};
+    $self->GetMetadataObject->delete_document_root();
+}
+
+sub _restore_DOM_objects {
+    my $self = shift;
+
+    $self->{_METS} = $_METS_preserved;
+    $self->GetMetadataObject->restore_document_root();
+}
+
+# ---------------------------------------------------------------------
+
+=item GetMdpItem
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub GetMdpItem {
     my $class = shift;
-    my ($C, $id, $itemFileSystemLocation ) = @_;
+    my ($C, $id, $itemFileSystemLocation) = @_;
 
-    $itemFileSystemLocation = Identifier::get_item_location($id) unless ( $itemFileSystemLocation );
+    $itemFileSystemLocation = Identifier::get_item_location($id) unless ($itemFileSystemLocation);
 
     my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) = 
       __handle_mdpitem_cache_setup($C, $id);
-    
-    # if we already have instantiated and saved on the session the
-    # full mdpitem for the id being requested, we have everything we
-    # need and can return
-    
+
+    # if we already have instantiated and saved in the cache the full
+    # mdpitem for the id being requested, we have everything we need
+    # and can return
+
     # if the cached verison has metadatafailure == 1, re-compute
-    
-    if ( $mdpItem  && ( $mdpItem->Get( 'id' ) eq $id ) && ( ! $mdpItem->Get('metadatafailure') ) )
-    {
-        # item is already cached and we have it in $mdpItem.  Test to
+
+    if ($mdpItem  && ($mdpItem->Get('id') eq $id) && (! $mdpItem->MetadataFailure())) {
+        # item was already cached and we have it in $mdpItem.  Test to
         # see if the item files got zipped since the last time we
         # accessed this mdpItem object.
-        if (! $mdpItem->ItemIsZipped())
-        {
+        if (! $mdpItem->ItemIsZipped()) {
             my $zipfile = $itemFileSystemLocation . qq{/$id.zip};
-            if (-e $zipfile)
-            {
+            if (-e $zipfile) {
                 $mdpItem->Set('zipfile', $zipfile);
                 $mdpItem->SetItemZipped();
             }
         }
 
-        DEBUG('pt,all', qq{<h3>Using cached mdpItem object for id="$id" zipped="}  . ($mdpItem->ItemIsZipped() || '0') . q{"</h3>});
+        DEBUG('cache, all', qq{<h3>Using cached mdpItem object for id="$id"</h3>});
     }
-    else
-    {
-        $mdpItem = $class->new( $C, $id );
-        
-        DEBUG('pt,all', qq{<h3>Mirlyn metadata failure status for id="$id" = } . $mdpItem->Get('metadatafailure') . qq{</h3>});
-        
-        # don't cache if we've got a metadatafailure
-        if ( $cache_mdpItem && ! $mdpItem->Get('metadatafailure') ) {
-            DEBUG('pt,mdpitem,cache', qq{<h3>Cache MdpItem: $id : $cache_key</h3>});
+    else {
+        $mdpItem = $class->new($C, $id);
 
-            # do some zigzag to avoid serializing the XML::LibXML structure
-            my $dom = delete $$mdpItem{_METS};
+        DEBUG('cache,all', qq{<h3>metadata status=} . ($mdpItem->MetadataFailure() ? 'fail' : 'OK') . qq{</h3>});
+
+        # don't cache if we've got a metadatafailure or cache was not ititialized because ignored
+        if ($cache_mdpItem && ! $mdpItem->MetadataFailure()) {
+            DEBUG('cache', qq{<h3>Cache MdpItem: id=$id existing_cache_ignored=$ignore_existing_cache</h3>});
+
+            # do some zigzag to avoid serializing the XML::LibXML structure(s)
+            $mdpItem->_delete_DOM_objects();
             $cache->Set($id, $cache_key, $mdpItem, $ignore_existing_cache);
-            $$mdpItem{_METS} = $dom;
+            $mdpItem->_restore_DOM_objects();
         }
     }
 
-    DEBUG('mdpitem,all',
-          sub
-          {
-              return $mdpItem->DumpPageInfoToHtml();
-          });
-          
+    DEBUG('mdpitem,all', sub {return $mdpItem->DumpPageInfoToHtml();});
+
     if (DEBUG('noocr')) {
         $mdpItem->Set('has_ocr', 0);
     }
@@ -276,8 +244,7 @@ sub GetMdpItem
 # RETURNS   : NONE
 # NOTES     :
 # ----------------------------------------------------------------------
-sub new
-{
+sub new {
     my $class = shift;
     my $self = {};
     bless $self, $class;
@@ -294,68 +261,57 @@ sub new
 # RETURNS   :
 # NOTES     :
 # ----------------------------------------------------------------------
-sub _initialize
-{
+sub _initialize {
     my $self = shift;
     my ( $C, $id ) = @_;
-    
-    if($self->Get('initialized')) {
+
+    if ($self->Get('initialized')) {
         return;
     }
     $self->Set('initialized', 1);
 
+    $self->InitMetadata($C, $id);
+
     $self->SetId( $id );
     $self->Set('namespace', Identifier::the_namespace($id));
-    
+
     my $itemFileSystemLocation = Identifier::get_item_location($id);
-    my $stripped_id = Identifier::get_pairtree_id_wo_namespace($id);
-    
-    my $metsXmlFilename = GetMetsXmlFilename($itemFileSystemLocation, $id);
-    my $metsXmlRef = GetMetsXmlFromFile( $metsXmlFilename );
-
-    my ($metadataRef, $metadata_failed) = GetMetadataFromMirlyn($C, $id);
-
-    # Reduce size of METS
-    $self->DeleteExtraneousMETSElements($metsXmlRef);
-
-    $self->Set( 'metsxml', $metsXmlRef );
-    $self->Set( 'metsxmlfilename', $metsXmlFilename );
     $self->Set( 'filesystemlocation', $itemFileSystemLocation );
 
+    my $stripped_id = Identifier::get_pairtree_id_wo_namespace($id);
+
+    # Reduce size of METS and replace /METS:dmdSec/[@ID='DMD1'] with
+    # MARCXML
+    my $metsXmlFilename = GetMetsXmlFilename($itemFileSystemLocation, $id);
+    $self->Set( 'metsxmlfilename', $metsXmlFilename );
+
+    my $metsXmlRef = GetMetsXmlFromFile( $metsXmlFilename );
+    $self->StoreMETS($metsXmlRef);
+
     my $zipfile = $itemFileSystemLocation . qq{/$stripped_id.zip};
-    if (-e $zipfile)
-    {
+    if (-e $zipfile) {
         $self->SetItemZipped();
         $self->Set('zipfile', $zipfile);
     }
-
-    $self->Set( 'marcmetadata', $metadataRef );
-
-    # --------------------------------------------------
-
-    $self->Set( 'metadatafailure', $metadata_failed );
 
     $self->SetItemType();
     $self->SetPageInfo();
 }
 
 
-sub Set
-{
+sub Set {
     my $self = shift;
     my ( $key, $value ) = @_;
     $self->{ $key } = $value;
 }
 
-sub Get
-{
+sub Get {
     my $self = shift;
     my $key = shift;
     return $self->{ $key };
 }
 
-sub SetId
-{
+sub SetId {
     my $self = shift;
     my $id = shift;
     $self->{ 'id' } = $id;
@@ -364,7 +320,7 @@ sub SetId
 sub _GetMetsRoot {
     my $self = shift;
     unless ( ref($$self{_METS}) ) {
-        my $metsXmlRef = $self->Get( 'metsxml' );
+        my $metsXmlRef = shift || $self->Get( 'metsxml' );
         my $parser = XML::LibXML->new();
         my $tree = $parser->parse_string($$metsXmlRef);
         my $root = $tree->getDocumentElement();
@@ -385,7 +341,7 @@ sub SetItemType {
     }
 
     # set default item type
-    unless ( $item_type ) { $item_type = 'volume'; } 
+    unless ( $item_type ) { $item_type = 'volume'; }
 
     $self->Set('item_type', $item_type);
 
@@ -395,7 +351,11 @@ sub SetItemType {
         eval "require MdpItem::$subclass";
         bless $self, "MdpItem::$subclass";
     }
+}
 
+sub GetFullMetsRef {
+    my $self = shift;
+    return $self->Get('metsxml');
 }
 
 sub GetItemType {
@@ -403,38 +363,27 @@ sub GetItemType {
     return $self->Get('item_type');
 }
 
-sub GetMetadataFailure
-{
-    my $self = shift;
-    return $self->{'metadatafailure'};
-}
-
-sub ItemIsZipped
-{
+sub ItemIsZipped {
     my $self = shift;
     return $self->{'itemiszipped'};
 }
 
-sub SetItemZipped
-{
+sub SetItemZipped {
     my $self = shift;
     $self->{'itemiszipped'} = 1;
 }
 
-sub GetId
-{
+sub GetId {
     my $self = shift;
     return $self->{ 'id' };
 }
 
-sub InitFeatureIterator
-{
+sub InitFeatureIterator {
     my $self = shift;
     $self->{'featuretableindex'} = 0;;
 }
 
-sub GetNextFeature
-{
+sub GetNextFeature {
     my $self = shift;
 
     my $featureTableRef = $self->Get( 'featuretable' );
@@ -446,8 +395,7 @@ sub GetNextFeature
     }
 }
 
-sub PeekNextFeature
-{
+sub PeekNextFeature {
     my $self = shift;
 
     my $featureTableRef = $self->Get( 'featuretable' );
@@ -459,11 +407,10 @@ sub PeekNextFeature
     }
 }
 
-sub GetPageFeatures
-{
+sub GetPageFeatures {
     my $self = shift;
     my $seq = shift;
-    
+
     if (defined $self->{'pageinfo'}{'sequence'}{$seq}{'pagefeatures'}) {
         return @{$self->{'pageinfo'}{'sequence'}{$seq}{'pagefeatures'}};
     }
@@ -472,29 +419,25 @@ sub GetPageFeatures
     }
 }
 
-sub SetContentHandler
-{
+sub SetContentHandler {
     my $self = shift;
     my $handler = shift;
 
     $self->{ 'contenthandler' } = $handler;
 }
 
-sub GetContentHandler
-{
+sub GetContentHandler {
     my $self = shift;
 
     return $self->{ 'contenthandler' };
 }
 
-sub GetContainsJp2Jpg
-{
+sub GetContainsJp2Jpg {
         my $self = shift;
         return $self->{ 'containsjp2jpg' };
 }
 
-sub SetContainsJp2Jpg
-{
+sub SetContainsJp2Jpg {
     my $self = shift;
     my $jp2 = shift;
 
@@ -502,8 +445,7 @@ sub SetContainsJp2Jpg
 
 }
 
-sub SetPageCount
-{
+sub SetPageCount {
     my $self = shift;
     my $pages = shift;
 
@@ -511,99 +453,84 @@ sub SetPageCount
 
 }
 
-sub GetPageCount
-{
+sub GetPageCount {
         my $self = shift;
         return $self->{ 'pagecount' };
 }
 
-sub SetHasPageNumbers
-{
+sub SetHasPageNumbers {
     my $self = shift;
     my $has = shift;
     $self->{ 'haspagenumbers' } = $has;
 }
 
-sub HasPageNumbers
-{
+sub HasPageNumbers {
     my $self = shift;
     return $self->{ 'haspagenumbers' };
 }
 
-sub SetHasPageFeatures
-{
+sub SetHasPageFeatures {
     my $self = shift;
     my $has = shift;
     $self->{ 'haspagefeatures' } = $has;
 }
 
-sub HasPageFeatures
-{
+sub HasPageFeatures {
     my $self = shift;
     return $self->{ 'haspagefeatures' };
 }
 
-sub SetHasCoordOCR
-{
+sub SetHasCoordOCR {
     my $self = shift;
     my $value = shift || 0;
     $self->{ 'hascoordocr' } = ($MdpGlobals::ghOCREnabled ? 1 : 0);
 }
 
-sub HasCoordOCR
-{
+sub HasCoordOCR {
     my $self = shift;
     return $self->{ 'hascoordocr' };
 }
 
-sub SetHasFirstContentFeature
-{
+sub SetHasFirstContentFeature {
     my $self = shift;
     my $has = shift;
     $self->{ 'hasfirstcontentfeature' } = $has;
 }
 
-sub HasFirstContentFeature
-{
+sub HasFirstContentFeature {
     my $self = shift;
     return $self->{ 'hasfirstcontentfeature' };
 }
 
-sub SetHasTitleFeature
-{
+sub SetHasTitleFeature {
     my $self = shift;
     my $seqOfTitle = shift;
     $self->{ 'hastitlefeature' } = $seqOfTitle;
 }
 
-sub HasTitleFeature
-{
+sub HasTitleFeature {
     my $self = shift;
     return $self->{ 'hastitlefeature' };
 }
 
-sub SetHasTOCFeature
-{
+sub SetHasTOCFeature {
     my $self = shift;
     my $seqOfTOC = shift;
     $self->{ 'hastocfeature' } = $seqOfTOC;
 }
 
-sub HasTOCFeature
-{
+sub HasTOCFeature {
     my $self = shift;
     return $self->{ 'hastocfeature' };
 }
 
-sub SetHasMULTIFeature
-{
+sub SetHasMULTIFeature {
     my $self = shift;
     my $seqOfMULTI = shift;
     $self->{ 'hasmultifeature' } = $seqOfMULTI;
 }
 
-sub HasMULTIFeature
-{
+sub HasMULTIFeature {
     my $self = shift;
     return $self->{ 'hasmultifeature' };
 }
@@ -611,7 +538,7 @@ sub HasMULTIFeature
 sub Version {
     my $self = shift;
     my ($version, $was_deleted) = @_;
-    
+
     if (defined $version) {
         $self->{mostrecentversion} = $version;
         $self->{mostrecentversionwasdeleted} = $was_deleted;
@@ -621,41 +548,51 @@ sub Version {
 
 # ---------------------------------------------------------------------
 
-=item GetFullMetsRef
+=item StoreMETS
 
-With the advent of uc namespaces, there are additional dmdSec carrying
-unused MARC. Delete those to download less data to the browser.  Whack
-the PREMIS section too.
+Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub GetFullMetsRef {
+sub StoreMETS {
     my $self = shift;
+    my $metsXmlRef = shift;
 
-    my $metsXmlRef = $self->Get( 'metsxml' );
+    # remove all xml bits since we don't need them in the output
+    $$metsXmlRef =~ s,<\?xml\s+.*?\?>,,s;
+    my $root = $self->_GetMetsRoot($metsXmlRef);
 
-    # May have already been substituted in
-    return $metsXmlRef
-        if ($$metsXmlRef =~ m,<metadata>,s);
-
-    my $metadataRef = $self->Get( 'marcmetadata' );
-    if ($metadataRef) {
-        $$metsXmlRef =~ s,(<METS:dmdSec.+?ID="DMD1".*?>).*?(</METS:dmdSec>), $1 . $$metadataRef . $2,es;
+    # If not debug=xml, remove other unneeded elements. UC content has
+    # an extra dmdSec. The amdSec not used by
+    # pageturner. METS:amdSec//PREMIS:event is required for Version label.
+    if (! DEBUG('xml')) {
+        my ($dmdSec2) = $root->findnodes("//METS:dmdSec[\@ID='DMD2']");
+        $root->removeChild($dmdSec2) if ($dmdSec2);
     }
 
-    return $metsXmlRef;
+    # Replace child of dmdSec/ID=DMD1 with actual metadata
+    my ($dmdSec1) = $root->findnodes("//METS:dmdSec[\@ID='DMD1']");
+    $dmdSec1->removeChildNodes() if ($dmdSec1);
+
+    my $metadataRef = $self->GetMetadata();
+    if ($metadataRef) {
+        my $parser = XML::LibXML->new();
+        my $fragment = $parser->parse_xml_chunk($$metadataRef);
+        $dmdSec1->appendChild( $fragment );
+    }
+
+    my $metsXML = $root->serialize();
+    $self->Set('metsxml', \$metsXML);
 }
 
-sub SetRequestedSize
-{
+sub SetRequestedSize {
     my $self = shift;
     my $size = shift;
     $self->{ 'requestedsize' } = $size;
 }
 
-sub GetRequestedSize
-{
+sub GetRequestedSize {
     my $self = shift;
     return $self->{ 'requestedsize' };
 }
@@ -731,8 +668,7 @@ sub SetCurrentRequestInfo {
     $cgi->param( 'orient', $orientationToUse );
 }
 
-sub GetValidSequence
-{
+sub GetValidSequence {
     my $self = shift;
     my $seq = shift;
 
@@ -835,40 +771,34 @@ sub SetRequestedPageSequence {
     $self->{ 'requestedpagesequence' } = $finalSequenceNumber;
 }
 
-sub GetRequestedPageSequence
-{
+sub GetRequestedPageSequence {
     my $self = shift;
     return $self->{ 'requestedpagesequence' };
 }
 
-sub GetPage2SequenceMap
-{
+sub GetPage2SequenceMap {
     my $self = shift;
     return $self->{ 'pageinfo' }{ 'page2sequencemap' };
 }
 
-sub SetLastPageSequence
-{
+sub SetLastPageSequence {
     my $self = shift;
     my $lastPageSequence = shift;
     $self->{ 'lastpagesequence' } = $lastPageSequence;
 }
 
-sub GetLastPageSequence
-{
+sub GetLastPageSequence {
     my $self = shift;
     return $self->{ 'lastpagesequence' };
 }
 
-sub SetFirstPageSequence
-{
+sub SetFirstPageSequence {
     my $self = shift;
     my $firstPageSequence = shift;
     $self->{ 'firstpagesequence' } = $firstPageSequence;
 }
 
-sub GetFirstPageSequence
-{
+sub GetFirstPageSequence {
     my $self = shift;
     return $self->{ 'firstpagesequence' };
 }
@@ -883,8 +813,7 @@ sub GetFirstPageSequence
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetSequenceForPageNumber
-{
+sub GetSequenceForPageNumber {
     my $self = shift;
     my ( $num, $defaultSeq ) = @_;
 
@@ -912,8 +841,7 @@ sub GetSequenceForPageNumber
     return $finalSequenceNumber;
 }
 
-sub GetStoredFileType
-{
+sub GetStoredFileType {
     my $self = shift;
     my $pageSequence = shift;
 
@@ -930,8 +858,7 @@ sub GetStoredFileType
     return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filetype' };
 }
 
-sub GetStoredFileGroup
-{
+sub GetStoredFileGroup {
     my $self = shift;
     my $pageSequence = shift;
 
@@ -948,8 +875,7 @@ sub GetStoredFileGroup
     return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filegrp' };
 }
 
-sub GetStoredFileMimeType
-{
+sub GetStoredFileMimeType {
     my $self = shift;
     my $pageSequence = shift;
 
@@ -966,151 +892,40 @@ sub GetStoredFileMimeType
     return $$pageInfoHashRef{ 'sequence' }{ $pageSequence }{ 'filegrp' };
 }
 
-sub GetFullTitle
-{
+# Metadata accessors
+sub GetMetadataObject {
     my $self = shift;
-
-    my $title;
-    my $id = $self->GetId();
-
-    my $marcMetadataRef = $self->Get( 'marcmetadata' );
-    my ($varfield) = ($$marcMetadataRef =~ m,<varfield id="245"[^>]*>(.*?)</varfield>,s);
-    
-    my @tmp = ();
-    push @tmp, ($varfield =~ m,<subfield label="a">(.*?)</subfield>,g);
-    push @tmp, ($varfield =~ m,<subfield label="b">(.*?)</subfield>,g);
-    push @tmp, ($varfield =~ m,<subfield label="c">(.*?)</subfield>,g);
-    
-    $title = join(' ', @tmp);
-    $title =~ s,\s+, ,gsm;
-    
-    my $dataRef = $self->GetVolumeData();
-    my $frag = $$dataRef{$id}{'vol'};
-    
-    if ( $frag ) {
-        $title .= " " . $frag;
-    }
-    
-    return $title;
+    return $self->{_mmdo};
 }
 
-sub GetAuthor
-{
+sub MetadataFailure {
     my $self = shift;
-    my @values = ();
-
-    my $id = $self->GetId();
-    
-    my $marcMetadataRef = $self->Get( 'marcmetadata' );
-    
-    unless ( $$marcMetadataRef ) {
-        return "";
-    }
-    
-    my $parser = XML::LibXML->new();
-    my $tree = $parser->parse_string($$marcMetadataRef);
-    my $root = $tree->getDocumentElement();
-
-    foreach my $node ( $root->findnodes(qq{/present/record/metadata/oai_marc/varfield[\@id='100']}) ) {
-        # a - Personal name
-        # b - Numeration
-        # c - titles associated with name
-        # e - relator term
-        # q - fuller form of name
-        # d - dates associated with name
-        my @tmp = ();
-        foreach my $subid (qw(a b c e q d)) {
-            my ( $value ) = $node->findvalue("subfield[\@label='$subid']");
-            if ( $value ) {
-                ## push @values, " " unless ( $subid eq 'a' );
-                push @tmp, $value;
-            }
-        }
-        push @values, join(" ", @tmp) if ( scalar @tmp );
-    }
-
-    foreach my $node ( $root->findnodes(qq{/present/record/metadata/oai_marc/varfield[\@id='110']}) ) {
-        my ( $value ) = $node->findvalue("subfield[\@label='a']");      # corporate name
-        if ( $value ) {
-            push @values, $value;
-        }
-        if ( $node->exists("subfield[\@label='b']") ) {                 # subordinate unit
-            ( $value ) = $node->findvalue("subfield[\@label='c']");     # location of meeting?
-            if ( $value ) {
-                ## push @values, " "; # &x32 in XSLT?
-                push @values, $value;
-            }
-        }
-    }
-    
-    foreach my $node ( $root->findnodes(qq{/present/record/metadata/oai_marc/varfield[\@id='111']}) ) {
-        my ( $value ) = $node->findvalue("subfield[\@label='a']");      # meeting name
-        if ( $value ) {
-            push @values, $value;
-        }
-    }
-    
-    return join('; ', @values);
-
+    return $self->{_mmdo}->metadata_failure;
 }
 
-sub GetPublisher
-{
+sub GetFullTitle {
     my $self = shift;
-
-    my $text;
-    my $id = $self->GetId();
-
-    my $marcMetadataRef = $self->Get( 'marcmetadata' );
-    my ($varfield) = ($$marcMetadataRef =~ m,<varfield id="260"[^>]*>(.*?)</varfield>,s);
-    
-    my @tmp = ();
-    push @tmp, ($varfield =~ m,<subfield label="a">(.*?)</subfield>,g);
-    push @tmp, ($varfield =~ m,<subfield label="b">(.*?)</subfield>,g);
-    push @tmp, ($varfield =~ m,<subfield label="c">(.*?)</subfield>,g);
-    push @tmp, ($varfield =~ m,<subfield label="d">(.*?)</subfield>,g);
-    
-    $text = join(' ', @tmp);
-    $text =~ s,\s+, ,gsm;
-    
-    return $text;
+    return $self->{_mmdo}->get_title();
 }
 
-# ----------------------------------------------------------------------
-# NAME         : GetVolumeData
-# PURPOSE      :
-# CALLS        :
-# INPUT        :
-# RETURNS      :
-# GLOBALS      :
-# SIDE-EFFECTS :
-# NOTES        :
-# ----------------------------------------------------------------------
-sub GetVolumeData
-{
+sub GetAuthor {
     my $self = shift;
+    return $self->{_mmdo}->get_author();
+}
 
-    my %volHash;
-    my $id = $self->GetId();
+sub GetPublisher {
+    my $self = shift;
+    return $self->{_mmdo}->get_publisher();
+}
 
-    # Parse and cache the marc metadata for volume ids and title
-    # string fragments and this infor specifically for the current id
-    my $journalVolHashRef = $self->Get( 'volhashref' );
-    if ( $journalVolHashRef )
-    {
-        return $journalVolHashRef;
-    }
+sub GetVolumeData {
+    my $self = shift;
+    return $self->{_mmdo}->get_enumcron();
+}
 
-    my $marcMetadataRef = $self->Get( 'marcmetadata' );
-    my $marcForIdHashRef = Utils::Serial::get_volume_data($marcMetadataRef);
-
-    %volHash = (
-                $id => $marcForIdHashRef,
-               );
-
-    $self->Set( 'volhashref', \%volHash );
-
-    return  \%volHash;
+sub GetFormat {
+    my $self = shift;
+    return $self->{_mmdo}->get_format();
 }
 
 # ---------------------------------------------------------------------
@@ -1124,7 +939,7 @@ Description
 # ---------------------------------------------------------------------
 sub add_to_feature_table {
     my ($seq, $pgnum, $featureTagArrRef, $seqFeaturesArrRef, $featureHashRef, $featureTableHashRef, $table_ct_ref) = @_;
-    
+
     foreach my $seqFeature (@$seqFeaturesArrRef) {
         if (grep(/^$seqFeature$/, @$featureTagArrRef)) {
             $$featureTableHashRef{$$table_ct_ref}{'tag'} = $seqFeature;
@@ -1150,12 +965,12 @@ Description
 # ---------------------------------------------------------------------
 sub handle_feature_record {
     my ($pgftr, $order, $namespace, $featureRecordRef) = @_;
-    
+
     if (($namespace eq 'miun') || ($namespace eq 'miua')) {
         $featureRecordRef->{hasPF_FIRST_CONTENT}  = $order
           if (! $featureRecordRef->{hasPF_FIRST_CONTENT}  && ($pgftr =~ m,1STPG,o));
         $featureRecordRef->{hasPF_TITLE} = $order
-          if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TPG|CTP|VTP|VTV,o));        
+          if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TPG|CTP|VTP|VTV,o));
         $featureRecordRef->{hasPF_TOC} = $order
           if (! $featureRecordRef->{hasPF_TOC} && ($pgftr =~ m,TOC,o));
     }
@@ -1213,7 +1028,7 @@ sub BuildFileGrpHash {
     my %type_map = (
         'zip archive' => 'zip',
     );
-    
+
     my $fileGrps = $root->findnodes(q{/METS:mets/METS:fileSec/METS:fileGrp[METS:file]});
     foreach my $fileGrpNode ( $fileGrps->get_nodelist ) {
         my $filegrp = $fileGrpNode->getAttribute('USE');
@@ -1229,12 +1044,12 @@ sub BuildFileGrpHash {
                 my $id = $node->getAttribute('ID');
                 my $filesize = $node->getAttribute('SIZE');
                 my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
-                my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+                my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
                 $fileGrpHashRef->{$id}{filename} = $filename;
                 $fileGrpHashRef->{$id}{filetype} = $filetype;
-                $fileGrpHashRef->{$id}{mimetype} = $filemimetype;                
+                $fileGrpHashRef->{$id}{mimetype} = $filemimetype;
                 $fileGrpHashRef->{$id}{filesize} = $filesize;
                 $fileGrpHashRef->{$id}{filegrp} =  $filegrp . 'file'; # compatibility?
                 $totalFileSize += $filesize;
@@ -1255,7 +1070,7 @@ sub BuildFileGrpHash {
         my $id = $node->getAttribute('ID');
         my $filesize = $node->getAttribute('SIZE');
         my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
-        my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
+        my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
 
         $fileGrpHashRef->{$id}{filename} = $filename;
         $fileGrpHashRef->{$id}{filetype} = $filetype;
@@ -1275,8 +1090,8 @@ sub BuildFileGrpHash {
             my $id = $node->getAttribute('ID');
             my $filesize = $node->getAttribute('SIZE');
             my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
-            my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios); 
-            
+            my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
+
             $fileGrpHashRef->{$id}{filename} = $filename;
             $fileGrpHashRef->{$id}{filetype} = $filetype;
             $fileGrpHashRef->{$id}{filesize} = $filesize;
@@ -1301,11 +1116,11 @@ in the structMap
 sub ParseStructMap {
     my $self = shift;
     my ($root, $fileGrpHashRef, $pageInfoHashRef, $seq2PageNumberHashRef, $featureRecordRef) = @_;
-    
+
     # tombstone objects have an empty structMap
     my $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
     my $structMap = $root->findnodes($xpath);
-    
+
     my $hasPNs = 0;
     my $hasPFs = 0;
 
@@ -1317,7 +1132,7 @@ sub ParseStructMap {
 
     foreach my $metsDiv ($structMap->get_nodelist) {
         my $order = $metsDiv->getAttribute('ORDER');
-        
+
         my @metsFptrChildren = $metsDiv->getChildrenByTagName('METS:fptr');
         foreach my $child (@metsFptrChildren) {
             my $fileid = $child->getAttribute('FILEID');
@@ -1351,7 +1166,7 @@ sub ParseStructMap {
         handle_feature_record($pgftr, $order, $namespace, $featureRecordRef);
     }
 
-    $self->SetHasPageNumbers($hasPNs);    
+    $self->SetHasPageNumbers($hasPNs);
     $self->SetHasPageFeatures($hasPFs);
 
     $self->Set('featuretable', \%featureTable);
@@ -1375,7 +1190,7 @@ sub BuildPage2SequenceMap {
     my $pageInfoHashRef = shift;
 
     my %page2SeqNumberHash = ();
-    
+
     foreach my $seq ( sort {$a <=> $b} keys %$seq2PageNumberHashRef ) {
         my $pageNumber = $seq2PageNumberHashRef->{$seq};
         if ($pageNumber && (! $page2SeqNumberHash{$pageNumber} )) {
@@ -1407,10 +1222,10 @@ sub ParseVersionFromPREMIS {
 
     my $date_xpath = './premis:eventDateTime | ./premis1:eventDateTime';
 
-    my $most_recent;    
+    my $most_recent;
     my $was_deleted = 0;
     my $deletion_event_xpath = '//premis:event[premis:eventType="deletion"] | //premis1:event[premis1:eventType="deletion"]';
-    
+
     foreach my $event ($xpc->findnodes($deletion_event_xpath)) {
         my $date = $xpc->findvalue($date_xpath, $event);
         if (
@@ -1426,7 +1241,7 @@ sub ParseVersionFromPREMIS {
     if (! defined $most_recent) {
         # Not deleted, use ingestion date
         my $ingestion_event_xpath = '//premis:event[premis:eventType="ingestion"] | //premis1:event[premis1:eventType="ingestion"]';
-    
+
         foreach my $event ($xpc->findnodes($ingestion_event_xpath)) {
             my $date = $xpc->findvalue($date_xpath, $event);
             if (
@@ -1486,7 +1301,7 @@ sub SetPageInfo {
        $root,
        \%fileGrpHash
       );
-    
+
     $self->SetFileGroupMap(\%fileGrpHash);
 
     my %pageInfoHash = ();
@@ -1522,12 +1337,12 @@ sub SetPageInfo {
        \%seq2PageNumberHash,
        \%pageInfoHash,
       );
-    
+
     my ($version, $was_deleted) = $self-> ParseVersionFromPREMIS($root);
     $self->Version($version, $was_deleted);
-    
+
     $self->{pageinfo} = \%pageInfoHash;
-    
+
     DEBUG('time', qq{<h3>MdpItem::SetPageInfo(END)</h3>} . Utils::display_stats());
 }
 
@@ -1540,8 +1355,7 @@ Deleting this seq moves the saved feature seqs down by 1.
 =cut
 
 # ---------------------------------------------------------------------
-sub adjust_feature_seq
-{
+sub adjust_feature_seq {
     my $suppressed_seq = shift;
     my $feature_seq = shift;
 
@@ -1578,10 +1392,9 @@ sub adjust_feature_seq
 #                next to last page sequence.  Eventually, the next to
 #                last page suppression will be handled when
 #                CHECKOUT_PAGE page metadata is available for all
-#                books.  This per jwilkin. Mon Aug 16 13:52:26 2010 
+#                books.  This per jwilkin. Mon Aug 16 13:52:26 2010
 # ----------------------------------------------------------------------
-sub SupressCheckoutSeqs
-{
+sub SupressCheckoutSeqs {
     my $self = shift;
     my ( $pageInfoHashRef, $seq2PageNumberHashRef, $featureRecordRef ) = @_;
 
@@ -1646,8 +1459,7 @@ sub SupressCheckoutSeqs
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetSequenceNumbers
-{
+sub GetSequenceNumbers {
     my $self = shift;
 
     my %pageInfoHash = % { $self->{'pageinfo'} };
@@ -1666,8 +1478,7 @@ sub GetSequenceNumbers
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetFeatureHash
-{
+sub GetFeatureHash {
     my $self = shift;
 
     my $featureHashRef;
@@ -1677,9 +1488,9 @@ sub GetFeatureHash
     my $namespace = $self->Get('namespace');
     if (defined($MdpGlobals::gPageFeatureHash{$namespace})) {
         $featureHashRef = $MdpGlobals::gPageFeatureHash{$namespace};
-    } 
-    else {   
-        $featureHashRef = $MdpGlobals::gPageFeatureHash{'MARC.METADATA'};   
+    }
+    else {
+        $featureHashRef = $MdpGlobals::gPageFeatureHash{'MARC.METADATA'};
     }
 
     return $featureHashRef;
@@ -1695,8 +1506,7 @@ sub GetFeatureHash
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetPageNumBySequence
-{
+sub GetPageNumBySequence {
     my $self = shift;
     my $sequence = shift;
 
@@ -1726,8 +1536,7 @@ sub GetPageNumBySequence
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetFileNameBySequence
-{
+sub GetFileNameBySequence {
     my $self = shift;
     my $sequence = shift;
     my $which = shift;
@@ -1738,8 +1547,7 @@ sub GetFileNameBySequence
     return $fileName;
 }
 
-sub GetFileSizeBySequence
-{
+sub GetFileSizeBySequence {
     my $self = shift;
     my $sequence = shift;
     my $which = shift;
@@ -1763,8 +1571,7 @@ sub GetFileSizeBySequence
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetDirPathMaybeExtract
-{
+sub GetDirPathMaybeExtract {
     my $self = shift;
     my $pattern_arr_ref = shift;
     my $exclude_pattern_arr_ref = shift;
@@ -1805,13 +1612,12 @@ sub GetDirPathMaybeExtract
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetFilePathMaybeExtract
-{
+sub GetFilePathMaybeExtract {
     my $self = shift;
     my $sequence = shift;
     my $which = shift;
     my $suffix = shift;
-    
+
     my $filePath;
 
     my $fileName;
@@ -1822,7 +1628,7 @@ sub GetFilePathMaybeExtract
         # treat $sequence as a fileid
         $fileName = $self->GetFileById($sequence);
     }
-    return (undef, undef) 
+    return (undef, undef)
       if (! $fileName);
     # POSSIBLY NOTREACHED
 
@@ -1859,8 +1665,7 @@ sub GetFilePathMaybeExtract
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub DumpPageInfoToHtml
-{
+sub DumpPageInfoToHtml {
     my $self = shift;
 
     my $s;
@@ -1872,27 +1677,13 @@ sub DumpPageInfoToHtml
     $s .= qq{<h4>Base directory="$basename"</h4>\n};
 
     $s .= qq{<h4>Volume information</h4>\n};
-    my $volHashRef = $self->GetVolumeData();
-    if ( scalar( keys %$volHashRef ) > 0 )
-    {
-        $s .= qq{<table>\n};
-        foreach my $bc( sort keys %$volHashRef )
-        {
-            my $vol = $$volHashRef{$bc}{'vol'};
-            my $callno = $$volHashRef{$bc}{'callno'};
-            my $b = $$volHashRef{$bc}{'b'};
-            my $c = $$volHashRef{$bc}{'c'};
-
-            $s .= qq{<tr><td>id="$bc"</td><td>vol="$vol"</td><td>callno="$callno"</td><td>b="$b"</td><td>c="$c"</td></tr>\n};
-
-        }
-        $s .= qq{</table>\n};
+    my $vol = $self->GetVolumeData();
+    if ($vol) {
+        $s .= qq{<p>vol="$vol"</p>\n};
     }
-    else
-    {
+    else {
         $s .= qq{<p>None</p>\n};
     }
-
 
     $s .= qq{<h4>Has page numbers: } . $self->HasPageNumbers() . qq{</h4>\n};
     $s .= qq{<h4>Has page features: } . $self->HasPageFeatures() . qq{</h4>\n};
@@ -1943,16 +1734,15 @@ sub DumpPageInfoToHtml
     return $s;
 }
 
-sub SetOrientationForIdSequence
-{
+sub SetOrientationForIdSequence {
     my $self = shift;
     my ( $id, $sequence, $orientation ) = @_;
-    
+
     my $C = new Context;
     my $ses = $C->get_object('Session', 1);
     if (defined($ses)) {
         my $orientation_cache = $ses->get_persistent("orientation:$id") || {};
-    
+
         my $do_persist = 1;
         if($orientation == $MdpGlobals::gDefaultOrientation) {
             if (defined($$orientation_cache{$sequence})) {
@@ -1968,8 +1758,7 @@ sub SetOrientationForIdSequence
     }
 }
 
-sub GetOrientationForIdSequence
-{
+sub GetOrientationForIdSequence {
     my $self = shift;
     my ( $id, $sequence ) = @_;
 
@@ -1994,8 +1783,7 @@ sub GetOrientationForIdSequence
 # SIDE-EFFECTS :
 # NOTES        :
 # ----------------------------------------------------------------------
-sub GetOrientationInDegrees
-{
+sub GetOrientationInDegrees {
     my $self = shift;
     my $rotation = $self->GetOrientationForIdSequence(
                                                       $self->GetId(),

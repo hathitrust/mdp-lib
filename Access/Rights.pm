@@ -74,7 +74,6 @@ use Auth::Auth;
 use Auth::ACL;
 use Auth::Exclusive;
 use RightsGlobals;
-use MirlynGlobals;
 
 use Access::Holdings;
 use Access::Orphans;
