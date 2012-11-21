@@ -211,9 +211,11 @@ sub __get_document_root {
 
     foreach my $datafield (@datafield) {
         my ($subfield_u) = $datafield->findnodes("subfield[\@code='u']");
-        my $subfield_id = $subfield_u->textContent;
-        if ($subfield_id ne $id) {
-            $record->removeChild($datafield);
+        if ($subfield_u) {
+            my $subfield_id = $subfield_u->textContent;
+            if ($subfield_id ne $id) {
+                $record->removeChild($datafield);
+            }
         }
     }
 
@@ -342,10 +344,12 @@ sub get_title {
 
     my @tmp = ();
     my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
-    foreach my $code (qw(a b c)) {
-        my ($value) = $node->findvalue(qq{subfield[\@code='$code']});
-        if ($value) {
-            push @tmp, $value;
+    if ($node) {
+        foreach my $code (qw(a b c)) {
+            my ($value) = $node->findvalue(qq{subfield[\@code='$code']});
+            if ($value) {
+                push @tmp, $value;
+            }
         }
     }
 
@@ -437,10 +441,12 @@ sub get_publisher {
 
     my ($node) = $root->findnodes(qq{//datafield[\@tag='260']});
     my @tmp = ();
-    foreach my $code (qw(a b c d)) {
-        my ($value) = $node->findvalue("subfield[\@code='$code']");
-        if ($value) {
-            push @tmp, $value;
+    if ($node) {
+        foreach my $code (qw(a b c d)) {
+            my ($value) = $node->findvalue("subfield[\@code='$code']");
+            if ($value) {
+                push @tmp, $value;
+            }
         }
     }
 
