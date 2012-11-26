@@ -52,6 +52,8 @@ sub prep_n_execute
     # Ensure connection for long running jobs
     $dbh->ping();
     
+    @params = () if (! defined $params[0]);
+
     my $count_ref;
     if ( ref($params[-1]) ) {
         $count_ref = pop @params;
