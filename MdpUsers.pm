@@ -59,16 +59,16 @@ my $null_range = '^0\.0\.0\.0$';
 
 
 # Superuser access expires on date:
-my $superuser_expire_date = '2012-12-31 23:59:59';
+my $superuser_expire_date = '2013-12-31 23:59:59';
 
 # Staff, student access expires on date:
-my $staff_expire_date = '2012-12-31 23:59:59';
+my $staff_expire_date = '2013-12-31 23:59:59';
 
 # Friend access expires on date:
-my $external_expire_date = '2012-12-31 23:59:59';
+my $external_expire_date = '2013-12-31 23:59:59';
 
 # CRMS users access expires on date:
-my $CRMS_expire_date = '2012-12-01 23:59:59';
+my $CRMS_expire_date = '2013-12-31 23:59:59';
 
 #
 # The ACL
