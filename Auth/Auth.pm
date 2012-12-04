@@ -552,26 +552,6 @@ sub is_in_library {
     return ($institution && $ENV{SDRLIB});
 }
 
-
-# ---------------------------------------------------------------------
-
-=item is_in_uom_library
-
-See is_in_library
-
-=cut
-
-# ---------------------------------------------------------------------
-sub is_in_uom_library {
-    my $self = shift;
-    my $institution = __get_institution_by_ip_address();
-
-    return 0 if (DEBUG('nonlib'));
-
-    return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
-}
-
-
 # ---------------------------------------------------------------------
 
 =item __get_prioritized_scoped_affiliation

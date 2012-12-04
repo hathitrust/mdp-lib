@@ -25,7 +25,7 @@ called.
 
 $rights_attribute = $ar->get_rights_attribute($C, $id);
 
-where $rights_attribute is a number from (1..9) with 0 being bad
+where $rights_attribute is a number from (1...) with 0 being bad
 symbolically represented by $RightsGlobals::NOOP_ATTRIBUTE;
 
 $source_attribute = $ar->get_source_attribute($C, $id);
@@ -40,9 +40,9 @@ where $final_accessstatus is a string from ('allow', 'deny',
 passed in or the id is not in the database.
 
 NOTE: THIS METHOD HAS THE SIDE-EFFECT OF CAPTURING THE ID EXCLUSIVELY
-FOR A GIVEN USER FOR OPB ITEMS. To just CHECK the final_access_status
-that includes the possibility of exclusive capture use the following
-method.
+FOR A GIVEN USER FOR OP and brittle/lost/missing (@OPB) ITEMS. To just
+CHECK the final_access_status that includes the possibility of
+exclusive capture use the following method.
 
 $final_accessstatus = $ar->check_final_access_status($C, $id);
 
@@ -182,10 +182,10 @@ For this user (assuming user is authenticated) for user's institution,
 which rights attributes equate to 'fulltext'
 
 WARNING: The list returned by this subroutine is valid ONLY when
-called to construct a filter query that INCLUDES A TEST FOR HOLDINGS.
-It is permissive of the attributes that equate to 'allow' in the
-CERTAIN KNOWLEDGE that these rights attribute values will be QUALIFIED
-BY THIS HOLDINGS TEST.
+called to construct a filter query that INCLUDES A TEST FOR HOLDINGS
+and, possibly, condition (@OPB) It is permissive of the attributes that
+equate to 'allow' in the CERTAIN KNOWLEDGE that these rights attribute
+values will be QUALIFIED BY THIS HOLDINGS TEST.
 
 =cut
 
@@ -203,7 +203,7 @@ For this user (assuming user is authenticated) for user's institution,
 which rights attributes equate to 'search-only', i.e. no 'fulltext'.
 
 This includes attr=8 (nobody).  Even though we don't index those
-volumes we still need to assert that 8 is denied here.  
+volumes we still need to assert that 8 is denied here.
 
 =cut
 
@@ -218,7 +218,7 @@ sub get_no_fulltext_attr_list {
 =item PUBLIC: assert_final_access_status
 
 Determine access rights for this id and assert exclusive ownership for
-id attribute values like opb.
+id attribute values like op. @OPB
 
 =cut
 
@@ -253,6 +253,20 @@ sub assert_final_access_status {
 
 # ---------------------------------------------------------------------
 
+=item get_access_type
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_access_type {
+    my $C = shift;
+    return _determine_access_type($C);
+}
+
+# ---------------------------------------------------------------------
+
 =item get_exclusivity
 
 Description
@@ -283,13 +297,13 @@ Description
 sub get_access_type {
     my $self = shift;
     my ($C, $as_string) = @_;
-    
+
     my $access_type = $self->{'access_type'};
-    my $at = 
-      $as_string 
-        ? $RightsGlobals::g_access_type_names{$access_type} 
+    my $at =
+      $as_string
+        ? $RightsGlobals::g_access_type_names{$access_type}
           : $access_type;
- 
+
     return $at;
 }
 
@@ -365,7 +379,7 @@ is determined whether the user is allowed the POD.
 sub get_POD_access_status {
     my $self = shift;
     my ($C, $id) = @_;
-    
+
     $self->_validate_id($id);
 
     my $status = 'deny';
@@ -384,7 +398,7 @@ sub get_POD_access_status {
         }
     }
     elsif ($self->creative_commons($C, $id)) {
-        $status = _resolve_access_by_GeoIP($C, 'US');                
+        $status = _resolve_access_by_GeoIP($C, 'US');
     }
 
     DEBUG('pt,auth', qq{<h5>get_POD_access_status: status=$status</h5>});
@@ -400,7 +414,7 @@ authorized.
 
 As of Mon Mar 21 17:01:55 2011
 
-Allowed are: 
+Allowed are:
 
 1) non-google pd/pdus(on US soil)/world/cc for anyone
 
@@ -419,12 +433,12 @@ Exceptions: UM Press (ump)(source=3)
 sub get_full_PDF_access_status {
     my $self = shift;
     my ($C, $id) = @_;
-    
+
     $self->_validate_id($id);
 
     my $status = 'deny';
     my $message = q{NOT_AVAILABLE};
-    
+
     my $creative_commons = $self->creative_commons($C, $id);
 
     if ($creative_commons) {
@@ -445,7 +459,7 @@ sub get_full_PDF_access_status {
             if ($pd) {
                 my $auth = $C->get_object('Auth');
                 my $is_affiliated = (
-                                     $auth->affiliation_is_hathitrust($C) 
+                                     $auth->affiliation_is_hathitrust($C)
                                      ||
                                      $auth->is_in_library()
                                     );
@@ -453,7 +467,7 @@ sub get_full_PDF_access_status {
                     $status = 'allow';
                 }
                 else {
-                    $message = q{NOT_AFFILIATED};                    
+                    $message = q{NOT_AFFILIATED};
                 }
             }
         }
@@ -517,7 +531,7 @@ sub public_domain_world_creative_commons {
 
 =item PUBLIC: public_domain_world
 
-Description: is this id pd/pdus/icus/world? 
+Description: is this id pd/pdus/icus/world?
 
 In the pdus case, the id is PD for users affiliated with US
 institutions coming from any IP address. All others, affiliated or not
@@ -532,7 +546,7 @@ must be at a non-US IP address for this id to be PD.
 # ---------------------------------------------------------------------
 sub __test_affiliation_and_status {
     my ($C, $status, $required_location, $required_status, $attribute) = @_;
-    
+
     if ($status eq $required_status) {
         return 1;
     }
@@ -550,7 +564,7 @@ sub public_domain_world {
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         my $status = $C->get_object('Auth')->get_institution_us_status($C);
-        
+
         if ($attribute == $RightsGlobals::g_public_domain_US_attribute_value) {
             # PDUS
             return __test_affiliation_and_status($C, $status, 'US', 'affus', $attribute);
@@ -584,12 +598,12 @@ Returns the true rights_current.attr
 sub in_copyright_suppress_debug_switches {
     my $self = shift;
     my ($C, $id) = @_;
-    
+
     my $in_copyright = 1;
-    
+
     my $attribute = $self->get_rights_attribute($C, $id, 1);
     if ($self->creative_commons($C, $id, 1)) {
-        $in_copyright = 0; 
+        $in_copyright = 0;
     }
     elsif ($self->public_domain_world($C, $id, 1)) {
         $in_copyright = 0;
@@ -706,7 +720,7 @@ sub _get_final_access_status_attr_list {
 
     DEBUG('pt,auth,all',
           sub {
-              my $attr_list = join(',', @attr_list);
+              my $attr_list = join(',', sort {$a <=> $b} @attr_list);
               qq{<h5>_get_final_access_status_attr_list: reqd="$final_access_status_req" list=$attr_list</h5>}
           });
 
@@ -779,43 +793,33 @@ sub _Assert_final_access_status {
     my ($final_access_status, $granted, $owner, $expires) =
         ($initial_access_status, 0, undef, '0000-00-00 00:00:00');
 
-    if 
+    if
       ($initial_access_status eq 'allow_by_us_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C, 'US');
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_by_nonus_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C, 'NONUS');
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_us_aff_by_ipaddr') {
         $final_access_status = _resolve_us_aff_access_by_GeoIP($C);
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_nonus_aff_by_ipaddr') {
         $final_access_status = _resolve_nonus_aff_access_by_GeoIP($C);
     }
-    elsif 
-      ($initial_access_status eq 'allow_by_exclusivity') {
+    elsif
+      ($initial_access_status eq 'allow_by_held_BRLM') {
         ($final_access_status, $granted, $owner, $expires) =
-          _assert_access_exclusivity($C, $id);
-    }
-    elsif 
-      ($initial_access_status eq 'allow_by_uom_lib_ipaddr') {
-        if ($C->get_object('Auth')->is_in_uom_library()) {
-            ($final_access_status, $granted, $owner, $expires) =
-              _assert_access_exclusivity($C, $id);
-        }
-        else {
-            $final_access_status = 'deny';
-        }
+          _resolve_access_by_held_BRLM($C, $id, 1);
     }
     elsif
       ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
-        ($final_access_status, $granted, $owner, $expires) = 
+        ($final_access_status, $granted, $owner, $expires) =
           _resolve_access_by_held_and_agreement($C, $id, 1);
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_ssd_by_holdings') {
         $final_access_status = _resolve_ssd_access_by_held($C, $id, 1);
     }
@@ -839,15 +843,17 @@ have to filter records based on its holdings data over all items to
 determine which should appear in search results. There are two cases
 where holdings come into play in the absence of an id.
 
-(1) If the initial_access_status is 'allow_by_exclusivity' we set
-final_access_status to 'allow'. It is highly improbable that an item
-to which exclusive access applies will be acquired by a user other
-that the user viewing results filtered by the 'fulltext' Facet.  The
-anomaly here is a 'search-only' link to pageturner in the search
-results for 'fulltext' only.
+(1) When resolving the final_access_status for a Facet query where
+exclusivity applies, exclusivity is set to 'allow'. It is highly
+improbable that an item to which exclusive access applies will be
+acquired by a user other that the user viewing results filtered by the
+'fulltext' Facet.
 
-(2) If the initial_access_status is 'allow_orph_by_holdings_by_agreement' we set 
-final_access_status to 'allow'.
+(2) If the initial_access_status is
+'allow_orph_by_holdings_by_agreement' we set final_access_status to
+'allow' only if the institution has an agreement.
+
+(3) SSD users only can see items held by their institution.
 
 =cut
 
@@ -858,59 +864,43 @@ sub _Check_final_access_status {
     my ($final_access_status, $granted, $owner, $expires) =
         ($initial_access_status, 0, undef, '0000-00-00 00:00:00');
 
-    if 
+    if
       ($initial_access_status eq 'allow_by_us_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C, 'US');
-    }   
-    elsif 
+    }
+    elsif
       ($initial_access_status eq 'allow_by_nonus_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C, 'NONUS');
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_us_aff_by_ipaddr') {
         $final_access_status = _resolve_us_aff_access_by_GeoIP($C);
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_nonus_aff_by_ipaddr') {
         $final_access_status = _resolve_nonus_aff_access_by_GeoIP($C);
     }
-    elsif 
-      ($initial_access_status eq 'allow_by_exclusivity') {
+    elsif ($initial_access_status eq 'allow_by_held_BRLM') {
         if (defined($id)) {
-            ($final_access_status, $granted, $owner, $expires) = 
-              _check_access_exclusivity($C, $id);
+            ($final_access_status, $granted, $owner, $expires) =
+              _resolve_access_by_held_BRLM($C, $id, 0);
         }
         else {
             $final_access_status = 'allow';
         }
     }
-    elsif 
-      ($initial_access_status eq 'allow_by_uom_lib_ipaddr') {
-        if (defined($id)) {
-            if ($C->get_object('Auth')->is_in_uom_library()) {
-                ($final_access_status, $granted, $owner, $expires) = 
-                  _check_access_exclusivity($C, $id);
-            }
-            else {
-                $final_access_status = 'deny';
-            }
-        }
-        else {
-            $final_access_status = 'allow';
-        }
-    }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
         if (defined($id)) {
-            ($final_access_status, $granted, $owner, $expires) = 
+            ($final_access_status, $granted, $owner, $expires) =
               _resolve_access_by_held_and_agreement($C, $id, 0);
         }
         else {
             # downstream must filter on holdings if $final_access_status = 'allow'
-            $final_access_status = _institution_has_orphan_agreement($C) ? 'allow' : 'deny'; 
+            $final_access_status = _institution_has_orphan_agreement($C) ? 'allow' : 'deny';
         }
     }
-    elsif 
+    elsif
       ($initial_access_status eq 'allow_ssd_by_holdings') {
         if (defined($id)) {
             $final_access_status = _resolve_ssd_access_by_held($C, $id, 0);
@@ -929,7 +919,7 @@ sub _Check_final_access_status {
             $final_access_status = 'allow';
         }
     }
-    
+
     ___final_access_status_check($final_access_status);
 
     return $final_access_status;
@@ -945,7 +935,7 @@ This will need to be enhanced to test for the triple
 condition="brittle", return 3 else return value in
 mdp.rights_current.attr
 
-If institution is not known return mdp.rights_current.attr 
+If institution is not known return mdp.rights_current.attr
 
 =cut
 
@@ -1116,22 +1106,22 @@ sub _determine_access_type {
 
     my $auth = $C->get_object('Auth');
 
-    if 
+    if
       ($auth->get_eduPersonEntitlement_print_disabled($C)) {
         $access_type = $RightsGlobals::SSD_USER;
     }
-    elsif 
+    elsif
       ($auth->affiliation_is_umich($C)) {
         # on or off-campus full PDF of pd + outside of library
         # exclusive brittle access + some DLPS ic works + orphans
         $access_type = $RightsGlobals::UM_AFFILIATE;
     }
-    elsif 
+    elsif
       ($auth->affiliation_is_hathitrust($C)) {
         # full PDF + exclusive brittle access + orph modulo geo location
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
-    elsif 
+    elsif
       ($auth->is_in_library()) {
         # brittle book access limited by number held and 24h
         # exclusivity: UM only until Holding Db carries condition
@@ -1156,7 +1146,7 @@ sub _determine_access_type {
 PDUS Support
 
  if (affiliate of US institution)
-    allow 
+    allow
  else if (affiliate of non-US institution)
     allow if IP address is US
  else
@@ -1170,11 +1160,11 @@ sub _resolve_us_aff_access_by_GeoIP {
     my $C = shift;
 
     my $status = 'deny';
-    
+
     my $inst_status = $C->get_object('Auth')->get_institution_us_status($C);
     if ($inst_status eq 'affus') {
         $status = 'allow';
-    } 
+    }
     elsif ($inst_status eq 'affnonus') {
         # non-US affiliate: grant access on US soil
         $status = _resolve_access_by_GeoIP($C, 'US');
@@ -1191,7 +1181,7 @@ sub _resolve_us_aff_access_by_GeoIP {
 ICUS Support
 
  if (affiliate of non-US institution)
-    allow 
+    allow
  else if (affiliate of US institution)
     allow if IP address is non-US
  else
@@ -1205,11 +1195,11 @@ sub _resolve_nonus_aff_access_by_GeoIP {
     my $C = shift;
 
     my $status = 'deny';
-    
+
     my $inst_status = $C->get_object('Auth')->get_institution_us_status($C);
     if ($us_status eq 'affnonus') {
         $status = 'allow';
-    } 
+    }
     elsif ($inst_status eq 'affus') {
         # non-US affiliate: grant access on US soil
         $status = _resolve_access_by_GeoIP($C, 'NONUS');
@@ -1242,7 +1232,7 @@ sub _resolve_access_by_GeoIP {
     my $country_code = $geoIP->country_code_by_addr($IPADDR);
 
     my $correct_location = 0;
-    if ($required_location eq 'US') { 
+    if ($required_location eq 'US') {
         $correct_location = (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes));
     }
     elsif ($required_location eq 'NONUS') {
@@ -1272,23 +1262,52 @@ sub _resolve_access_by_GeoIP {
     return $status;
 }
 
+
 # ---------------------------------------------------------------------
 
-=item CLASS PRIVATE: _check_access_exclusivity
+=item CLASS PRIVATE: _assert_access_exclusivity
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub _check_access_exclusivity {
-    my ($C, $id) = @_;
+sub _assert_access_exclusivity {
+    my ($C, $id, $brlm) = @_;
 
-    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+    my $status;
+
+    my ($granted, $owner, $expires) =
+        Auth::Exclusive::acquire_exclusive_access($C, $id, $brlm);
+    if ($granted) {
+        $status = 'allow';
+    }
+    else {
+        $status = 'deny';
+    }
+
+    return ($status, $granted, $owner, $expires);
+}
+
+# ---------------------------------------------------------------------
+
+=item CLASS PRIVATE: _check_access_exclusivity
+
+Default to loose 'allow' in the absence of an ID so downstream Facet
+query will include this ID. Access code will make the final access
+determination when an ID is available.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _check_access_exclusivity {
+    my ($C, $id, $brlm) = @_;
+
+    my ($status, $granted, $owner, $expires) = ('allow', 0, undef, '0000-00-00 00:00:00');
 
     if (defined($id)) {
         ($granted, $owner, $expires) =
-          Auth::Exclusive::check_exclusive_access($C, $id);
+          Auth::Exclusive::check_exclusive_access($C, $id, $brlm);
         if ($granted) {
             $status = 'allow';
         }
@@ -1320,7 +1339,7 @@ sub _resolve_access_by_held_and_agreement {
     my $inst = 'not defined';
     my $held = 0;
     my $agreed = 0;
-    
+
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
@@ -1337,10 +1356,44 @@ sub _resolve_access_by_held_and_agreement {
             }
         }
     }
-    DEBUG('pt,auth,all,agree,notagree,held,notheld', 
+    DEBUG('pt,auth,all,agree,notagree,held,notheld',
           qq{<h5>Held+agreement status=$status inst of requestor=$inst held=$held agreed=$agreed</h5>});
 
-    return $status;
+    return ($status, $granted, $owner, $expires);
+}
+
+
+# ---------------------------------------------------------------------
+
+=item _resolve_access_by_held_BRLM
+
+Exclusive access is granted if work is OP and brittle, lost, missing
+per the PHDB and user is on "US soil" and affiliated with HT
+institution.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _resolve_access_by_held_BRLM {
+    my ($C, $id, $assert_ownership) = @_;
+
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+
+    my $inst = 'not defined';
+    my $held = 0;
+
+    my $US_status = _resolve_access_by_GeoIP($C, 'US');
+    if ($US_status eq 'allow') {
+        if ($assert_ownership) {
+            ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id, 1);
+        }
+        else {
+            ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id, 1);
+        }
+    }
+    DEBUG('pt,auth,all,agree,notagree,held,notheld', qq{<h5>Held+BRLM status=$status</h5>});
+
+    return ($status, $granted, $owner, $expires);
 }
 
 # ---------------------------------------------------------------------
@@ -1359,7 +1412,7 @@ sub _resolve_ssd_access_by_held {
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
     my $inst = 'not defined';
     my $held = 0;
-    
+
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
@@ -1376,7 +1429,7 @@ sub _resolve_ssd_access_by_held {
 
     DEBUG('pt,auth,all,held,notheld', qq{<h5>SSD access=$status Holdings institution=$inst held=$held"</h5>});
 
-    return $status;
+    return ($status, $granted, $owner, $expires);
 }
 
 
@@ -1399,7 +1452,7 @@ sub _resolve_ssd_access_by_held_by_GeoIP {
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
     my $inst = 'not defined';
     my $held = 0;
-    
+
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
@@ -1421,11 +1474,11 @@ sub _resolve_ssd_access_by_held_by_GeoIP {
         # by using a blacklisted US proxy?  Executive decision: NO.
         $status = 'allow';
     }
-    
+
 
     DEBUG('pt,auth,all,held,notheld', qq{<h5>SSD ICUS access=$status Holdings institution=$inst held=$held"</h5>});
 
-    return $status;
+    return ($status, $granted, $owner, $expires);
 }
 
 # ---------------------------------------------------------------------
@@ -1442,32 +1495,6 @@ sub _institution_has_orphan_agreement {
 
     my $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
     return Access::Orphans::institution_agreement($C, $inst);
-}
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _assert_access_exclusivity
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _assert_access_exclusivity {
-    my ($C, $id) = @_;
-
-    my $status;
-
-    my ($granted, $owner, $expires) =
-        Auth::Exclusive::acquire_exclusive_access($C, $id);
-    if ($granted) {
-        $status = 'allow';
-    }
-    else {
-        $status = 'deny';
-    }
-
-    return ($status, $granted, $owner, $expires);
 }
 
 1;

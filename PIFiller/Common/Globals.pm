@@ -228,6 +228,7 @@ sub handle_ACCESS_HOLDINGS_PI
     my ($C, $act, $piParamHashRef) = @_;
 
     my $held = 'NO';
+    my $brittle_held = 'NO';
     my $inst = 'notaninstitution';
     
     my $id = $C->get_object('CGI')->param('id');
@@ -236,10 +237,14 @@ sub handle_ACCESS_HOLDINGS_PI
         if (Access::Holdings::id_is_held($C, $id, $inst)) {
             $held = 'YES';
         }
+        if (Access::Holdings::id_is_held_and_BRLM($C, $id, $inst)) {
+            $brittle_held = 'YES';
+        }
     }
     
     my $s;
     $s .= wrap_string_in_tag($held, 'Held');
+    $s .= wrap_string_in_tag($held, 'BrittleHeld');
     $s .= wrap_string_in_tag($inst, 'Institution');
 
     return $s;

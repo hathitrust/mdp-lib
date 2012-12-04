@@ -22,7 +22,7 @@ package RightsGlobals;
  id        name        type      dscr
  1         pd          copyright public domain
  2         ic          copyright in-copyright
- 3         opb         copyright out-of-print and brittle (implies in-copyright)
+ 3         op          copyright out-of-print (implies in-copyright) @OPB
  4         orph        copyright copyright-orphaned (implies in-copyright)
  5         und         copyright undetermined copyright status
  6         umall       access    available to UM affiliates and walk-in patrons (all campuses)
@@ -107,7 +107,7 @@ our $HT_AFFILIATE        = 5;
   (
    '1'  => 'public-domain',
    '2'  => 'in-copyright',
-   '3'  => 'in-copyright out-of-print brittle',
+   '3'  => 'in-copyright out-of-print',
    '4'  => 'in-copyright orphaned',
    '5'  => 'undetermined copyright',
    '6'  => 'available to um affiliates + walk-ins',
@@ -130,7 +130,7 @@ our $HT_AFFILIATE        = 5;
   (
    1  => 'pd',
    2  => 'ic',
-   3  => 'opb',
+   3  => 'op',
    4  => 'orph',
    5  => 'und',
    6  => 'umall',
@@ -177,74 +177,6 @@ our $HT_AFFILIATE        = 5;
         stmt_text
    );
 
-# Coordinates with table=mdp.access_stmts
-%g_stmt_keys =
-  (
-   'pd'           => {
-                      'stmt_icon' => '',
-                     },
-   'pd-google'    => {
-                      'stmt_icon' => '',
-                     },
-   'pd-us'        => {
-                      'stmt_icon' => '',
-                     },
-   'pd-us-google' => {
-                      'stmt_icon' => '',
-                     },
-   'oa'           => {
-                      'stmt_icon' => '',
-                     },
-   'oa-google'    => {
-                      'stmt_icon' => '',
-                     },
-   'ic-access'    => {
-                      'stmt_icon' => '',
-                     },
-   'ic'           => {
-                      'stmt_icon' => '',
-                     },
-   'cc-by'        => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by/3.0/us/',
-                     },
-   'cc-by-nd'     => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nd/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nd/3.0/us/',
-                     },
-   'cc-by-nc-nd'  => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc-nd/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc-nd/3.0/us/',
-                     },
-   'cc-by-nc'     => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc/3.0/us/',
-                     },
-   'cc-by-nc-sa'  => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc-sa/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc-sa/3.0/us/',
-                     },
-   'cc-by-sa'     => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
-                     },
-   'cc-zero'      => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/zero/1.0/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/publicdomain/zero/1.0/',
-                     },
-   'candidates'   => {
-                      'stmt_icon' => '',
-                     },
-   'orphans'      => {
-                      'stmt_icon' => '',
-                     },
-   'ic-us'        => {
-                      'stmt_icon' => '',
-                     },
-   'ic-us-google' => {
-                      'stmt_icon' => '',
-                     },
-  );
 
 %g_rights_matrix =
   (
@@ -264,7 +196,7 @@ our $HT_AFFILIATE        = 5;
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
           },
-   # OPB out-of-print and brittle (implies in-copyright).
+   # OP out-of-print (implies in-copyright). (Was OPB out-of-print, brittle) @OPB
    # ---------------------------------------------------------------
    # 1) As of Feb 2010, UM affiliates can view OPB without being in a
    # library but only one such user is allowed to do so at a
@@ -279,12 +211,17 @@ our $HT_AFFILIATE        = 5;
    # besides UM (LOC) but they can't see brittle books because we
    # don't have condition data for them in Holdings hence
    # allow_by_lib_ipaddr becomes allow_by_uom_lib_ipaddr
+   #
+   # 4) As of Wed Nov 28 12:52:40 2012 we have HOLDINGS so access
+   # exclusivity is granted if on US Soil and:
+   # (OP AND BRLM) AND (LIBRARY_IPADDR_USER OR *_AFFILIATE)
+   #   OR  (OP AND SSD_USER)
    '3' => { 
            $ORDINARY_USER         => 'deny',
-           $SSD_USER              => 'allow_ssd_by_holdings',
-           $LIBRARY_IPADDR_USER   => 'allow_by_uom_lib_ipaddr',
-           $UM_AFFILIATE          => 'allow_by_exclusivity',
-           $HT_AFFILIATE          => 'deny', 
+           $SSD_USER              => 'allow_ssd_by_holdings', # US + exclusivity implied
+           $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
+           $UM_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
+           $HT_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
           },
    # copyright-orphaned (implies in-copyright)
    '4' => { 
@@ -424,10 +361,11 @@ our $HT_AFFILIATE        = 5;
 # "Public domain"
 # ---------------------------------------------------------------------
 #
-@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17);
-@g_public_domain_world_attribute_values = (1, 7, 9, 18, 19);
-@g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16);
+@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17); # All users
+@g_public_domain_world_attribute_values = (1, 7, 9, 18, 19); # All users
+@g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16); # SSD only, if institution holds
 
+$g_access_requires_brittle_holdings_attribute_value = 3; # Some users, if institution holds
 $g_available_to_no_one_attribute_value = 8;
 $g_public_domain_US_attribute_value = 9;
 $g_public_domain_non_US_attribute_value = 19;

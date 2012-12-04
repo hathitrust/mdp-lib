@@ -56,7 +56,7 @@ sub log_incopyright_access  {
                 Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attr;access=$access_type");
             }
             else {
-                # Better have SSD credentials, or be OPB with proper authorization
+                # Better have SSD credentials, or be OP @OPB with proper authorization
                 my $is_ssd = $C->get_object('Auth')->get_eduPersonEntitlement_print_disabled($C);
                 if ($is_ssd) {
                     Utils::add_header($C, $Header_Key, "user=ssd;attr=$attr;access=$access_type");

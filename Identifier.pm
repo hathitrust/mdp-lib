@@ -76,7 +76,7 @@ my %g_default_debug_ids =
      '8' => {
              'id'  => 'mdp.39015026496847',
             },
-     # OPB attr=3
+     # OP attr=3, access_count in PHDB > 0, held by uom
      '9' => {
              'id'  => 'mdp.39015004314111',
             },

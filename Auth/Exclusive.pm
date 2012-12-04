@@ -84,6 +84,8 @@ use constant EXCLUSIVITY_LIMIT => 86400; # 24 hours in seconds
 
 =item acquire_exclusive_access
 
+PUBLIC
+
 If no one has exclusivity or someone who has exclusivity has exhaused
 their 24 hours grant exclusivity.
 
@@ -95,11 +97,11 @@ the former user for another EXCLUSIVITY_LIMIT.
 
 # ---------------------------------------------------------------------
 sub acquire_exclusive_access {
-    my ($C, $item_id) = @_;
+    my ($C, $item_id, $brlm) = @_;
 
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
-    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 1);
+    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 1, $brlm);
 
     return ($granted, $owner, $expires);
 }
@@ -109,6 +111,8 @@ sub acquire_exclusive_access {
 
 =item check_exclusive_access
 
+PUBLIC
+
 Like acquire_exclusive_access() except just tests for the possibility
 of exclusive acquisition but does not assert exclusivity.
 
@@ -116,11 +120,11 @@ of exclusive acquisition but does not assert exclusivity.
 
 # ---------------------------------------------------------------------
 sub check_exclusive_access {
-    my ($C, $item_id) = @_;
+    my ($C, $item_id, $brlm) = @_;
 
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
-    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 0);
+    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 0, $brlm);
 
     return ($granted, $owner, $expires);
 }
@@ -128,6 +132,8 @@ sub check_exclusive_access {
 # ---------------------------------------------------------------------
 
 =item update_exclusive_access
+
+PUBLIC
 
 An unauthenticated user in a library can acquire exclusive access. If
 that user then authenticates, update the exclusivity record with the
@@ -171,16 +177,22 @@ sub update_exclusive_access {
 
 =item __grant_access
 
+PRIVATE
+
 An item can be owned by more than one user if their affiliations are
 different.
 
-Note: 'affiliation is the Shib sdrinst institution code, e.g. 'uom' not 'umich.edu'.
+Note: 'affiliation is the Shib sdrinst institution code, e.g. 'uom'
+not 'umich.edu'.
+
+If $brittle_lost_missing, check the access_count for number of these
+held not the total number held.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub __grant_access {
-    my ($C, $dbh, $id, $assert_ownership) = @_;    
+    my ($C, $dbh, $id, $assert_ownership, $brittle_lost_missing) = @_;    
 
     my $granted = 0;
     my $grant_owner;
@@ -190,7 +202,12 @@ sub __grant_access {
     my $inst_code = $auth->get_institution_code($C, 'mapped');
     my $identity = $auth->get_user_name($C);
 
-    my $num_held = Access::Holdings::id_is_held($C, $id, $inst_code);
+    my $num_held = 
+      (
+       $brittle_lost_missing 
+         ? Access::Holdings::id_is_held_and_BRLM($C, $id, $inst_code)
+           : Access::Holdings::id_is_held($C, $id, $inst_code)
+      );
 
     if (
         (! $identity) 
@@ -326,7 +343,7 @@ sub __grant_access {
 
 =item ___get_expiration_date
 
-Description
+PRIVATE
 
 =cut
 
@@ -339,7 +356,7 @@ sub ___get_expiration_date {
 
 =item ___acquire_from
 
-Description
+PRIVATE
 
 =cut
 
@@ -358,7 +375,7 @@ sub ___acquire_from {
 
 =item ___grant
 
-Description
+PRIVATE
 
 =cut
 
@@ -379,6 +396,8 @@ sub ___grant {
 # ---------------------------------------------------------------------
 
 =item ___renew
+
+PRIVATE
 
 Same item may be exclusively owned by users with different affiliations.
 
@@ -402,7 +421,7 @@ sub ___renew {
 
 =item ___cleanup_expired_grants
 
-Description
+PRIVATE
 
 =cut
 
@@ -430,7 +449,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2010 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2010-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
