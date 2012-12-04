@@ -84,7 +84,8 @@ sub id_is_held_and_BRLM {
     }
     DEBUG('auth,all,held,notheld', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
 
-    return $held;
+    # @OPB temporary until Dec 15
+    return ($inst eq 'uom') ? $held : 0;
 }
 
 # ---------------------------------------------------------------------
