@@ -65,6 +65,7 @@ my %g_skin_map =
      'michigan'  => '/web/m/michigan',
      'wisconsin' => '/web/w/wisconsin',
      'crms'      => '/pt/web/crms',
+     'crmsworld' => '/pt/web/crms',
      'mobile'   =>  '/pt/web/mobile',
      'mobilewayf' => '/wayf/web/mobile',  
     );
