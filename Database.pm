@@ -39,7 +39,10 @@ use Debug::DUtils;
 use DbUtils;
 use MdpConfig;
 
-my $Production_Config_Root = q{/htapps/babel/etc/};
+my $_prod_root = q{/htapps/babel/etc/};
+my $_test_root = q{/htapps/test.babel/etc/};
+
+my $Production_Config_Root = (-e $_prod_root) ? $_prod_root : $_test_root ;
 
 my $Full_Access_Config_Root = q{/htapps/test.babel/etc/};
 my $Sample_Access_Config_Root = q{/htapps/} . $ENV{HT_DEV} . q{.babel/etc/};
