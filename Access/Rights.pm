@@ -253,14 +253,14 @@ sub assert_final_access_status {
 
 # ---------------------------------------------------------------------
 
-=item get_access_type
+=item get_access_type_determination
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_access_type {
+sub get_access_type_determination {
     my $C = shift;
     return _determine_access_type($C);
 }

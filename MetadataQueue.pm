@@ -8,7 +8,7 @@ SharedQueue;
 =head1 DESCRIPTION
 
 This package contains code to provide access to
-mdp.j_metadata_update_queue on behalf of Collection Builder and SLIP.
+mdp.slip_metadata_update_queue on behalf of Collection Builder and SLIP.
 
 =head1 SYNOPSIS
 
@@ -42,11 +42,11 @@ sub enqueue_metadata_item_id {
     my ($sth, $statement);
 
     eval {
-        $statement = qq{LOCK TABLES j_metadata_update_queue WRITE};
+        $statement = qq{LOCK TABLES slip_metadata_update_queue WRITE};
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{INSERT INTO j_metadata_update_queue SET id=?, time=NOW()};
+        $statement = qq{INSERT INTO slip_metadata_update_queue SET id=?, time=NOW()};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
@@ -79,11 +79,11 @@ sub get_next_metadata_item_id {
     my ($sth, $statement);
 
     eval {
-        $statement = qq{LOCK TABLES j_metadata_update_queue WRITE};
+        $statement = qq{LOCK TABLES slip_metadata_update_queue WRITE};
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{SELECT id FROM j_metadata_update_queue LIMIT 1};
+        $statement = qq{SELECT id FROM slip_metadata_update_queue LIMIT 1};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
@@ -117,11 +117,11 @@ sub dequeue_id_from_metadata_queue {
     my ($sth, $statement);
 
     eval {
-        $statement = qq{LOCK TABLES j_metadata_update_queue WRITE};
+        $statement = qq{LOCK TABLES slip_metadata_update_queue WRITE};
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{DELETE FROM j_metadata_update_queue WHERE id=?};
+        $statement = qq{DELETE FROM slip_metadata_update_queue WHERE id=?};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 

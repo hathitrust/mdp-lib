@@ -76,7 +76,7 @@ sub __bl_check_db {
 
     my $blacklist = 0;
 
-    my $statement = qq{SELECT ip FROM proxies WHERE ip='$ip_addr'};
+    my $statement = qq{SELECT ip FROM ht_proxies WHERE ip='$ip_addr'};
     my $sth;
     eval { $sth = $dbh->prepare($statement); };
     if (! $@) {

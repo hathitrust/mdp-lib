@@ -7,7 +7,7 @@ SharedQueue;
 
 =head1 DESCRIPTION
 
-This package contains code to provide access to mdp.j_shared_queue on
+This package contains code to provide access to mdp.slip_shared_queue on
 behalf of Collection Builder and SLIP.
 
 =head1 SYNOPSIS
@@ -124,7 +124,7 @@ Description
 sub count_shared_queue_ids {
     my ($C, $dbh) = @_;
 
-    my $statement = qq{SELECT count(*) FROM j_shared_queue};
+    my $statement = qq{SELECT count(*) FROM slip_shared_queue};
     DEBUG('lsdb', qq{DEBUG: $statement});
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
 
@@ -149,7 +149,7 @@ sub enqueue_item_ids {
     my ($sth, $statement);
 
     eval {
-        $statement = qq{LOCK TABLES j_shared_queue WRITE};
+        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
@@ -160,7 +160,7 @@ sub enqueue_item_ids {
         }
         my $values_str = join(qq{,}, @values);
 
-        $statement = qq{REPLACE INTO j_shared_queue (`id`, `time`) VALUES $values_str};
+        $statement = qq{REPLACE INTO slip_shared_queue (`id`, `time`) VALUES $values_str};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
 
@@ -199,12 +199,12 @@ sub enqueue_all_ids {
           : $config->get('coll_item_table_name');
 
     eval {
-        $statement = qq{LOCK TABLES $coll_item_table_name WRITE, j_shared_queue WRITE};
+        $statement = qq{LOCK TABLES $coll_item_table_name WRITE, slip_shared_queue WRITE};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
         
         my $SELECT_clause = qq{SELECT extern_item_id AS `id`, NOW() AS `time` FROM $coll_item_table_name WHERE MColl_id=?};
-        $statement = qq{REPLACE INTO j_shared_queue ($SELECT_clause)};
+        $statement = qq{REPLACE INTO slip_shared_queue ($SELECT_clause)};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
 
@@ -237,11 +237,11 @@ sub dequeue_item_ids {
     my $id_arr_ref = [];
     
     eval {
-        $statement = qq{LOCK TABLES j_shared_queue WRITE};
+        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{SELECT id FROM j_shared_queue LIMIT $slice_size};
+        $statement = qq{SELECT id FROM slip_shared_queue LIMIT $slice_size};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
@@ -256,7 +256,7 @@ sub dequeue_item_ids {
             }
             my $values_str = join(qq{,}, @values);
 
-            $statement = qq{DELETE FROM j_shared_queue WHERE id IN ($values_str)};
+            $statement = qq{DELETE FROM slip_shared_queue WHERE id IN ($values_str)};
             DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
             $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
         }
@@ -288,11 +288,11 @@ sub Delete_id_from_j_shared_queue {
     my ($sth, $statement);
 
     eval {
-        $statement = qq{LOCK TABLES j_shared_queue WRITE};
+        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
         DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
-        $statement = qq{DELETE FROM j_shared_queue WHERE id=?};
+        $statement = qq{DELETE FROM slip_shared_queue WHERE id=?};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 

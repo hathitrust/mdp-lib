@@ -52,7 +52,7 @@ the exclusion of all other users.
 
 SCHEMA
 
- CREATE TABLE `n_exclusivity` (
+ CREATE TABLE `pt_exclusivity` (
   `item_id`     varchar(32)  NOT NULL DEFAULT '',
   `owner`       varchar(256) NOT NULL DEFAULT '',
   `affiliation` varchar(128) NOT NULL DEFAULT '',
@@ -158,12 +158,12 @@ sub update_exclusive_access {
     my $dbh = $C->get_object('Database')->get_DBH();
 
     my ($sth, $statement);
-    $statement = qq{LOCK TABLES n_exclusivity WRITE};
+    $statement = qq{LOCK TABLES pt_exclusivity WRITE};
     DEBUG('auth', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     # Update owner field for all IDs
-    $statement = qq{UPDATE n_exclusivity SET owner=? WHERE owner=?};
+    $statement = qq{UPDATE pt_exclusivity SET owner=? WHERE owner=?};
     DEBUG('auth', qq{DEBUG: $statement : $persistent_user_id $temporary_user_id});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $persistent_user_id, $temporary_user_id);
 
@@ -222,12 +222,12 @@ sub __grant_access {
     }        
 
     my ($sth, $statement);
-    $statement = qq{LOCK TABLES n_exclusivity WRITE};
+    $statement = qq{LOCK TABLES pt_exclusivity WRITE};
     DEBUG('auth', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     # Get all rows matching id in institution-namespace of identity 
-    $statement = qq{SELECT * FROM n_exclusivity WHERE item_id=? AND affiliation=?};
+    $statement = qq{SELECT * FROM pt_exclusivity WHERE item_id=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $id $inst_code});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $inst_code);
 
@@ -364,7 +364,7 @@ PRIVATE
 sub ___acquire_from {
     my ($C, $dbh, $id, $old_owner, $new_owner, $inst_code) = @_;
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE item_id=? AND owner=? AND affiliation=?};
+    my $statement = qq{DELETE FROM pt_exclusivity WHERE item_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $id : $old_owner : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $old_owner, $inst_code);
 
@@ -386,7 +386,7 @@ sub ___grant {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{INSERT INTO n_exclusivity SET item_id=?, owner=?, affiliation=?, expires=?};
+        qq{INSERT INTO pt_exclusivity SET item_id=?, owner=?, affiliation=?, expires=?};
     DEBUG('auth', qq{DEBUG: $statement : $id : $identity : $inst_code : $expiration_date});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $identity, $inst_code, $expiration_date);
 
@@ -410,7 +410,7 @@ sub ___renew {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{UPDATE n_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
+        qq{UPDATE pt_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $expiration_date : $id : $identity : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $id, $identity, $inst_code);
 
@@ -431,7 +431,7 @@ sub ___cleanup_expired_grants {
 
     my $now = Utils::Time::iso_Time();
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE expires < ?};
+    my $statement = qq{DELETE FROM pt_exclusivity WHERE expires < ?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $now);
 
     Utils::map_chars_to_cers(\$statement, [q{"}, q{'}]);

@@ -80,10 +80,17 @@ sub setup_debug_environment {
     return if (! debugging_enabled());
 
     my $cgi = new CGI;
+
+    if ($ENV{DEBUG_LOCAL}) {
+        my $d = $cgi->param('debug');
+        $cgi->param('debug', "$d,local") unless ($d =~ m,local,);
+    }
+
     my $debugging = $cgi->param('debug');
 
-    $ENV{'DEBUG'} = $debugging
+    $ENV{DEBUG} = $debugging
       if ($debugging);
+    
 
     my @requested_switches =  split(',', $debugging);
     set_xml_debugging_enabled(\@requested_switches);
