@@ -829,11 +829,11 @@ Description
 # ---------------------------------------------------------------------
 sub get_uber_config_path {
     my $app_name = shift;
-    my $empty = shift;
+    my $parent_app_name = shift;
 
     my $path;
-    if ($empty) {
-        $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber_empty.conf";
+    if ($parent_app_name) {
+        $path = $ENV{SDRROOT} . "/$parent_app_name/vendor/common-lib/lib/Config/uber_empty.conf"
     }
     else {
         if (DEBUG('local')) {
