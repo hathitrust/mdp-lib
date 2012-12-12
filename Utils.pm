@@ -831,16 +831,19 @@ sub get_uber_config_path {
     my $app_name = shift;
     my $empty = shift;
 
-    my $uber_filename = ($empty ? 'uber_empty.conf' : 'uber.conf');
-
     my $path;
-    if (DEBUG('local')) {
-        $path = $ENV{SDRROOT} . "/mdp-lib/Config/$uber_filename"
+    if ($empty) {
+        $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber_empty.conf";
     }
     else {
-        $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/$uber_filename"
+        if (DEBUG('local')) {
+            $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber.conf"
+        }
+        else {
+            $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/uber.conf"
+        }
     }
-
+    
     return $path;
 }
 
