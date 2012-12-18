@@ -630,7 +630,7 @@ sub list_items {
         $LIMIT = "LIMIT $offset, $recs_per_slice";
     }
 
-    my $statement = join(' ', qq{$SELECT $FROM $WHERE $ORDER $LIMIT});
+    my $statement = join(' ', qq{SELECT * FROM ($SELECT $FROM $WHERE $ORDER) AS t1 $LIMIT});
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
