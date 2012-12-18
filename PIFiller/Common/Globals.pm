@@ -244,7 +244,7 @@ sub handle_ACCESS_HOLDINGS_PI
     
     my $s;
     $s .= wrap_string_in_tag($held, 'Held');
-    $s .= wrap_string_in_tag($held, 'BrittleHeld');
+    $s .= wrap_string_in_tag($brittle_held, 'BrittleHeld');
     $s .= wrap_string_in_tag($inst, 'Institution');
 
     return $s;

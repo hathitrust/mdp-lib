@@ -68,10 +68,10 @@ sub id_is_held_and_BRLM {
 
     my $held = 0;
 
-    if (DEBUG('held')) {
+    if (DEBUG('heldb')) {
         $held = 1;
     }
-    elsif (DEBUG('notheld')) {
+    elsif (DEBUG('notheldb')) {
         $held = 0;
     }
     else {
@@ -82,10 +82,10 @@ sub id_is_held_and_BRLM {
         my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
         $held = $sth->fetchrow_array() || 0;
     }
-    DEBUG('auth,all,held,notheld', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
+    DEBUG('auth,all,heldb,notheldb', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
 
-    # @OPB temporary until Dec 15
-    return ($inst eq 'uom') ? $held : 0;
+    # @OPB
+    return $held;
 }
 
 # ---------------------------------------------------------------------
@@ -155,7 +155,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2011 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2011-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
