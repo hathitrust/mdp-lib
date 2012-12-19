@@ -221,6 +221,48 @@ sub enqueue_all_ids {
 
 # ---------------------------------------------------------------------
 
+=item read_queued_item_ids
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub read_queued_item_ids {
+    my ($C, $dbh, $slice_size, $offset) = @_;
+
+    my $ok = 1;
+    my ($sth, $statement);
+
+    my $id_arr_ref = [];
+    
+    eval {
+        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
+        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+        $statement = qq{SELECT id FROM slip_shared_queue LIMIT $offset, $slice_size};
+        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+        my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
+        if (scalar(@$ref_to_arr_of_arr_ref)) {
+            $id_arr_ref = [ map {$_->[0]} @$ref_to_arr_of_arr_ref ];
+        }
+
+        $statement = qq{UNLOCK TABLES};
+        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+    };
+    if ($@) {
+        $ok = 0;
+    }
+    
+    return ($ok, $id_arr_ref);
+}
+
+# ---------------------------------------------------------------------
+
 =item dequeue_item_ids
 
 Description
@@ -251,7 +293,6 @@ sub dequeue_item_ids {
 
             my @values;
             foreach my $v (@$id_arr_ref) {
-                # push(@values, $dbh->quote($v));
                 push @values, '?';
             }
             my $values_str = join(qq{,}, @values);
