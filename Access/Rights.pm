@@ -821,10 +821,12 @@ sub _Assert_final_access_status {
     }
     elsif
       ($initial_access_status eq 'allow_ssd_by_holdings') {
-        $final_access_status = _resolve_ssd_access_by_held($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) =
+          _resolve_ssd_access_by_held($C, $id, 1);
     }
     elsif ($initial_access_status eq 'allow_ssd_by_holdings_by_geo_ipaddr') {
-        $final_access_status = _resolve_ssd_access_by_held_by_GeoIP($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) =
+          _resolve_ssd_access_by_held_by_GeoIP($C, $id, 1);
     }
 
     ___final_access_status_check($final_access_status);
