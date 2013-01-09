@@ -766,12 +766,10 @@ sub get_eduPersonTargetedID {
 
 =item __get_parsed_displayName
 
-Parse eduPerson displayName. We've seen the environment return
-exactly: '&amp;eacute\;' as part of a name which is a mess to handle
-and invalid in XML if we try to unescape it so if we see '&amp;' that
-is not the beginning of an escaped numeric character reference
-(&amp;#x0123;) in the environment we substitute '' to let downstream
-code (e.g. get_eduPersonUnScopedAffiliation) deal.
+Parse eduPerson displayName. We've seen the environment return exactly
+both: '&amp;eacute\;' and '&eacute\;' de-shibify the escaped
+semi-colons and unescape the &amp; contextually for both character
+entity references and for numeric character references.
 
 =cut
 
@@ -780,9 +778,10 @@ sub __get_parsed_displayName {
     my $self = shift;
 
     my $name = $ENV{displayName};
-    if ($name =~ m,&amp;[^#],) {
-        $name = '';
-    }
+    # unescape XML and un-shibify semicolons
+    $name =~ s,(&)(amp;)?(#?x?[a-zA-Z0-9]+)\\(;),$1$3$4,gi;
+    # map to parseable NCRs
+    $name =~ s,(&[a-zA-Z0-9]+;),&Utils::minimal_CER_to_NCR_map($1),eg;
     
     return $name;
 }
