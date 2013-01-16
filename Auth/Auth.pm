@@ -89,40 +89,38 @@ my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
 
-use constant UMICH_SSD_LIST =>
-  qw (
-      aaehawki
-      benmb
-      bervilla
-      brekac
-      ccarpey
-      crwils
-      damincki
-      echols
-      forbess
-      gsheena
-      hkanter
-      ijohns
-      jrcarmon
-      jrmorak
-      kimjiy
-      kmbally
-      kqread
-      kshalosk
-      mikenuss
-      mshoe
-      nicolejg
-      nlcp
-      noahw
-      orodrigu
-      rgottfri
-      rlfabry
-      rparten
-      rubind
-      shanorwo
-      sileo
-      sydfried
-    );
+use constant UMICH_SSD_LIST => qw (
+                                      aaehawki
+                                      aeinheus
+                                      benmb
+                                      bervilla
+                                      brekac
+                                      ccarpey
+                                      crwils
+                                      damincki
+                                      echols
+                                      forbess
+                                      gsheena
+                                      hkanter
+                                      ijohns
+                                      jrcarmon
+                                      jrmorak
+                                      kimjiy
+                                      kmbally
+                                      kqread
+                                      kshalosk
+                                      mikenuss
+                                      mshoe
+                                      nicolejg
+                                      nlcp
+                                      noahw
+                                      rgottfri
+                                      rlfabry
+                                      rparten
+                                      rubind
+                                      sileo
+                                      sydfried
+                                 );
 
 sub new {
     my $class = shift;
