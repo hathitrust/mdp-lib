@@ -1130,8 +1130,27 @@ sub ParseStructMap {
     my @featureTags = keys( %$featureHashRef );
     my $namespace = $self->Get('namespace');
 
-    foreach my $metsDiv ($structMap->get_nodelist) {
+    ## APPROACH 2: re-order the array of $metsDivs
+    my @nodeListAndOrder = ();
+    my @orders = ();
+    foreach my $metsDiv ( $structMap->get_nodelist ) {
         my $order = $metsDiv->getAttribute('ORDER');
+        push @nodeListAndOrder, [ $order, $metsDiv ];
+        push @orders, $order;
+    }
+
+    if ( $self->Get('readingOrder') eq 'right-to-left' && $self->Get('scanningOrder') eq 'left-to-right' ) {
+        @orders = reverse @orders;
+        foreach my $i ( 0 .. $#orders ) {
+            $nodeListAndOrder[$i]->[0] = $orders[$i];
+        }
+    }
+
+    # foreach my $metsDiv ($structMap->get_nodelist) {
+    #     my $order = $metsDiv->getAttribute('ORDER');
+
+    while ( scalar @nodeListAndOrder ) {
+        my ( $order, $metsDiv ) = @{ shift @nodeListAndOrder };
 
         my @metsFptrChildren = $metsDiv->getChildrenByTagName('METS:fptr');
         foreach my $child (@metsFptrChildren) {
@@ -1165,6 +1184,25 @@ sub ParseStructMap {
 
         handle_feature_record($pgftr, $order, $namespace, $featureRecordRef);
     }
+
+    ### APPROACH 1: post-process for RTL; requires changing a lot of pointers
+    # my @seq = sort { $a <=> $b } keys %{$$pageInfoHashRef{sequence}};
+    # my @reversed_seq = reverse @seq;
+    # my $i = 0;
+    # my $reversed_sequence = {}; my $reversed_seq2pn = {};
+    # while ( $i < scalar @seq ) {
+    #     $$reversed_sequence{$reversed_seq[$i]} = $$pageInfoHashRef{sequence}{$seq[$i]};
+    #     $$reversed_seq2pn{$reversed_seq[$i]} = $$seq2PageNumberHashRef{$seq[$i]};
+    #     $i += 1;
+    # }
+
+    # $i = 0;
+    # while ( $i < scalar @seq ) {
+    #     $$seq2PageNumberHashRef{$seq[$i]} = $$reversed_seq2pn{$seq[$i]};
+    #     $i += 1;
+    # }
+
+    # $$pageInfoHashRef{sequence} = $reversed_sequence;
 
     $self->SetHasPageNumbers($hasPNs);
     $self->SetHasPageFeatures($hasPFs);
@@ -1308,6 +1346,8 @@ sub SetPageInfo {
     my %seq2PageNumberHash = ();
     my %featureRecord = ();
 
+    $self->ParseReadingOrder();
+
     $self->ParseStructMap
       (
        $root,
@@ -1344,6 +1384,29 @@ sub SetPageInfo {
     $self->{pageinfo} = \%pageInfoHash;
 
     DEBUG('time', qq{<h3>MdpItem::SetPageInfo(END)</h3>} . Utils::display_stats());
+}
+
+sub ParseReadingOrder {
+    my $self = shift;
+    my $root = $self->_GetMetsRoot();
+    # set defaults
+    $self->Set('readingOrder', 'left-to-right');
+    $self->Set('scanningOrder', 'left-to-right');
+    my $techMD = ($root->findnodes(q{//METS:mdWrap[@LABEL="reading order"]}))[0];
+    if ( ref($techMD) ) {
+        if ( $techMD->getAttribute('OTHERMDTYPE') eq 'Google' ) {
+            $self->Set('readingOrder', $techMD->findvalue('METS:xmlData/gbs:readingOrder'));
+            $self->Set('scanningOrder', $techMD->findvalue('METS:xmlData/gbs:scanningOrder'));
+        }        
+    } else {
+        my $check = $root->findvalue(q{//METS:structMap[@TYPE='physical']/METS:div/METS:div[1]/@LABEL});
+        if ( $check && $check =~ m,BACK_COVER, ) {
+            # a terrible hack?
+            $self->Set('readingOrder', 'right-to-left');
+            $self->Set('scanningOrder', 'left-to-right');
+        }
+    }
+    
 }
 
 # ---------------------------------------------------------------------
