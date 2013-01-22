@@ -95,6 +95,7 @@ use constant UMICH_SSD_LIST => qw (
                                       benmb
                                       bervilla
                                       brekac
+                                      bribraxt
                                       ccarpey
                                       crwils
                                       damincki
