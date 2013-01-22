@@ -862,19 +862,13 @@ Description
 # ---------------------------------------------------------------------
 sub get_uber_config_path {
     my $app_name = shift;
-    my $parent_app_name = shift;
 
     my $path;
-    if ($parent_app_name) {
-        $path = $ENV{SDRROOT} . "/$parent_app_name/vendor/common-lib/lib/Config/uber_empty.conf"
+    if (DEBUG('local')) {
+        $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber.conf"
     }
     else {
-        if (DEBUG('local')) {
-            $path = $ENV{SDRROOT} . "/mdp-lib/Config/uber.conf"
-        }
-        else {
-            $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/uber.conf"
-        }
+        $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/uber.conf"
     }
     
     return $path;
