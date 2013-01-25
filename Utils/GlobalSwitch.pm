@@ -40,13 +40,13 @@ sub Exit_If_cron_jobs_disabled {
         if (cron_jobs_disabled($app));
 }
 
-sub cron_jobs_disabled {    
+sub cron_jobs_disabled {
     my $app = shift;
-    
+
     # If the STOP files are ignored, cron jobs are enabled
     return 0
         if ($GlobalSwitch_ignore_STOP_files);
-    
+
     my $file = $app2file_map{$app};
     return (
             $CRON_JOBS_DISABLED
@@ -55,13 +55,20 @@ sub cron_jobs_disabled {
            );
 }
 
-sub disable_cron_jobs {    
+sub stop_file_name {
     my $app = shift;
-    
+
+    my $file = $app2file_map{$app};
+    return "$ENV{SDRROOT}/$app/etc/$file";
+}
+
+sub disable_cron_jobs {
+    my $app = shift;
+
     # If the STOP files are ignored, cron jobs are enabled
     return 0
         if ($GlobalSwitch_ignore_STOP_files);
-    
+
     my $file = $app2file_map{$app};
     `touch "$ENV{SDRROOT}/$app/etc/$file"`;
 }
