@@ -8,6 +8,30 @@ MdpUsers;
 
 This class is a perl interface to ht_repository.ht_users
 
+usertype values are 'staff' (UM), 'student' (UM), 'external' (non-UM)
+
+roles are subclasses of usertype:
+
+ select distinct usertype, role from ht_users;
+
+ +----------+--------------+
+ | usertype | role         |
+ +----------+--------------+
+ | staff    | generalhathi |staff locked to $staff_subnet_ranges
+ | staff    | cataloging   |staff locked to $staff_subnet_ranges
+ | external | crms         |external engaged in CRMS and CRMS World activities, locked to IP
+ | staff    | crms         |staff engaged in CRMS and CRMS World activities, locked to IP/$staff_subnet_ranges
+ | staff    | superuser    |staff (developers) locked to $superuser_subnet_ranges
+ | staff    | orphan       |staff engaged in the Orphan Works project, locked to IP
+ | staff    | quality      |staff engaged in the Qual project, locked to $staff_subnet_ranges
+ | external | quality      |external engaged in the Qual project, locked to IP
+ | staff    | digitization |staff at DCU, locked to IP
+ |----------|--------------|
+ | student  | ssd          |UM SSD student list not locked to by IP range
+ | external | ssdnfb       |external NFB pilot locked to IP address
+ | external | ssdproxy     |external HathiTrust human proxy for SSD affiliate locked to IP address
+ +----------+--------------+
+
 =head1 SYNOPSIS
 
 Coding example
@@ -54,21 +78,31 @@ my $ULIC_subnet_ranges =
   q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$};
 
 # black hole
-#
 my $null_range = '^0\.0\.0\.0$';
 
+# wide open (SSD)
+my $unrestricted_range = '.*';
 
-# Superuser access expires on date:
-my $superuser_expire_date = '2013-12-31 23:59:59';
+my $GLOBAL_EXPIRE_DATE = '2013-12-31 23:59:59';
 
-# Staff, student access expires on date:
-my $staff_expire_date = '2013-12-31 23:59:59';
+# staff:{other} access expires on date:
+my $staff_expire_date = $GLOBAL_EXPIRE_DATE;
 
-# Friend access expires on date:
-my $external_expire_date = '2013-12-31 23:59:59';
+# staff:superuser access expires on date:
+my $superuser_expire_date = $GLOBAL_EXPIRE_DATE;
 
-# CRMS users access expires on date:
-my $CRMS_expire_date = '2013-12-31 23:59:59';
+# student:{other} access expires on date:
+my $student_expire_date = $GLOBAL_EXPIRE_DATE;
+
+# external:{other} access expires on date:
+my $external_expire_date = $GLOBAL_EXPIRE_DATE;
+
+# {all}:ssd* access expires on date:
+my $SSD_expire_date = $GLOBAL_EXPIRE_DATE;
+
+# {all}:crms users access expires on date:
+my $CRMS_expire_date = $GLOBAL_EXPIRE_DATE;
+
 
 #
 # The ACL
@@ -82,11 +116,6 @@ my %gAccessControlList;
 PRIVATE 
 
 WARNING: keys to this hash must be lower-case to work vs. ACL.pm
-
-usertypes are 'staff' (UM), 'student' (UM), 'external' (non-UM)
-
-roles are (currently) 'superuser', 'generalhathi', 'crms', 'orphan',
-'digitization', 'quality', 'cataloging'
 
  CREATE TABLE `ht_users` (
        `userid` varchar(256) DEFAULT NULL,
@@ -146,8 +175,22 @@ sub __load_access_control_list {
                 $gAccessControlList{$userid}{expires} = $CRMS_expire_date unless (defined $expires);
                 $gAccessControlList{$userid}{iprestrict} = $null_range unless (defined $iprestrict);
             }
+            elsif ($gAccessControlList{$userid}{role} =~ m,^ssd,) {
+                $gAccessControlList{$userid}{expires} = $SSD_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $null_range unless (defined $iprestrict);
+            }
             else {
                 $gAccessControlList{$userid}{expires} = $external_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $null_range unless (defined $iprestrict);
+            }
+        }
+        elsif ($gAccessControlList{$userid}{usertype} eq 'student') {
+            if ($gAccessControlList{$userid}{role} eq 'ssd') {
+                $gAccessControlList{$userid}{expires} = $SSD_expire_date unless (defined $expires);
+                $gAccessControlList{$userid}{iprestrict} = $unrestricted_range unless (defined $iprestrict);
+            }
+            else {
+                $gAccessControlList{$userid}{expires} = $student_expire_date unless (defined $expires);
                 $gAccessControlList{$userid}{iprestrict} = $null_range unless (defined $iprestrict);
             }
         }
@@ -186,9 +229,8 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_user_id_list {
-    my @list = keys %gAccessControlList;
-
     __load_access_control_list();
+    my @list = keys %gAccessControlList;
 
     return \@list;
 }
@@ -203,7 +245,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2012 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2012-13 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

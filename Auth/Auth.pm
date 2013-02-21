@@ -73,6 +73,7 @@ use XML::LibXML;
 use Utils;
 use Debug::DUtils;
 use Session;
+use Auth::ACL;
 use Auth::Exclusive;
 use Institutions;
 
@@ -80,48 +81,14 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
-# eduPersonENtitlement attribute values that qualify as print disabled
+# eduPersonEntitlement attribute values that qualify as print disabled
 my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
   qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
-# Which eduPersonScopedAffiliation attribute values can be considered
+# eduPersonScopedAffiliation attribute values that can be considered
 # for print disabled status
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
-
-use constant UMICH_SSD_LIST => qw (
-                                      aaehawki
-                                      aeinheus
-                                      benmb
-                                      bervilla
-                                      brekac
-                                      bribraxt
-                                      ccarpey
-                                      crwils
-                                      damincki
-                                      echols
-                                      forbess
-                                      gsheena
-                                      hkanter
-                                      ijohns
-                                      jrcarmon
-                                      jrmorak
-                                      kimjiy
-                                      kmbally
-                                      kqread
-                                      kshalosk
-                                      mikenuss
-                                      mshoe
-                                      nicolejg
-                                      nlcp
-                                      noahw
-                                      rgottfri
-                                      rlfabry
-                                      rparten
-                                      rubind
-                                      sileo
-                                      sydfried
-                                 );
 
 sub new {
     my $class = shift;
@@ -480,9 +447,9 @@ sub get_institution_us_status {
     my $aff = $self->get_eduPersonScopedAffiliation($C);
     if ($aff) {
         my $domain = __get_domain_from_affiliation($aff);
-        my $us = Institutions::get_institution_domain_field_val($C, $domain, 'us');
-
-        $status = $us ? 'affus' : 'affnonus';
+        my $is_us = Institutions::get_institution_domain_field_val($C, $domain, 'us');
+        # Trap mismatch between value in ht_institutions.domain and scoping affiliation
+        $status = (defined($is_us) ? ($is_us ? 'affus' : 'affnonus') : 'notaff');
     }
 
     return $status;
@@ -691,6 +658,20 @@ sub get_eduPersonPrincipalName {
 
 # ---------------------------------------------------------------------
 
+=item __user_is_SSD
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __user_is_SSD {
+    my $role =  Auth::ACL::a_GetUserAttributes('role');
+    return ($role =~ m,^ssd,);
+}
+
+# ---------------------------------------------------------------------
+
 =item get_eduPersonEntitlement_print_disabled
 
 This is the eduPersonEntitlement attribute value that equates to print disabled status.
@@ -715,20 +696,21 @@ sub get_eduPersonEntitlement_print_disabled {
     my $self = shift;
     my $C = shift;
 
-    my $is_print_disabled = 0;
-
-    if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
-        if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
-            my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
-            $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+    # Auth-system-independent tests
+    my $print_disabled = __user_is_SSD() || DEBUG('ssd');
+    
+    # Auth-system-dependent tests
+    if (! $print_disabled) {
+        if ($self->auth_sys_is_SHIBBOLETH($C)) {
+            my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
+            if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
+                my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+                $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+            }
         }
     }
-    elsif ($self->auth_sys_is_COSIGN($C)) {
-        $is_print_disabled = grep(/^$ENV{REMOTE_USER}$/, UMICH_SSD_LIST) || DEBUG('ssd');
-    }
 
-    return $is_print_disabled;
+    return $print_disabled;
 }
 
 
