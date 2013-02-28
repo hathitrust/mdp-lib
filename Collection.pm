@@ -489,7 +489,7 @@ sub copy_items {
 
 delete_items($coll_id,\@ids)
 
-only removes the relationship between collection and items does not
+Only removes the relationship between collection and items does not
 affect item metadata checks that user is owner of collection
 
 =cut
@@ -499,13 +499,16 @@ sub delete_items {
     my $self = shift;
     my $coll_id = shift;
     my $id_arr_ref = shift;
+    my $force_ownership = shift;
 
     my $dbh = $self->get_dbh();
     my $coll_item_table_name = $self->get_coll_item_table_name;
-    my $user_id = $self->get_user_id;
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
+    if (! $force_ownership) {
+        my $user_id = $self->get_user_id;
+        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
+               qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
+    }
 
     my $id_string = $self->arr_ref2SQL_in_string($id_arr_ref);
 
