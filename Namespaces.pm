@@ -28,9 +28,13 @@ Coding example
 
 =cut
 
+use strict;
+use warnings;
+
 use Context;
 use Database;
 use DbUtils;
+use Identifier;
 
 my %Namespace_Hash;
 
@@ -38,14 +42,20 @@ sub __load_namespace_hash {
     my $C = shift;
 
     return if (scalar keys %Namespace_Hash);
-    
+
     my $dbh = $C->get_object('Database')->get_DBH;
 
-    my $statement = qq{SELECT namespace, institution FROM ht_namespaces};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $value);
+    my $statement = qq{SELECT * FROM ht_namespaces};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
-    %Namespace_Hash = map { $_->{namespace}, $_->{institution} } @$ref_to_arr_of_hashref;
+    %Namespace_Hash = map { $_->{namespace},
+                              {
+                               institution   => $_->{institution},
+                               inst_code     => $_->{inst_code},
+                               grin_instance => $_->{grin_instance},
+                              }
+                          } @$ref_to_arr_of_hashref;
 }
 
 
@@ -59,11 +69,81 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_institution_by_namespace {
-    my ($C, $namespace) = @_;
+    my ($C, $id) = @_;
 
     __load_namespace_hash($C);
+    my ($namespace, $barcode) = Identifier::split_id($id);
 
-    return $Namespace_Hash{$namespace};
+    return $Namespace_Hash{$namespace}->{institution};
+}
+
+# ---------------------------------------------------------------------
+
+=item get_google_id_by_namespace
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_google_id_by_namespace {
+    my ($C, $id) = @_;
+
+    __load_namespace_hash($C);
+    my ($namespace, $barcode) = Identifier::split_id($id);
+
+    my $grin_prefix =
+      __map_UCAL_GRIN_prefix(
+                             $Namespace_Hash{$namespace}{grin_instance},
+                             $barcode
+                            );
+
+    return (defined $grin_prefix) ? $grin_prefix . '.' . $barcode : undef;
+}
+
+# ---------------------------------------------------------------------
+
+=item __map_uc1_2_GRIN_prefix
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __map_UCAL_GRIN_prefix {
+    my ($grin_prefix, $barcode) = @_;
+
+    return $grin_prefix
+      unless (defined $grin_prefix && $grin_prefix eq 'UCAL');
+
+    my $barcode_len = length($barcode);
+    return 'UCLA'
+      if ($barcode_len == 11 && substr($barcode, 0, 1) eq 'l');
+    return 'UCB'
+      if ($barcode_len == 10);
+
+    if ($barcode_len == 14) {
+        my $barcode_chars = substr($barcode, 1, 4);
+        return 'UCSD'
+          if ($barcode_chars eq '1822');
+        return 'UCI'
+          if ($barcode_chars eq '1970');
+        return 'UCSF'
+          if ($barcode_chars eq '1378');
+        return 'UCSC'
+          if ($barcode_chars eq '2106');
+        return 'UCSB'
+          if ($barcode_chars eq '1205');
+        return 'UCD'
+          if ($barcode_chars eq '1175');
+        return 'UCLA'
+          if ($barcode_chars eq '1158');
+        return 'UCR'
+          if ($barcode_chars eq '1210');
+    }
+    else {
+        return 'UCAL';
+    }
 }
 
 1;
@@ -76,7 +156,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2012 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2012-13 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

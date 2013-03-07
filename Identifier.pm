@@ -140,6 +140,43 @@ sub validate_mbooks_id {
 
 # ---------------------------------------------------------------------
 
+=item __split_id
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __split_id {
+    my $id = shift;
+
+    my ($namespace) = ($id =~ m,^(.+?)\..+$,);
+    my ($barcode) = ($id =~ m,^$namespace\.(.+)$,);
+
+    return ($namespace, $barcode);
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: split_id
+
+Remove the namspace identifier if id is being sent to a service
+that does not understand it (yet).
+
+=cut
+
+# ---------------------------------------------------------------------
+sub split_id {
+    my $id = shift;
+
+    __check_validation($id);
+    my ($namespace, $barcode) = __split_id($id);
+
+    return ($namespace, $barcode);
+}
+
+# ---------------------------------------------------------------------
+
 =item PUBLIC: get_id_wo_namespace
 
 Remove the namspace identifier if id is being sent to a service
@@ -152,10 +189,9 @@ sub get_id_wo_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
-    $id  =~ s,^$namespace\.,,;
+    my ($namespace, $barcode) = __split_id($id);
 
-    return $id;
+    return $barcode;
 }
 
 
@@ -179,10 +215,9 @@ sub get_pairtree_id_with_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
-    $id =~ s,^$namespace\.,,;
+    my ($namespace, $barcode) = __split_id($id);
 
-    return qq{$namespace.} . File::Pairtree::s2ppchars($id);
+    return qq{$namespace.} . File::Pairtree::s2ppchars($barcode);
 }
 
 # ---------------------------------------------------------------------
@@ -200,10 +235,9 @@ sub get_pairtree_id_wo_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
-    $id =~ s,^$namespace\.,,;
+    my ($namespace, $barcode) = __split_id($id);
 
-    return File::Pairtree::s2ppchars($id);
+    return File::Pairtree::s2ppchars($barcode);
 }
 
 # ---------------------------------------------------------------------
@@ -219,7 +253,7 @@ sub the_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my ($namespace) = ($id =~ m,^(.+?)\..+$,);
+    my ($namespace, $barcode) = __split_id($id);
 
     return $namespace;
 }
@@ -264,13 +298,11 @@ sub id_to_mdp_path {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
+    my ($namespace, $barcode) = __split_id($id);
     my $root = $namespace . q{/pairtree_root};
 
     # Initial pairtree module
     $File::Pairtree::root = $root;
-
-    my $barcode = get_id_wo_namespace($id);
     my $path = File::Pairtree::id2ppath($barcode) . File::Pairtree::s2ppchars($barcode);
 
     return $path;
@@ -393,7 +425,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-10 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-10, 2103 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
