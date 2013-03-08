@@ -575,6 +575,7 @@ sub list_items {
     my @metadata_fields = $self->get_item_display_fields_arr;
     push(@metadata_fields, 'rights');
     push(@metadata_fields, 'extern_item_id');
+    push(@metadata_fields, 'book_id');
 
     my $item_sort_fields_arr_ref = $self->get_item_sort_fields_arr_ref;
 
@@ -1299,6 +1300,7 @@ sub get_metadata_for_item {
     push(@metadata_fields, 'rights');
     push(@metadata_fields, 'extern_item_id');
     push(@metadata_fields, 'sort_title');
+    push(@metadata_fields, 'book_id');
 
     my $dbh = $self->get_dbh();
     # my $q_id = $dbh->quote($id);
