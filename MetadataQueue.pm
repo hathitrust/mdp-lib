@@ -57,7 +57,47 @@ sub enqueue_metadata_item_id {
     if ($@) {
         $ok = 0;
     }
-    
+
+    return $ok;
+}
+
+# ---------------------------------------------------------------------
+
+=item enqueue_metadata_item_id
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub enqueue_metadata_item_id_array {
+    my ($C, $dbh, $id_arr_ref) = @_;
+
+    my $ok = 1;
+    my ($sth, $statement);
+
+    eval {
+        $statement = qq{LOCK TABLES slip_metadata_update_queue WRITE};
+        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+        while (1) {
+            my $id = shift @$id_arr_ref;
+            last unless(defined $id);
+
+            $statement = qq{INSERT INTO slip_metadata_update_queue SET id=?, time=NOW()};
+            DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+            $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
+        }
+
+        $statement = qq{UNLOCK TABLES};
+        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+    };
+    if ($@) {
+        $ok = 0;
+    }
+
     return $ok;
 }
 
@@ -96,7 +136,7 @@ sub get_next_metadata_item_id {
     if ($@) {
         $ok = 0;
     }
-    
+
     return ($ok, $id);
 }
 
@@ -132,7 +172,7 @@ sub dequeue_id_from_metadata_queue {
     if ($@) {
         $ok = 0;
     }
-    
+
     return $ok;
 }
 

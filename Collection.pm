@@ -1440,6 +1440,32 @@ sub get_full_text_ids {
 
 # ---------------------------------------------------------------------
 
+=item  get_item_id_slice
+
+Return a slice of ID from mb_item
+
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_item_id_slice {
+    my $self = shift;
+    my ($offset, $size) = @_;
+
+    my $item_table = $self->get_item_table_name;
+    my $dbh = $self->get_dbh();
+
+    my $statement = qq{SELECT extern_item_id FROM $item_table LIMIT ?, ?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $offset, $size);
+    my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
+
+    my $ids_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
+
+    return $ids_ary_ref;
+}
+
+# ---------------------------------------------------------------------
+
 =item one_or_more_items_in_coll
 
 returns true of one or more items in $item_id_ary_ref is in the collection
