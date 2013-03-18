@@ -482,17 +482,9 @@ sub get_full_PDF_access_status {
         }
     }
 
-    # 'allow' at this point may be because of ACL membership.  As of
-    # Feb 13 2012 only superusers (developers) are allowed full book
-    # download of in-copyright books.
-    if ($status eq 'allow') {
-        my ($in_copyright, $attr) = $self->in_copyright($C, $id);
-        if ($in_copyright) {
-            unless(Auth::ACL::a_Authorized( {role => 'superuser'} )) {
-                $status = 'deny';
-                $message = q{NOT_AVAILABLE};
-            }
-        }
+    # Feb 2012 Only developers have unrestricted full PDF download.
+    if (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+        $status = 'allow';
     }
 
     # clear the error message if $status eq 'allow'
