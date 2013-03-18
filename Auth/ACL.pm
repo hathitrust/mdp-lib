@@ -75,7 +75,7 @@ sub a_Authorized {
             # Not expired. correct IP?
             if ($ipaddr =~ m/$ip_range/) {
                 # Limit to certain roles or access
-                foreach my $key (%$access_ref) {
+                foreach my $key (keys %$access_ref) {
                     if ( $access_ref->{$key} eq MdpUsers::get_user_attributes($key) ) {
                         $authorized = 1;
                         last;
