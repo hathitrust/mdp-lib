@@ -1400,8 +1400,7 @@ sub SupressCheckoutSeqs {
 
     # Don't suppress pages for development viewing using debug=nosup
     # switch
-    return
-        if (DEBUG('nosup') && Debug::DUtils::debugging_enabled());
+    return if (DEBUG('nosup'));
 
     if ( $self->HasPageFeatures() )
     {

@@ -35,6 +35,7 @@ use Encode;
 use Session;
 use Utils;
 use Auth::ACL;
+use RightsGlobals;
 
 
 # Package lexical to enable debug message buffering for later display
@@ -124,25 +125,10 @@ sub set_HathiTrust_debug_environment {
                 delete $ENV{SDRLIB};
                 $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{$inst_code}{ip};
                 $ENV{affiliation} = $HathiTrust_IP_hash{$inst_code}{aff};
-                $ENV{AUTH_TYPE} = 'shibboleth';
-                $ENV{REMOTE_USER} = 'somepersistentshibidentifier';
                 last;
             }
         }
-    }
-    
-    if (DEBUG('shib')) {
-        # Appear to be a UM shib login at whatever IP you are at unless DEBUG=nonus see below
-        $ENV{AUTH_TYPE} = 'shibboleth';
-        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
-    }
-
-    if (DEBUG('cosign')) {
-        # Stomp shib. Appear to be a cosign login at whatever IP you are at
-        $ENV{AUTH_TYPE} = 'cosign';
-        $ENV{affiliation} = 'member@umich.edu';
-        $ENV{REMOTE_USER} = 'pfarber';
-    }
+    }    
 
     if (DEBUG('ssd')) {
         $ENV{entitlement} = 'http://www.hathitrust.org/access/enhancedText'
@@ -536,7 +522,6 @@ ranges when authenticated. VPN required when outside these ranges.
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
-    my $role = shift;
 
     use constant NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1 => 0;
 
@@ -545,7 +530,7 @@ sub debugging_enabled {
     my $___no_ACL_debugging_test = 
       $ENV{TERM} || limited_debugging_enabled() || NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1;
  
-    my $authorized = Auth::ACL::a_Authorized($role);
+    my $authorized = Auth::ACL::a_Authorized( {access => 'total'} );
     if ($___no_ACL_debugging_test) {
         return 1;
     }

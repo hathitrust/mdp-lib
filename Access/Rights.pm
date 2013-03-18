@@ -115,30 +115,21 @@ See RightsGlobals.pm for documentation on Attributes, Sources, etc.
 # ---------------------------------------------------------------------
 sub get_rights_attribute {
     my $self = shift;
-    my ($C, $id, $disallow_debug_values) = @_;
+    my ($C, $id) = @_;
 
     $self->_validate_id($id);
 
-    # Only cache the value that was determined by a call that allowed
-    # debug switches to affect the value. Never return from cache the
-    # value obtained by disallowing debugging.  That value must be the
-    # true value needed for in-copyright security logging.
-
-    if (! $disallow_debug_values) {
-        if (defined($self->{'rights_attribute'})) {
-            return $self->{'rights_attribute'}
-        }
+    if (defined($self->{'rights_attribute'})) {
+        return $self->{'rights_attribute'}
     }
 
     # Access rights database
-    my ($rights_attribute, $rc) = _determine_rights_attribute($C, $id, $disallow_debug_values);
+    my ($rights_attribute, $rc) = _determine_rights_attribute($C, $id);
 
     $rights_attribute = $RightsGlobals::NOOP_ATTRIBUTE
         if ($rc != $RightsGlobals::OK_ID);
 
-    if (! $disallow_debug_values) {
-        $self->{'rights_attribute'} = $rights_attribute;
-    }
+    $self->{'rights_attribute'} = $rights_attribute;
 
     return $rights_attribute;
 }
@@ -400,6 +391,12 @@ sub get_POD_access_status {
     elsif ($self->creative_commons($C, $id)) {
         $status = _resolve_access_by_GeoIP($C, 'US');
     }
+    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+        $status = 'allow';
+    }
+    else {
+        $status = 'deny';
+    }
 
     DEBUG('pt,auth', qq{<h5>get_POD_access_status: status=$status</h5>});
     return $status;
@@ -485,15 +482,13 @@ sub get_full_PDF_access_status {
         }
     }
 
-    # 'allow' at this point may be because of attr=1 from upstream for
-    # debugging or CRMS/quality/orphan research activity.  As of Feb
-    # 13 2012 only superusers (developers) within a restricted IP
-    # range are allowed full book download of in-copyright books.
+    # 'allow' at this point may be because of ACL membership.  As of
+    # Feb 13 2012 only superusers (developers) are allowed full book
+    # download of in-copyright books.
     if ($status eq 'allow') {
-        my ($in_copyright, $attr) = $self->in_copyright_suppress_debug_switches($C, $id);
+        my ($in_copyright, $attr) = $self->in_copyright($C, $id);
         if ($in_copyright) {
-            my $role = Auth::ACL::a_GetUserAttributes('role');
-            if ($role ne 'superuser') {
+            unless(Auth::ACL::a_Authorized( {role => 'superuser'} )) {
                 $status = 'deny';
                 $message = q{NOT_AVAILABLE};
             }
@@ -509,7 +504,7 @@ sub get_full_PDF_access_status {
 
 # ---------------------------------------------------------------------
 
-=item public_domain_world_creative_commons
+=item CLASS PUBLIC: public_domain_world_creative_commons
 
 Can you think of a better name?
 
@@ -526,6 +521,26 @@ sub public_domain_world_creative_commons {
             $self->public_domain_world($C, $id)
            );
 }
+
+
+# ---------------------------------------------------------------------
+
+=item CLASS PUBLIC: in_copyright
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub in_copyright {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    my $in_copyright = (! $self->public_domain_world_creative_commons($C, $id));
+
+    return $in_copyright;
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -557,10 +572,10 @@ sub __test_affiliation_and_status {
 
 sub public_domain_world {
     my $self = shift;
-    my ($C, $id, $disallow_debug_values) = @_;
+    my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my $attribute = $self->get_rights_attribute($C, $id, $disallow_debug_values);
+    my $attribute = $self->get_rights_attribute($C, $id);
 
     if (grep(/^$attribute$/, @RightsGlobals::g_public_domain_world_attribute_values)) {
         my $status = $C->get_object('Auth')->get_institution_us_status($C);
@@ -581,37 +596,6 @@ sub public_domain_world {
         return 0;
     }
 }
-
-
-# ---------------------------------------------------------------------
-
-=item CLASS PUBLIC: in_copyright_suppress_debug_switches
-
-Get the true ic value independent of debugging switches.  Required for
-IC security logging.
-
-Returns the true rights_current.attr
-
-=cut
-
-# ---------------------------------------------------------------------
-sub in_copyright_suppress_debug_switches {
-    my $self = shift;
-    my ($C, $id) = @_;
-
-    my $in_copyright = 1;
-
-    my $attribute = $self->get_rights_attribute($C, $id, 1);
-    if ($self->creative_commons($C, $id, 1)) {
-        $in_copyright = 0;
-    }
-    elsif ($self->public_domain_world($C, $id, 1)) {
-        $in_copyright = 0;
-    }
-
-    return ($in_copyright, $attribute);
-}
-
 
 # ---------------------------------------------------------------------
 
@@ -647,10 +631,10 @@ rights_current.attr valuse?
 # ---------------------------------------------------------------------
 sub creative_commons {
     my $self = shift;
-    my ($C, $id, $disallow_debug_values) = @_;
+    my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my $attribute = $self->get_rights_attribute($C, $id, $disallow_debug_values);
+    my $attribute = $self->get_rights_attribute($C, $id);
 
     if (grep(/^$attribute$/, @RightsGlobals::g_creative_commons_attribute_values)) {
         return 1;
@@ -943,36 +927,11 @@ If institution is not known return mdp.rights_current.attr
 
 # ---------------------------------------------------------------------
 sub _determine_rights_attribute {
-    my ($C, $id, $disallow_debug_values) = @_;
+    my ($C, $id) = @_;
 
-    my ($attr, $rc) = (undef, $RightsGlobals::OK_ID);
+    my ($attr, $rc) = _get_rights_attribute($C, $id);
 
-    # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-    if (! $disallow_debug_values) {
-        my $cgi = $C->get_object('CGI');
-        if (defined($cgi->param('attr')) && Debug::DUtils::debugging_enabled()) {
-            $attr = $cgi->param('attr');
-            ASSERT(grep(/^$attr$/, @RightsGlobals::g_rights_attribute_values ),
-                   qq{Invalid attribute value for 'attr' parameter: } . $attr);
-        }
-        # for Facet debugging, if this is the special ID
-        if ($id eq $Identifier::non_um_in_copyright_id) {
-            if (DEBUG('orph')) {
-                $attr = $RightsGlobals::g_orphan_attribute_value;
-            }
-            elsif (DEBUG('orphcand')) {
-                $attr = $RightsGlobals::g_orphan_candidate_attribute_value;
-            }
-        }
-    }
-
-    if (! defined($attr)) {
-        ($attr, $rc) = _get_rights_attribute($C, $id);
-    }
-
-    DEBUG('db,auth,all',
-          qq{<h4>id="$id", attr=$attr (DEBUG SUPPRESSED="$skip_debug_test") desc=$RightsGlobals::g_attribute_names{$attr}</h4>});
-
+    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr}</h4>});
     return ($attr, $rc);
 }
 
@@ -989,28 +948,11 @@ Description
 sub _determine_source_attribute {
     my ($C, $id) = @_;
 
-    my ($source, $rc) = (undef, $RightsGlobals::OK_ID);
-    my $cgi = $C->get_object('CGI');
+    my ($source, $rc) = _get_source_attribute($C, $id);
 
-    # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-    # Allow use of 'src' only for superuser as it opens the door to
-    # full book download of certain volumes. Too dangerous to be
-    # widely enabled.
-    if (defined($cgi->param('src')) && Debug::DUtils::debugging_enabled('superuser')) {
-        $source = $cgi->param('src');
-        ASSERT(grep(/^$source$/, @RightsGlobals::g_source_values ),
-               qq{Invalid source value for 'src' parameter: } . $source);
-    }
-    else {
-        ($source, $rc) = _get_source_attribute($C, $id);
-    }
-
-    DEBUG('db,auth,all',
-          qq{<h4>id="$id", source="$source" desc="$RightsGlobals::g_source_names{$source}"</h4>});
-
+    DEBUG('db,auth,all', qq{<h4>id="$id", source="$source" desc="$RightsGlobals::g_source_names{$source}"</h4>});
     return ($source, $rc);
 }
-
 
 # ---------------------------------------------------------------------
 
@@ -1101,14 +1043,27 @@ attribute in mdp.rights_current table.
 sub _determine_access_type {
     my $C = shift;
 
-    my $access_type = $RightsGlobals::ORDINARY_USER;
-
-    # Tests are in order of which access type would give most
-    # privileges.
-
+    my $access_type;
     my $auth = $C->get_object('Auth');
 
-    if
+    if (DEBUG('ord', 'ORDINARY user-type access forced')) {
+        $access_type = $RightsGlobals::ORDINARY_USER;
+    }
+    elsif (DEBUG('ssd', 'SSD user-type access forced')) {
+        $access_type = $RightsGlobals::SSD_USER;
+    }
+    elsif (DEBUG('hathi', 'HathiTrust affiliated user-type access forced')) {
+        $access_type = $RightsGlobals::HT_AFFILIATE;
+    }
+    elsif
+      (Auth::ACL::a_Authorized( {access => 'total'} )) {
+        $access_type = $RightsGlobals::HT_ACL_USER;
+    }
+    elsif
+      (Auth::ACL::a_Authorized( {role => 'ssdnfb'} )) {
+        $access_type = $RightsGlobals::SSD_NFB_USER;
+    }
+    elsif
       ($auth->get_eduPersonEntitlement_print_disabled($C)) {
         $access_type = $RightsGlobals::SSD_USER;
     }
@@ -1129,6 +1084,9 @@ sub _determine_access_type {
         # exclusivity: UM only until Holding Db carries condition
         # data.
         $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
+    }
+    else {
+        $access_type = $RightsGlobals::ORDINARY_USER;
     }
 
     DEBUG('pt,auth,all',

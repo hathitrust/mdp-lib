@@ -44,7 +44,8 @@ sub log_incopyright_access  {
     my $ar = $C->get_object('Access::Rights');
     if ( $ar->check_final_access_status($C, $id) eq 'allow' ) {
         # ... serving something
-        my ($in_copyright, $attr) = $ar->in_copyright_suppress_debug_switches($C, $id);
+        my $in_copyright = $ar->in_copyright($C, $id);
+        my $attribute = $ar->get_rights_attribute($C, $id);
         my $access_type = $ar->get_access_type($C, 'as_string');
 
         if ($in_copyright) {

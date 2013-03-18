@@ -150,7 +150,7 @@ sub _initialize {
                                                          $self->get_user_name($C),
                                                         );
             }
-            
+
             $self->__debug_auth($C, $ses);
         }
         else {
@@ -658,14 +658,14 @@ sub get_eduPersonPrincipalName {
 
 # ---------------------------------------------------------------------
 
-=item __user_is_SSD
+=item __user_is_print_disabled_in_ACL
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub __user_is_SSD {
+sub __user_is_print_disabled_in_ACL {
     my $role =  Auth::ACL::a_GetUserAttributes('role');
     return ($role =~ m,^ssd,);
 }
@@ -697,8 +697,8 @@ sub get_eduPersonEntitlement_print_disabled {
     my $C = shift;
 
     # Auth-system-independent tests
-    my $print_disabled = __user_is_SSD() || DEBUG('ssd');
-    
+    my $print_disabled = __user_is_print_disabled_in_ACL() || DEBUG('ssd');
+
     # Auth-system-dependent tests
     if (! $print_disabled) {
         if ($self->auth_sys_is_SHIBBOLETH($C)) {
@@ -763,7 +763,7 @@ sub __get_parsed_displayName {
     $name =~ s,(&)(amp;)?(#?x?[a-zA-Z0-9]+)\\(;),$1$3$4,gi;
     # map to parseable NCRs
     $name =~ s,(&[a-zA-Z0-9]+;),&Utils::minimal_CER_to_NCR_map($1),eg;
-    
+
     return $name;
 }
 
@@ -848,6 +848,8 @@ sub affiliation_is_hathitrust {
     my $self = shift;
     my $C = shift;
 
+    return 1 if (DEBUG('hathi'));
+
     my $is_hathitrust = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
@@ -885,7 +887,7 @@ sub get_user_display_name {
     my $self = shift;
     my $C = shift;
     my $unscoped = shift;
-    
+
     my $user_display_name = 'anonymous';
 
     if ($C->has_object('Session')) {

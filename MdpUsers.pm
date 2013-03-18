@@ -14,23 +14,25 @@ roles are subclasses of usertype:
 
  select distinct usertype, role from ht_users;
 
- +----------+--------------+
- | usertype | role         |
- +----------+--------------+
- | staff    | generalhathi |staff locked to $staff_subnet_ranges
- | staff    | cataloging   |staff locked to $staff_subnet_ranges
- | external | crms         |external engaged in CRMS and CRMS World activities, locked to IP
- | staff    | crms         |staff engaged in CRMS and CRMS World activities, locked to IP/$staff_subnet_ranges
- | staff    | superuser    |staff (developers) locked to $superuser_subnet_ranges
- | staff    | orphan       |staff engaged in the Orphan Works project, locked to IP
- | staff    | quality      |staff engaged in the Qual project, locked to $staff_subnet_ranges
- | external | quality      |external engaged in the Qual project, locked to IP
- | staff    | digitization |staff at DCU, locked to IP
- |----------|--------------|
- | student  | ssd          |UM SSD student list not locked to by IP range
- | external | ssdnfb       |external NFB pilot locked to IP address
- | external | ssdproxy     |external HathiTrust human proxy for SSD affiliate locked to IP address
- +----------+--------------+
+ +----------+--------------+---------+
+ | usertype | role         | access  |
+ +----------+--------------+---------+
+ | staff    | generalhathi | total   | staff locked to $staff_subnet_ranges
+ | staff    | cataloging   | total   | staff locked to $staff_subnet_ranges
+ | external | crms         | total   | external engaged in CRMS and CRMS World activities, locked to IP
+ | staff    | crms         | total   | staff engaged in CRMS and CRMS World activities, locked to IP/$staff_subnet_ranges
+ | staff    | superuser    | total   | staff (developers) locked to $superuser_subnet_ranges
+ | staff    | orphan       | total   | staff engaged in the Orphan Works project, locked to IP
+ | staff    | quality      | total   | staff engaged in the Qual project, locked to $staff_subnet_ranges
+ | external | quality      | total   | external engaged in the Qual project, locked to IP
+ | staff    | digitization | total   | staff at DCU, locked to IP
+ |----------+--------------+---------+
+ | student  | ssd          | partial | UM SSD student list not locked to by IP range
+ | external | ssdnfb       | partial | external NFB pilot locked to IP address
+ | external | ssdproxy     | partial | external HathiTrust human proxy for SSD affiliate locked to IP address
+ +----------+--------------+---------+
+
+'partial' access excludes attr=8 (nobody) 
 
 =head1 SYNOPSIS
 
@@ -51,30 +53,30 @@ use DbUtils;
 
 
 # Mon Feb 13 2012 Superusers are restricted to these ranges
-# 141.211.43.128/25   141.211.43.129  - 141.211.43.254  - LIT offices 
-# 141.211.84.128/25   141.211.84.129  - 141.211.84.254  - Library VPN 
-# 141.211.168.128/25  141.211.168.129 - 141.211.168.254 - Hatcher server room 
-# 141.211.172.0/22    141.211.172.1   - 141.211.172.254 - Hatcher/Shapiro buildings 
-# 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center 
+# 141.211.43.128/25   141.211.43.129  - 141.211.43.254  - LIT offices
+# 141.211.84.128/25   141.211.84.129  - 141.211.84.254  - Library VPN
+# 141.211.168.128/25  141.211.168.129 - 141.211.168.254 - Hatcher server room
+# 141.211.172.0/22    141.211.172.1   - 141.211.172.254 - Hatcher/Shapiro buildings
+# 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center
 # 141.213.232.192/26  141.213.232.193 - 141.213.232.254 - MACC data center (this will  be retired sometime in 2012)
 #                     141.211.174.173 - 141.211.174.199 - ULIC Shapiro 4th floor
-# 
-my $superuser_subnet_ranges = 
+#
+my $superuser_subnet_ranges =
   q{^(141.211.43.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.84.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.168.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.(1(7[2-5])).([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.213.128.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.213.232.(1(9[3-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.174.(1(7[3-9]|[8-9][0-9])))$};
 
 # Staff, students are restricted to internal subnets. Friend-accounts
 # are locked to an exact IP address that should be hardcoded for the
-# 'iprestrict' key.  
+# 'iprestrict' key.
 #
 # Mon Apr 23 10:58:29 2012: Updated subset to match superuser defns
 # above
 #
-my $staff_subnet_ranges = 
+my $staff_subnet_ranges =
   q{^(141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
 
 # ULIC 141.211.174.173 - 141.211.174.199
 #
-my $ULIC_subnet_ranges = 
+my $ULIC_subnet_ranges =
   q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$};
 
 # black hole
@@ -113,7 +115,7 @@ my %gAccessControlList;
 
 =item __load_access_control_list
 
-PRIVATE 
+PRIVATE
 
 WARNING: keys to this hash must be lower-case to work vs. ACL.pm
 
@@ -121,18 +123,18 @@ WARNING: keys to this hash must be lower-case to work vs. ACL.pm
        `userid` varchar(256) DEFAULT NULL,
        `displayname` varchar(128) DEFAULT NULL,
        `usertype` varchar(32) DEFAULT NULL,
-       `role` varchar(32) DEFAULT NULL, 
-       `expires` varchar(32) DEFAULT NULL, 
-       `iprestrict` varchar(1024) DEFAULT NULL, 
+       `role` varchar(32) DEFAULT NULL,
+       `expires` varchar(32) DEFAULT NULL,
+       `iprestrict` varchar(1024) DEFAULT NULL,
                  PRIMARY KEY (`userid`));
 
 =cut
 
 # ---------------------------------------------------------------------
 sub __load_access_control_list {
-    
+
     return if (scalar keys %gAccessControlList);
-    
+
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH;
 
@@ -142,14 +144,15 @@ sub __load_access_control_list {
 
     foreach my $hashref (@$ref_to_arr_of_hashref) {
         my $userid = $hashref->{userid};
-        
+
         $gAccessControlList{$userid}{displayname} = $hashref->{displayname};
         $gAccessControlList{$userid}{usertype} = $hashref->{usertype};
         $gAccessControlList{$userid}{role} = $hashref->{role};
+        $gAccessControlList{$userid}{access} = $hashref->{access};
 
         my $expires = $hashref->{expires};
         my $iprestrict = $hashref->{iprestrict};
-        
+
         # Stored IP range and expiration date are in control, if
         # defined, else we use one of the above hardcoded ranges
         # depending on usertype and role.
@@ -159,7 +162,7 @@ sub __load_access_control_list {
         if (defined($expires)) {
             $gAccessControlList{$userid}{expires} = $expires;
         }
-        
+
         if ($gAccessControlList{$userid}{usertype} eq 'staff') {
             if ($gAccessControlList{$userid}{role} eq 'superuser') {
                 $gAccessControlList{$userid}{expires} = $superuser_expire_date unless (defined $expires);
@@ -210,9 +213,9 @@ Description
 sub get_user_attributes {
     my $req_attribute = shift;
     my $user = shift;
-    
+
     __load_access_control_list();
-    
+
     my $key = defined($user) ? $user : lc($ENV{'REMOTE_USER'});
     my $attrval = $gAccessControlList{$key}{$req_attribute};
 
