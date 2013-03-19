@@ -476,6 +476,8 @@ sub _render_template
 
     if (DEBUG('xml,rawxml')) {
         $$template_data_ref = Encode::encode_utf8($$template_data_ref);
+        # remove empty PI handlers to avoid browser rendering issues
+        Utils::remove_PI($template_data_ref);
         $self->output_HTTP($C, $template_data_ref, 'text/xml' );
         exit 0;
     }
@@ -565,6 +567,7 @@ sub P_output_data_HTTP {
     print STDOUT "Status: 200" . $CGI::CRLF;
     print STDOUT $headers_ref->as_string($CGI::CRLF);
     print STDOUT $CGI::CRLF;
+    $$data_ref =~ s,^<!DOCTYPE [^>]+>,<!DOCTYPE html>,;
     print STDOUT $$data_ref;
 }
 
