@@ -353,7 +353,9 @@ sub handle_ENV_VAR_PI
 
 =item handle_SUPPRESS_ACCESS_BANNER : PI_handler(SUPPRESS_ACCESS_BANNER)
 
-Prevent access_banner.js from posting dialog for CRMS ACL users.
+Prevent access_banner_01.js from posting dialog for ACL access=total
+users -- it gets in the way of routine work. Allow it to model
+behavior correctly when certain debug= parameters are present.
 
 =cut
 
@@ -367,8 +369,7 @@ sub handle_SUPPRESS_ACCESS_BANNER
 
     my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
     if (defined $usertype) {
-        my $role = Auth::ACL::a_GetUserAttributes('role');
-        if ($role eq 'crms'){
+        if (Auth::ACL::a_Authorized( {access => 'total'} )) {
             $suppress = 'true'
         }
         else {
@@ -377,6 +378,13 @@ sub handle_SUPPRESS_ACCESS_BANNER
     }
     else {
         $suppress = 'false'
+    }
+
+    # Correctly model certain debug behaviors
+    if ($suppress eq 'true') {
+        if (DEBUG('ord,ssd,hathi')) {
+            $suppress = 'false';
+        }
     }
 
     return $suppress;
