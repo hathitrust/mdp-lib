@@ -391,7 +391,7 @@ sub get_POD_access_status {
     elsif ($self->creative_commons($C, $id)) {
         $status = _resolve_access_by_GeoIP($C, 'US');
     }
-    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} ) && DEBUG('super')) {
         $status = 'allow';
     }
     else {
@@ -483,7 +483,7 @@ sub get_full_PDF_access_status {
     }
 
     # Feb 2012 Only developers have unrestricted full PDF download.
-    if (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+    if (Auth::ACL::a_Authorized( {role => 'superuser'} ) && DEBUG('super')) {
         $status = 'allow';
     }
 
