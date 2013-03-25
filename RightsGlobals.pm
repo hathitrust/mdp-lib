@@ -385,12 +385,14 @@ our $HT_AFFILIATE        = 6;
   );
 
 # ---------------------------------------------------------------------
-# "Public domain"
+# Attribute sets
 # ---------------------------------------------------------------------
 #
 @g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17); # All users
 @g_public_domain_world_attribute_values = (1, 7, 9, 18, 19); # All users
 @g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16); # SSD only, if institution holds
+
+@g_image_non_cacheable_attribute_values = (2, 3, 4, 5, 6, 8, 9, 16, 19);
 
 $g_access_requires_brittle_holdings_attribute_value = 3; # Some users, if institution holds
 $g_available_to_no_one_attribute_value = 8;

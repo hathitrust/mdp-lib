@@ -100,7 +100,7 @@ Description
 sub _initialize {
     my $self = shift;
     my ($C, $id) = @_;
-    $self->{'id'} = $id;
+    $self->{id} = $id;
 }
 
 
@@ -119,8 +119,8 @@ sub get_rights_attribute {
 
     $self->_validate_id($id);
 
-    if (defined($self->{'rights_attribute'})) {
-        return $self->{'rights_attribute'}
+    if (defined($self->{rights_attribute})) {
+        return $self->{rights_attribute}
     }
 
     # Access rights database
@@ -129,7 +129,7 @@ sub get_rights_attribute {
     $rights_attribute = $RightsGlobals::NOOP_ATTRIBUTE
         if ($rc != $RightsGlobals::OK_ID);
 
-    $self->{'rights_attribute'} = $rights_attribute;
+    $self->{rights_attribute} = $rights_attribute;
 
     return $rights_attribute;
 }
@@ -150,8 +150,8 @@ sub get_source_attribute {
 
     $self->_validate_id($id);
 
-    return $self->{'source_attribute'}
-        if (defined($self->{'source_attribute'}));
+    return $self->{source_attribute}
+        if (defined($self->{source_attribute}));
 
     # Access rights database
     my ($source_attribute, $rc) = _determine_source_attribute($C, $id);
@@ -159,7 +159,7 @@ sub get_source_attribute {
     $source_attribute = $RightsGlobals::NOOP_ATTRIBUTE
         if ($rc != $RightsGlobals::OK_ID);
 
-    $self->{'source_attribute'} = $source_attribute;
+    $self->{source_attribute} = $source_attribute;
 
     return $source_attribute;
 }
@@ -220,8 +220,8 @@ sub assert_final_access_status {
 
     $self->_validate_id($id);
 
-    if (defined($self->{'finalaccessstatus'})) {
-        return $self->{'finalaccessstatus'};
+    if (defined($self->{finalaccessstatus})) {
+        return $self->{finalaccessstatus};
     }
 
     my $rights_attribute = $self->get_rights_attribute($C, $id);
@@ -233,11 +233,11 @@ sub assert_final_access_status {
     my ($final_access_status, $granted, $owner, $expires) =
         _Assert_final_access_status($C, $initial_access_status, $id);
 
-    $self->{'finalaccessstatus'} = $final_access_status;
-    $self->{'access_type'} = $access_type;
-    $self->{'exclusivity'}{'granted'} = $granted;
-    $self->{'exclusivity'}{'owner'} = $owner;
-    $self->{'exclusivity'}{'expires'} = $expires;
+    $self->{finalaccessstatus} = $final_access_status;
+    $self->{access_type} = $access_type;
+    $self->{exclusivity}{granted} = $granted;
+    $self->{exclusivity}{owner} = $owner;
+    $self->{exclusivity}{expires} = $expires;
 
     return $final_access_status;
 }
@@ -270,9 +270,9 @@ sub get_exclusivity {
     my $C = shift;
 
     return (
-            $self->{'exclusivity'}{'granted'},
-            $self->{'exclusivity'}{'owner'},
-            $self->{'exclusivity'}{'expires'}
+            $self->{exclusivity}{granted},
+            $self->{exclusivity}{owner},
+            $self->{exclusivity}{expires}
            );
 }
 
@@ -289,7 +289,7 @@ sub get_access_type {
     my $self = shift;
     my ($C, $as_string) = @_;
 
-    my $access_type = $self->{'access_type'};
+    my $access_type = $self->{access_type};
     my $at =
       $as_string
         ? $RightsGlobals::g_access_type_names{$access_type}
@@ -313,8 +313,8 @@ sub check_final_access_status {
 
     $self->_validate_id($id);
 
-    if (defined($self->{'finalaccessstatus'})) {
-        return $self->{'finalaccessstatus'};
+    if (defined($self->{finalaccessstatus})) {
+        return $self->{finalaccessstatus};
     }
 
     my $rights_attribute = $self->get_rights_attribute($C, $id);
@@ -326,7 +326,7 @@ sub check_final_access_status {
     my $final_access_status =
         _Check_final_access_status($C, $initial_access_status, $id);
 
-    $self->{'finalaccessstatus'} = $final_access_status;
+    $self->{finalaccessstatus} = $final_access_status;
 
     return $final_access_status;
 }
@@ -496,6 +496,23 @@ sub get_full_PDF_access_status {
 
 # ---------------------------------------------------------------------
 
+=item id_is_non_cacheable
+
+Do not cache images of in-copyright or geo-restricted pd pages.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub id_is_non_cacheable {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    my $attr = $self->get_rights_attribute($C, $id);
+    return (grep(/^$attr$/, @RightsGlobals::g_image_non_cacheable_attribute_values));
+}
+
+# ---------------------------------------------------------------------
+
 =item CLASS PUBLIC: public_domain_world_creative_commons
 
 Can you think of a better name?
@@ -656,7 +673,7 @@ Description: is id parameter valid for this object instance?
 sub _validate_id {
     my $self = shift;
     my $id = shift;
-    ASSERT((defined($id) && ($id eq $self->{'id'})),
+    ASSERT((defined($id) && ($id eq $self->{id})),
            qq{Id="$id: not valid for this instance of Access::Rights object});
 }
 
@@ -750,7 +767,7 @@ sub ___final_access_status_check {
            ($final_access_status eq 'unknown'),
            qq{Invalid final access status value="$final_access_status"});
 
-    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="$ENV{'REMOTE_USER'}"</h4>});
+    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="$ENV{REMOTE_USER}"</h4>});
 }
 
 
@@ -908,12 +925,7 @@ sub _Check_final_access_status {
 
 =item CLASS PRIVATE: _determine_rights_attribute
 
-This will need to be enhanced to test for the triple
-[institution,id,condition] in the Holdings Database and if
-condition="brittle", return 3 else return value in
-mdp.rights_current.attr
-
-If institution is not known return mdp.rights_current.attr
+Description
 
 =cut
 
@@ -972,8 +984,8 @@ sub _get_rights_attribute {
     $row_hashref = $sth->fetchrow_hashref();
     $sth->finish;
 
-    my $attr = $$row_hashref{'attr'};
-    my $db_id = $$row_hashref{'id'};
+    my $attr = $$row_hashref{attr};
+    my $db_id = $$row_hashref{id};
 
     my $rc = $RightsGlobals::OK_ID;
 
@@ -1009,8 +1021,8 @@ sub _get_source_attribute {
     $row_hashref = $sth->fetchrow_hashref();
     $sth->finish;
 
-    my $source = $$row_hashref{'source'};
-    my $db_id = $$row_hashref{'id'};
+    my $source = $$row_hashref{source};
+    my $db_id = $$row_hashref{id};
 
     my $rc = $RightsGlobals::OK_ID;
 
@@ -1048,7 +1060,7 @@ sub _determine_access_type {
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
     elsif
-      (Auth::ACL::a_Authorized( {access => 'total'} )) {
+      (Auth::ACL::a_Authorized( {access => 'total'}) && DEBUG('super')) {
         $access_type = $RightsGlobals::HT_ACL_USER;
     }
     elsif
@@ -1084,7 +1096,7 @@ sub _determine_access_type {
     DEBUG('pt,auth,all',
           sub {
               my $a = $RightsGlobals::g_access_type_names{$access_type};
-              my $s = qq{<h4>AccessType="$a" SDRINST="$ENV{'SDRINST'}", SDRLIB="$ENV{'SDRLIB'}", id="$id"</h4>};
+              my $s = qq{<h4>AccessType="$a" SDRINST="$ENV{SDRINST}", SDRLIB="$ENV{SDRLIB}", id="$id"</h4>};
               return $s;
           });
 
