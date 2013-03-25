@@ -660,8 +660,9 @@ sub SetCurrentRequestInfo {
     # most-recently saved orientation
     else
     {
-        $orientationToUse = $self->GetOrientationForIdSequence( $id, $requestedSequence ) ||
-            $MdpGlobals::gDefaultOrientation;
+        # $orientationToUse = $self->GetOrientationForIdSequence( $id, $requestedSequence ) ||
+        #     $MdpGlobals::gDefaultOrientation;
+        $orientationToUse = $MdpGlobals::gDefaultOrientation;
         $self->SetOrientationForIdSequence( $id, $requestedSequence, $orientationToUse );
     }
 
