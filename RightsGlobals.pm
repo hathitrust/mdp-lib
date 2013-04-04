@@ -49,24 +49,27 @@ package RightsGlobals;
  16        orphcand    copyright   orphan candidate - in 90-day holding period (implies in-copyright)
 
  STATEMENT KEYS
+
+ by-permission
+ candidates
+ cc-by
+ cc-by-nc
+ cc-by-nc-nd
+ cc-by-nc-sa
+ cc-by-nd
+ cc-by-sa
+ cc-zero
+ ic
+ ic-access
+ ic-us
+ ic-us-google
+ oa
+ oa-google
+ orphans
  pd
  pd-google
  pd-us
  pd-us-google
- oa
- oa-google
- ic-access
- ic
- cc-by
- cc-by-nd
- cc-by-nc-nd
- cc-by-nc
- cc-by-nc-sa
- cc-by-sa
- orphcand
- cc-zero
- ic-us
- ic-us-google
 
 =cut
 
@@ -168,6 +171,7 @@ our $HT_AFFILIATE        = 6;
    '11' => 'getty',
    '12' => 'um-dc-mp',
    '13' => 'uiuc',
+   '14' => 'brooklynmuseum',
   );
 
 @g_stmt_fields =
@@ -415,6 +419,7 @@ $g_orphan_candidate_attribute_value = 16;
                                            11, # getty
                                            12, # um-dc-mp
                                            13, # uiuc
+                                           14, # brooklynmuseum
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
