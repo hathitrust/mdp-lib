@@ -579,7 +579,7 @@ sub IF_LT_IE9 {
 <!--[if lt IE 9]>
 <script src="//ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
 <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-<script src="../common/unicorn/vendor/js/selectivizr.js" type="text/javascript"></script>
+<script src="/common/unicorn/vendor/js/selectivizr.js" type="text/javascript"></script>
 <![endif]-->
 END
 }
