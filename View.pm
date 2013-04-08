@@ -568,12 +568,7 @@ sub P_output_data_HTTP {
     print STDOUT $headers_ref->as_string($CGI::CRLF);
     print STDOUT $CGI::CRLF;
     $$data_ref =~ s,^<!DOCTYPE [^>]+>,<!DOCTYPE html>,;
-<<<<<<< HEAD
-=======
-
     _add_ie_specific_code($data_ref);
-
->>>>>>> 3760a6e26e095827775cffffd5a914ba60ed0cb7
     print STDOUT $$data_ref;
 }
 
