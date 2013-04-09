@@ -36,76 +36,54 @@ use Context;
 use Database;
 use DbUtils;
 
-our $non_um_in_copyright_id = 'coo.31924050725880';
-
+# New short ID mapping scheme 1[g]-19[g] correspond to rights
+# attributes 1-19.  A 'g' suffix means Google-sourced, otherwise
+# non-Google sourced. Fully alpha ids select an ID from the indicated
+# namespace.
 my %g_default_debug_ids =
-    (
-     # Internal library id results from a bug in a screen-scraper script
-     '0' => {
-            },
-     # no page metadata testing. monograph
-     '1' => {
-             'id'  => 'mdp.39015015394847',
-            },
-     # Internet Archive source=4, public-domain, attr=9
-     '2' => {
-             'id'  => 'uc2.ark:/13960/t0dv1g69b',
-            },
-     # MIUN namespace, should go to title page
-     '3' => {
-             'id'  => 'miun.aas8778.0001.001',
-            },
-     # Serial (volume data), turncated title, no page metadata,
-     # accented Latin characters
-     '4' => {
-             'id'  => 'mdp.39015062775989',
-            },
-     # size testing 1.2G, 1469 pages
-     '5' => {
-             'id'  => 'mdp.39015035951055',
-            },
-     # UM Press volume, public-domain attr=7
-     '6' => {
-             'id'  => 'mdp.39015009120471',
-            },
-     # HathiTrust pfarber ssd volume public-domain
-     '7' => {
-             'id'  => 'mdp.39015069378902',
-            },
-     # HathiTrust pfarber ssd volume in-copyright
-     '8' => {
-             'id'  => 'mdp.39015026496847',
-            },
-     # OP attr=3, access_count in PHDB > 0, held by uom
-     '9' => {
-             'id'  => 'mdp.39015004314111',
-            },
-     # pd, selected from reduced repository for HT dev environment
-     '10' => {
-             'id'  => 'mdp.39015051323379',
-             },
-     # Islamic MSS, all OCR is zero length
-     '11' => {
-             'id'  => 'mdp.39015079124874',
-             },
-     # CC Creative Commons Attribution-NonCommercial-ShareAlike
-     '12' => {
-             'id'  => 'mdp.39015015823563',
-             },
-     # pdus
-     '13' => {
-              'id'  => 'inu.30000000123830',
-             },
-     # not held by UM, in-copyright
-     '14' => {
-              'id' => $non_um_in_copyright_id,
-             },
-     # attr=8 (nobody) tombstone in data repository: full METS + zip
-     '15' => {
-              'id' => 'mdp.39015002426263',
-             },
+  (
+   '1'     => 'pur1.32754063106516',
+   '1g'    => 'mdp.39015000272388',
+   '2'     => 'mdp.39015007162160',
+   '2g'    => 'inu.30000000106090',
+   '3'     => 'mdp.39015005761732',
+   '3g'    => 'mdp.39015008422266',
+   '4'     => '0',
+   '4g'    => '0',
+   '5'     => 'mdp.39015022393097',
+   '5g'    => 'inu.30000003148040',
+   '6'     => '0',
+   '6g'    => '0',
+   '7'     => 'mdp.39015001787368',
+   '7g'    => 'inu.32000003311323',
+   '8'     => 'miun.aql8896.0001.001',
+   '8g'    => 'mdp.39015000308703',
+   '9'     => 'mdp.39015000630403',
+   '9g'    => 'inu.30000000209332',
+   '10'    => 'mdp.39015088004018',
+   '10g'   => 'inu.30000041642848',
+   '11'    => '0',
+   '11g'   => 'coo.31924052765348',
+   '12'    => 'usu.39060016612839',
+   '12g'   => 'mdp.39015001981979',
+   '13'    => 'mdp.39015062008340',
+   '13g'   => 'mdp.39015000000623',
+   '14'    => 'uiuo.ark:/13960/t7pn9188r',
+   '14g'   => 'inu.30000011561242',
+   '15'    => '0',
+   '15g'   => 'inu.39000000843933',
+   '16'    => '0',
+   '16g'   => '0',
+   '17'    => 'loc.ark:/13960/t89g5s93h',
+   '17g'   => 'mdp.39015005094613',
+   '18'    => 'mdl.reflections.umn16596a',
+   '18g'   => 'umn.31951d00814843v',
+   '19'    => 'uc2.ark:/13960/t02z16p6s',
+   '19g'   => 'mdp.39015000579790',
 
-    );
+   'islam' => 'mdp.39015079124874',
+   'mongo' => 'mdp.39015035951055',
+  );
 
 # ---------------------------------------------------------------------
 
@@ -128,12 +106,14 @@ sub validate_mbooks_id {
         $candidate_id = $arg;
     }
 
+    ASSERT(defined $candidate_id, qq{Undefined ID});
+
     # Set a known well-formed id on the cgi for debugging
     my $id = __set_debug_id($candidate_id);
 
     # Set id on the cgi and QUERY_STRING
     __set_id_globally($id, $arg);
-    
+
     return $id;
 }
 
@@ -335,11 +315,8 @@ Description
 sub __set_debug_id {
     my $id = shift;
 
-    # Set up '1', '2', ... as easy IDs to remember
-    if (grep(/^$id$/, keys %g_default_debug_ids)) {
-        silent_ASSERT(($id ne '0'), qq{Bogus debug id: 0});
-        return $g_default_debug_ids{$id}{'id'};
-    }
+    # Set up '1', '1g', '2', ... as easy IDs to remember
+    return $g_default_debug_ids{$id}  if (grep(/^$id$/, keys %g_default_debug_ids));
     return $id;
 }
 
@@ -387,7 +364,7 @@ sub get_safe_Solr_id {
 
 =item randomize_id
 
-If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.  
+If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.
 
 =cut
 
@@ -395,25 +372,21 @@ If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.
 sub randomize_id {
     my $C = shift;
     my $cgi = shift;
-    
+
     if ($cgi->param('id') eq 'r') {
         my $dbh = $C->get_object('Database')->get_DBH();
         my ($statement, $sth);
-        $statement = qq{SELECT count(*) FROM rights_current};
+        $statement = qq{SELECT count(*) FROM rights_current WHERE attr=1};
         $sth = DbUtils::prep_n_execute($dbh, $statement);
         my $count = $sth->fetchrow_array;
         my $rand_int = int(rand()*$count) + 1;
-        $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current LIMIT 1 OFFSET $rand_int};
+        $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current WHERE attr=1 LIMIT 1 OFFSET $rand_int};
         $sth = DbUtils::prep_n_execute($dbh, $statement);
         my $random_id = $sth->fetchrow_array;
-        if ($random_id) {
-            $cgi->param('id', $random_id);
-        }
-        else {
-            $cgi->param('id', 'mdp.39015015394847');
-        }
+        $cgi->param('id', $random_id);
     }
 }
+
 
 1;
 

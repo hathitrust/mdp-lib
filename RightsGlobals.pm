@@ -153,7 +153,7 @@ our $HT_AFFILIATE        = 6;
    16 => 'orphcand',
    17 => 'cc-zero',
    18 => 'und-world',
-   19 => 'ic-us',
+   19 => 'icus',
   );
 
 %g_source_names =
