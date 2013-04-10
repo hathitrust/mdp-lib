@@ -97,24 +97,7 @@ consistent with the value in the CGI object.
 # ---------------------------------------------------------------------
 sub validate_mbooks_id {
     my $arg = shift;
-
-    my $candidate_id;
-    if (ref($arg) =~ m/^CGI/) {
-        $candidate_id = $arg->param('id');
-    }
-    else {
-        $candidate_id = $arg;
-    }
-
-    ASSERT(defined $candidate_id, qq{Undefined ID});
-
-    # Set a known well-formed id on the cgi for debugging
-    my $id = __set_debug_id($candidate_id);
-
-    # Set id on the cgi and QUERY_STRING
-    __set_id_globally($id, $arg);
-
-    return $id;
+    return __check_validation($arg);
 }
 
 
@@ -299,27 +282,33 @@ Description
 
 # ---------------------------------------------------------------------
 sub __check_validation {
-    my $id = shift;
-    ASSERT(validate_mbooks_id($id), qq{Invalid id="$id"});
-}
+    my $arg = shift;
 
-# ---------------------------------------------------------------------
+    my $id;
+    my $arg_is_CGI = (ref($arg) =~ m/^CGI/);
 
-=item PRIVATE: __set_debug_id
+    if ($arg_is_CGI) {
+        $id = $arg->param('id');
+    }
+    else {
+        $id = $arg;
+    }
 
-Description
+    if ($id eq 'r') {
+        $id = randomize_id($id);
+    }
+    else {
+        # Set up '1', '1g', '2', ... as easy IDs to remember
+        $id = $g_default_debug_ids{$id} if (grep(/^$id$/, keys %g_default_debug_ids));
+    }
 
-=cut
+    silent_ASSERT(defined $id, 'id not defined');
 
-# ---------------------------------------------------------------------
-sub __set_debug_id {
-    my $id = shift;
+    # Set id on the cgi and QUERY_STRING
+    __set_id_globally($id, $arg) if ($arg_is_CGI);
 
-    # Set up '1', '1g', '2', ... as easy IDs to remember
-    return $g_default_debug_ids{$id}  if (grep(/^$id$/, keys %g_default_debug_ids));
     return $id;
 }
-
 
 # ---------------------------------------------------------------------
 
@@ -332,17 +321,16 @@ Description
 # ---------------------------------------------------------------------
 sub __set_id_globally {
     my $id = shift;
-    my $arg = shift;
+    my $cgi = shift;
 
-    my $QUERY_STRING;
-    if (ref($arg) =~ m/^CGI/) {
-        $QUERY_STRING = $arg->query_string();
-        $QUERY_STRING =~ s,id=.+?[\;\&]?,,g;
-        $arg->param('id', $id);
-        $QUERY_STRING = qq{id=$id;} . $QUERY_STRING;
-        $ENV{'QUERY_STRING'} = $QUERY_STRING;
-    }
+    my $query_string;
+    $query_string = $cgi->query_string();
+    $query_string =~ s,id=.+?[\;\&]?,,g;
+    $cgi->param('id', $id);
+    $query_string = qq{id=$id;} . $query_string;
+    $ENV{'QUERY_STRING'} = $query_string;
 }
+
 
 # ---------------------------------------------------------------------
 
@@ -370,21 +358,20 @@ If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.
 
 # ---------------------------------------------------------------------
 sub randomize_id {
-    my $C = shift;
-    my $cgi = shift;
+    my $id = shift;
 
-    if ($cgi->param('id') eq 'r') {
-        my $dbh = $C->get_object('Database')->get_DBH();
-        my ($statement, $sth);
-        $statement = qq{SELECT count(*) FROM rights_current WHERE attr=1};
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
-        my $count = $sth->fetchrow_array;
-        my $rand_int = int(rand()*$count) + 1;
-        $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current WHERE attr=1 LIMIT 1 OFFSET $rand_int};
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
-        my $random_id = $sth->fetchrow_array;
-        $cgi->param('id', $random_id);
-    }
+    my $C = new Context;
+    my $dbh = $C->get_object('Database')->get_DBH();
+    my ($statement, $sth);
+    $statement = qq{SELECT count(*) FROM rights_current WHERE attr=1};
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $count = $sth->fetchrow_array;
+    my $rand_int = int(rand()*$count) + 1;
+    $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current WHERE attr=1 LIMIT 1 OFFSET $rand_int};
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $id = $sth->fetchrow_array || $g_default_debug_ids{1};
+
+    return $id;
 }
 
 
