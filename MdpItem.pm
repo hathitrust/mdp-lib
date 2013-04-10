@@ -1394,12 +1394,16 @@ sub ParseReadingOrder {
     $self->Set('readingOrder', 'left-to-right');
     $self->Set('scanningOrder', 'left-to-right');
     my $techMD = ($root->findnodes(q{//METS:mdWrap[@LABEL="reading order"]}))[0];
+    my $found_techMD = 0;
     if ( ref($techMD) ) {
         if ( $techMD->getAttribute('OTHERMDTYPE') eq 'Google' ) {
+            $found_techMD = 1;
             $self->Set('readingOrder', $techMD->findvalue('METS:xmlData/gbs:readingOrder'));
             $self->Set('scanningOrder', $techMD->findvalue('METS:xmlData/gbs:scanningOrder'));
         }        
-    } else {
+    }
+
+    if ( ! $found_techMD || $self->Get('readingOrder') eq 'unknown' ) {
         my $check = $root->findvalue(q{//METS:structMap[@TYPE='physical']/METS:div/METS:div[1]/@LABEL});
         if ( $check && $check =~ m,BACK_COVER, ) {
             # a terrible hack?
