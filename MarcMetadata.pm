@@ -186,8 +186,10 @@ sub __get_document_root {
 
     return $self->{_root} if ($self->{_root});
 
+    # Strip Solr markup and convert contained XML within XML to just XML
     $$marcxml_ref =~ s,&lt;,<,gos,;
     $$marcxml_ref =~ s,&gt;,>,gos,;
+    $$marcxml_ref =~ s,&amp;,&,gos,;
 
     # <doc><str name="fullrecord"><?xml version="1.0" encoding="UTF-8"?><collection xmlns="http://www.loc.gov/MARC21/slim">
     $$marcxml_ref =~ s,^.*?<collection[^>]*>(.*?)</collection>.*$,<collection>$1</collection>,s;
