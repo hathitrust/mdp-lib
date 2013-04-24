@@ -906,27 +906,27 @@ sub MetadataFailure {
 
 sub GetFullTitle {
     my $self = shift;
-    return $self->{_mmdo}->get_title();
+    return $self->{_mmdo}->get_title(@_);
 }
 
 sub GetAuthor {
     my $self = shift;
-    return $self->{_mmdo}->get_author();
+    return $self->{_mmdo}->get_author(@_);
 }
 
 sub GetPublisher {
     my $self = shift;
-    return $self->{_mmdo}->get_publisher();
+    return $self->{_mmdo}->get_publisher(@_);
 }
 
 sub GetVolumeData {
     my $self = shift;
-    return $self->{_mmdo}->get_enumcron();
+    return $self->{_mmdo}->get_enumcron(@_);
 }
 
 sub GetFormat {
     my $self = shift;
-    return $self->{_mmdo}->get_format();
+    return $self->{_mmdo}->get_format(@_);
 }
 
 # ---------------------------------------------------------------------
