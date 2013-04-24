@@ -49,7 +49,7 @@ use Identifier;
 use Search::Searcher;
 use Search::Result::SLIP_Raw;
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 
 sub new {
     my $class = shift;
