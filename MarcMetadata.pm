@@ -300,6 +300,7 @@ sub get_enumcron {
     return ($unescape ? __xml_unescape($self->{_enumcron}) : $self->{_enumcron}) if (defined $self->{_enumcron});
 
     my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my $enumcron;
     my ($node) = $root->findnodes(qq{//datafield[\@tag='974']});
@@ -330,6 +331,7 @@ sub get_title {
     return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
 
     my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my @tmp = ();
     my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
@@ -372,6 +374,7 @@ sub get_author {
     return ($unescape ? __xml_unescape($self->{_author}) : $self->{_author}) if (defined $self->{_author});
 
     my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my @values = ();
     foreach my $node ($root->findnodes(qq{//datafield[\@tag='100']})) {
@@ -436,6 +439,7 @@ sub get_publisher {
     return ($unescape ? __xml_unescape($self->{_publisher}) : $self->{_publisher}) if (defined $self->{_publisher});
 
     my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my ($node) = $root->findnodes(qq{//datafield[\@tag='260']});
     my @tmp = ();
@@ -538,6 +542,7 @@ sub get_format {
     return $self->{_format} if (defined $self->{_format});
 
     my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my ($leader) = $root->findnodes(qq{//leader});
 
