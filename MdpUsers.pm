@@ -85,7 +85,7 @@ my @staff_ranges =
    $hatcher_shapiro_bldg_range,
    $lit_offices_range,
   );
-my $staff_subnet_ranges =  = join('|', @staff_ranges);
+my $staff_subnet_ranges = join('|', @staff_ranges);
 
 my $ULIC_subnet_ranges = $ulic_range;
 
