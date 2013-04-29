@@ -35,9 +35,7 @@ symbolically represented by $RightsGlobals::NOOP_ATTRIBUTE;
 
 $final_accessstatus = $ar->assert_final_access_status($C, $id);
 
-where $final_accessstatus is a string from ('allow', 'deny',
-'unknown') the last value only being possible if an invalid id is
-passed in or the id is not in the database.
+where $final_accessstatus is a string from ('allow', 'deny')
 
 NOTE: THIS METHOD HAS THE SIDE-EFFECT OF CAPTURING THE ID EXCLUSIVELY
 FOR A GIVEN USER FOR OP and brittle/lost/missing (@OPB) ITEMS. To just
@@ -244,7 +242,7 @@ sub assert_final_access_status {
 
 # ---------------------------------------------------------------------
 
-=item get_access_type_determination
+=item PUBLIC: get_access_type_determination
 
 Description
 
@@ -258,7 +256,7 @@ sub get_access_type_determination {
 
 # ---------------------------------------------------------------------
 
-=item get_exclusivity
+=item PUBLIC: get_exclusivity
 
 Description
 
@@ -278,7 +276,7 @@ sub get_exclusivity {
 
 # ---------------------------------------------------------------------
 
-=item get_access_type
+=item PUBLIC: get_access_type
 
 Description
 
@@ -496,7 +494,7 @@ sub get_full_PDF_access_status {
 
 # ---------------------------------------------------------------------
 
-=item id_is_non_cacheable
+=item PUBLIC: id_is_non_cacheable
 
 Do not cache images of in-copyright or geo-restricted pd pages.
 
@@ -513,7 +511,7 @@ sub id_is_non_cacheable {
 
 # ---------------------------------------------------------------------
 
-=item CLASS PUBLIC: public_domain_world_creative_commons
+=item PUBLIC: public_domain_world_creative_commons
 
 Can you think of a better name?
 
@@ -534,7 +532,7 @@ sub public_domain_world_creative_commons {
 
 # ---------------------------------------------------------------------
 
-=item CLASS PUBLIC: in_copyright
+=item PUBLIC: in_copyright
 
 Description
 
@@ -702,10 +700,8 @@ sub _get_final_access_status_attr_list {
     my $access_type = _determine_access_type($C);
 
     foreach my $attr (keys %RightsGlobals::g_rights_matrix) {
-        my $initial_access_status =
-            _determine_initial_access_status($attr, $access_type);
-        my $final_access_status =
-            _Check_final_access_status($C, $initial_access_status);
+        my $initial_access_status = _determine_initial_access_status($attr, $access_type);
+        my $final_access_status = _Check_final_access_status($C, $initial_access_status);
 
         push(@attr_list, $attr)
             if ($final_access_status eq $final_access_status_req);
@@ -733,9 +729,6 @@ Description
 sub _determine_initial_access_status {
     my ($rights_attribute, $access_type) = @_;
 
-    return 'unknown'
-        if ($rights_attribute == $RightsGlobals::NOOP_ATTRIBUTE);
-
     if (! grep(/$rights_attribute/, @RightsGlobals::g_rights_attribute_values) ||
        (! grep(/$access_type/, @RightsGlobals::g_access_types))) {
         return 'deny';
@@ -762,9 +755,7 @@ sub ___final_access_status_check {
 
     ASSERT(($final_access_status eq 'allow')
            ||
-           ($final_access_status eq 'deny')
-           ||
-           ($final_access_status eq 'unknown'),
+           ($final_access_status eq 'deny'),
            qq{Invalid final access status value="$final_access_status"});
 
     DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="$ENV{REMOTE_USER}"</h4>});
@@ -804,22 +795,18 @@ sub _Assert_final_access_status {
     }
     elsif
       ($initial_access_status eq 'allow_by_held_BRLM') {
-        ($final_access_status, $granted, $owner, $expires) =
-          _resolve_access_by_held_BRLM($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) = _resolve_access_by_held_BRLM($C, $id, 1);
     }
     elsif
       ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
-        ($final_access_status, $granted, $owner, $expires) =
-          _resolve_access_by_held_and_agreement($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) = _resolve_access_by_held_and_agreement($C, $id, 1);
     }
     elsif
       ($initial_access_status eq 'allow_ssd_by_holdings') {
-        ($final_access_status, $granted, $owner, $expires) =
-          _resolve_ssd_access_by_held($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) = _resolve_ssd_access_by_held($C, $id, 1);
     }
     elsif ($initial_access_status eq 'allow_ssd_by_holdings_by_geo_ipaddr') {
-        ($final_access_status, $granted, $owner, $expires) =
-          _resolve_ssd_access_by_held_by_GeoIP($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) = _resolve_ssd_access_by_held_by_GeoIP($C, $id, 1);
     }
 
     ___final_access_status_check($final_access_status);
@@ -877,8 +864,7 @@ sub _Check_final_access_status {
     }
     elsif ($initial_access_status eq 'allow_by_held_BRLM') {
         if (defined($id)) {
-            ($final_access_status, $granted, $owner, $expires) =
-              _resolve_access_by_held_BRLM($C, $id, 0);
+            ($final_access_status, $granted, $owner, $expires) = _resolve_access_by_held_BRLM($C, $id, 0);
         }
         else {
             $final_access_status = 'allow';
@@ -887,8 +873,7 @@ sub _Check_final_access_status {
     elsif
       ($initial_access_status eq 'allow_orph_by_holdings_by_agreement') {
         if (defined($id)) {
-            ($final_access_status, $granted, $owner, $expires) =
-              _resolve_access_by_held_and_agreement($C, $id, 0);
+            ($final_access_status, $granted, $owner, $expires) = _resolve_access_by_held_and_agreement($C, $id, 0);
         }
         else {
             # downstream must filter on holdings if $final_access_status = 'allow'
@@ -898,7 +883,7 @@ sub _Check_final_access_status {
     elsif
       ($initial_access_status eq 'allow_ssd_by_holdings') {
         if (defined($id)) {
-            $final_access_status = _resolve_ssd_access_by_held($C, $id, 0);
+            ($final_access_status, $granted, $owner, $expires) = _resolve_ssd_access_by_held($C, $id, 0);
         }
         else {
             # downstream must filter on holdings
@@ -907,7 +892,7 @@ sub _Check_final_access_status {
     }
     elsif ($initial_access_status eq 'allow_ssd_by_holdings_by_geo_ipaddr') {
         if (defined($id)) {
-            $final_access_status = _resolve_ssd_access_by_held_by_GeoIP($C, $id, 0);
+            ($final_access_status, $granted, $owner, $expires) = _resolve_ssd_access_by_held_by_GeoIP($C, $id, 0);
         }
         else {
             # downstream must filter on holdings
