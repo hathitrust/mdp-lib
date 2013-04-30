@@ -485,6 +485,11 @@ sub get_full_PDF_access_status {
         $status = 'allow';
     }
 
+    # Apr 2103 ssdproxy can generate full PDF
+    if (Auth::ACL::a_Authorized( {role => 'ssdproxy'} )) {
+        $status = 'allow';
+    }
+
     # clear the error message if $status eq 'allow'
     $message = '' if ( $status eq 'allow' );
 

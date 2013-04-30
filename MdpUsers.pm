@@ -27,12 +27,12 @@ roles are subclasses of usertype:
  | external | quality      | total   | external engaged in the Qual project, locked to IP
  | staff    | digitization | total   | staff at DCU, locked to IP
  |----------+--------------+---------+
- | student  | ssd          | partial | UM SSD student list not locked to by IP range
- | external | ssdnfb       | partial | external NFB pilot locked to IP address
- | external | ssdproxy     | partial | external HathiTrust human proxy for SSD affiliate locked to IP address
+ | student  | ssd          | normal  | UM SSD student list not locked to by IP range
+ | external | ssdnfb       | normal  | external NFB pilot locked to IP address
+ | external | ssdproxy     | normal  | external HathiTrust human proxy for SSD affiliate locked to IP address
  +----------+--------------+---------+
 
-'partial' access excludes attr=8 (nobody) 
+'normal' access excludes attr=8 (nobody) 
 
 =head1 SYNOPSIS
 
