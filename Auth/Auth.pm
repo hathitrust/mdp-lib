@@ -114,19 +114,24 @@ sub __debug_auth {
     my $self = shift;
     my ($C, $ses) = @_;
 
-    DEBUG('auth',
-          q{AUTH: user=} . $self->get_user_name($C) . q{ display=} . $self->get_user_display_name($C)
-          . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+    my $auth_str =
+      q{AUTH: userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
+        . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
           . q{ authsys=} . __get_auth_sys($ses)
-          . q{ newlogin=} . $self->isa_new_login()
-          . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-          . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-          . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
-          . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
-          . q{ is_umich=} . $self->affiliation_is_umich($C)
-          . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-          . q{ entitlement=} . $ENV{entitlement}
-          . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C));
+            . q{ newlogin=} . $self->isa_new_login()
+              . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                  . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
+                    . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
+                      . q{ is_umich=} . $self->affiliation_is_umich($C)
+                        . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                          . q{ entitlement=} . $ENV{entitlement}
+                            . q{ print-disabled-proxy=} . $self->get_PrintDisabledProxyUserSignature($C)
+                              . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
+
+    DEBUG('auth', $auth_str);
+    print STDERR "Auth str: " . $auth_str . "\n";
+    print STDERR "REMOTE_USER: " . $ENV{REMOTE_USER} . "\n";
 }
 
 sub _initialize {
@@ -537,7 +542,7 @@ sub __get_prioritized_scoped_affiliation {
     my $self = shift;
 
     my @aff_prios = qw(member faculty staff student alum affiliate);
-    my @affs = split(/\s*;\s*/, $ENV{'affiliation'});
+    my @affs = split(/\s*;\s*/, $ENV{affiliation});
     @affs = map {lc($_)} @affs;
 
     my %aff_hash = map { ($_) =~ (m,(.*?)@.*$,) => $_ } @affs;
@@ -655,6 +660,44 @@ sub get_eduPersonPrincipalName {
 
     return $eduPersonPrincipalName;
 }
+
+# ---------------------------------------------------------------------
+
+=item get_PrintDisabledProxyUserSignature
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_PrintDisabledProxyUserSignature {
+    my $self = shift;
+
+    my $signature = '';
+    my $role =  Auth::ACL::a_GetUserAttributes('role');
+    if ($role eq 'ssdproxy') {
+        $signature = Auth::ACL::a_GetUserAttributes('userid') || 'undefined';
+    }
+    
+    return $signature;
+}
+
+# ---------------------------------------------------------------------
+
+=item user_is_print_disabled_proxy
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub user_is_print_disabled_proxy {
+    my $self = shift;
+
+    my $role =  Auth::ACL::a_GetUserAttributes('role');
+    return ($role eq 'ssdproxy');
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -892,16 +935,21 @@ sub get_user_display_name {
 
     if ($C->has_object('Session')) {
         if ($self->is_logged_in()) {
-            if ($self->auth_sys_is_COSIGN($C)) {
-                $user_display_name = $ENV{'REMOTE_USER'};
+            if ($self->user_is_print_disabled_proxy($C)) {
+                # We want value recorded in ht.ht_users not environment
+                # displayName or affiliation values
+                $user_display_name = Auth::ACL::a_GetUserAttributes('displayname');
+            }
+            elsif ($self->auth_sys_is_COSIGN($C)) {
+                $user_display_name = $ENV{REMOTE_USER};
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name =
-                    $self->__get_displayName($C)
-                      || ( $unscoped
-                           ? $self->get_eduPersonUnScopedAffiliation($C)
-                           : $self->get_eduPersonScopedAffiliation($C)
-                         );
+                  $self->__get_displayName($C)
+                    || ( $unscoped
+                         ? $self->get_eduPersonUnScopedAffiliation($C)
+                         : $self->get_eduPersonScopedAffiliation($C)
+                       );
             }
         }
         else {
@@ -932,7 +980,7 @@ sub get_user_name {
     my $user_id;
 
     if ($self->is_logged_in()) {
-        $user_id = $ENV{'REMOTE_USER'};
+        $user_id = $ENV{REMOTE_USER};
     }
     else {
         if ($C->has_object('Session')) {

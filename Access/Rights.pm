@@ -1054,8 +1054,8 @@ sub _determine_access_type {
         $access_type = $RightsGlobals::HT_ACL_USER;
     }
     elsif
-      (Auth::ACL::a_Authorized( {role => 'ssdnfb'} )) {
-        $access_type = $RightsGlobals::SSD_NFB_USER;
+      (Auth::ACL::a_Authorized( {role => 'ssdproxy'} )) {
+        $access_type = $RightsGlobals::SSD_PROXY_USER;
     }
     elsif
       ($auth->get_eduPersonEntitlement_print_disabled($C)) {

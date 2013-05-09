@@ -28,8 +28,7 @@ roles are subclasses of usertype:
  | staff    | digitization | total   | staff at DCU, locked to IP
  |----------+--------------+---------+
  | student  | ssd          | normal  | UM SSD student list not locked to by IP range
- | external | ssdnfb       | normal  | external NFB pilot locked to IP address
- | external | ssdproxy     | normal  | external HathiTrust human proxy for SSD affiliate locked to IP address
+ | external | ssdproxy     | normal  | external Human Proxy for print-disabled user locked to IP address
  +----------+--------------+---------+
 
 'normal' access excludes attr=8 (nobody) 
@@ -155,6 +154,7 @@ sub __load_access_control_list {
     foreach my $hashref (@$ref_to_arr_of_hashref) {
         my $userid = $hashref->{userid};
 
+        $gAccessControlList{$userid}{userid} = $hashref->{userid};
         $gAccessControlList{$userid}{displayname} = $hashref->{displayname};
         $gAccessControlList{$userid}{usertype} = $hashref->{usertype};
         $gAccessControlList{$userid}{role} = $hashref->{role};
