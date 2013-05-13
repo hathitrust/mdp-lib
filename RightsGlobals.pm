@@ -89,13 +89,13 @@ our $NOOP_ATTRIBUTE = 0;
 # 'in a library building'
 # 'UM authenticated'
 # ---------------------------------------------------------------------
-our $HT_ACL_USER         = 0;
-our $ORDINARY_USER       = 1;
-our $SSD_USER            = 2;
-our $SSD_PROXY_USER      = 3;
-our $LIBRARY_IPADDR_USER = 4;
-our $UM_AFFILIATE        = 5;
-our $HT_AFFILIATE        = 6;
+our $HT_ACL_USER         = 1;
+our $ORDINARY_USER       = 2;
+our $SSD_USER            = 3;
+our $SSD_PROXY_USER      = 4;
+our $LIBRARY_IPADDR_USER = 5;
+our $UM_AFFILIATE        = 6;
+our $HT_AFFILIATE        = 7;
 
 @g_access_types = ($HT_ACL_USER .. $HT_AFFILIATE);
 
