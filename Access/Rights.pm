@@ -734,10 +734,11 @@ Description
 sub _determine_initial_access_status {
     my ($rights_attribute, $access_type) = @_;
 
-    if (! grep(/$rights_attribute/, @RightsGlobals::g_rights_attribute_values) ||
-       (! grep(/$access_type/, @RightsGlobals::g_access_types))) {
-        return 'deny';
-    }
+    ASSERT( grep(/^$rights_attribute$/, @RightsGlobals::g_rights_attribute_values),
+           qq{Invalid rights attribute value="$rights_attribute"} );
+    ASSERT( grep(/^$access_type$/, @RightsGlobals::g_access_types),
+            qq{Invalid access type value="$access_type"} );
+
     my $initial_access_status =
         $RightsGlobals::g_rights_matrix{$rights_attribute}{$access_type};
 
@@ -782,7 +783,10 @@ sub _Assert_final_access_status {
     my ($final_access_status, $granted, $owner, $expires) =
         ($initial_access_status, 0, undef, '0000-00-00 00:00:00');
 
-    if
+    if ($initial_access_status eq 'deny') {
+        $final_access_status = 'deny';
+    }
+    elsif
       ($initial_access_status eq 'allow_by_us_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C, 'US');
     }
@@ -1187,10 +1191,10 @@ sub _resolve_access_by_GeoIP {
 
     my $correct_location = 0;
     if ($required_location eq 'US') {
-        $correct_location = (grep(/$country_code/, @RightsGlobals::g_pdus_country_codes));
+        $correct_location = (grep(/^$country_code$/, @RightsGlobals::g_pdus_country_codes));
     }
     elsif ($required_location eq 'NONUS') {
-        $correct_location = (! grep(/$country_code/, @RightsGlobals::g_pdus_country_codes));
+        $correct_location = (! grep(/^$country_code$/, @RightsGlobals::g_pdus_country_codes));
     }
     else {
         ASSERT(0, qq{Invalid required_location value="$required_location"});
