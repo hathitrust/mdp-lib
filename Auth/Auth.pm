@@ -130,8 +130,8 @@ sub __debug_auth {
                               . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
 
     DEBUG('auth', $auth_str);
-    print STDERR "Auth str: " . $auth_str . "\n";
-    print STDERR "REMOTE_USER: " . $ENV{REMOTE_USER} . "\n";
+    # print STDERR "Auth str: " . $auth_str . "\n";
+    # print STDERR "REMOTE_USER: " . $ENV{REMOTE_USER} . "\n";
 }
 
 sub _initialize {
