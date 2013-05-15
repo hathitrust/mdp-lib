@@ -20,19 +20,18 @@ roles are subclasses of usertype:
  | staff    | generalhathi | total   | staff locked to $staff_subnet_ranges
  | staff    | cataloging   | total   | staff locked to $staff_subnet_ranges
  | external | crms         | total   | external engaged in CRMS and CRMS World activities, locked to IP
- | staff    | crms         | total   | staff engaged in CRMS and CRMS World activities, locked to IP/$staff_subnet_ranges
+ | staff    | crms         | total   | staff engaged in CRMS and CRMS World activities, locked to IP or $staff_subnet_ranges
  | staff    | superuser    | total   | staff (developers) locked to $superuser_subnet_ranges
  | staff    | orphan       | total   | staff engaged in the Orphan Works project, locked to IP
  | staff    | quality      | total   | staff engaged in the Qual project, locked to $staff_subnet_ranges
  | external | quality      | total   | external engaged in the Qual project, locked to IP
  | staff    | digitization | total   | staff at DCU, locked to IP
  |----------+--------------+---------+
- | student  | ssd          | partial | UM SSD student list not locked to by IP range
- | external | ssdnfb       | partial | external NFB pilot locked to IP address
- | external | ssdproxy     | partial | external HathiTrust human proxy for SSD affiliate locked to IP address
+ | student  | ssd          | normal  | UM SSD student list not locked to by IP range
+ | external | ssdproxy     | normal  | external Human Proxy for print-disabled user locked to IP address
  +----------+--------------+---------+
 
-'partial' access excludes attr=8 (nobody) 
+'normal' access excludes attr=8 (nobody) 
 
 =head1 SYNOPSIS
 
@@ -56,28 +55,38 @@ use DbUtils;
 # 141.211.43.128/25   141.211.43.129  - 141.211.43.254  - LIT offices
 # 141.211.84.128/25   141.211.84.129  - 141.211.84.254  - Library VPN
 # 141.211.168.128/25  141.211.168.129 - 141.211.168.254 - Hatcher server room
-# 141.211.172.0/22    141.211.172.1   - 141.211.172.254 - Hatcher/Shapiro buildings
+# 141.211.172.0/22    141.211.172.1   - 141.211.175.254 - Hatcher/Shapiro buildings
 # 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center
-# 141.213.232.192/26  141.213.232.193 - 141.213.232.254 - MACC data center (this will  be retired sometime in 2012)
 #                     141.211.174.173 - 141.211.174.199 - ULIC Shapiro 4th floor
 #
-my $superuser_subnet_ranges =
-  q{^(141.211.43.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.84.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.168.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.(1(7[2-5])).([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.213.128.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141.213.232.(1(9[3-9])|2([0-4][0-9]|5[0-4])))$|^(141.211.174.(1(7[3-9]|[8-9][0-9])))$};
+my $lit_offices_range          = q{^(141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+my $library_vpn_range          = q{^(141\.211\.84\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+my $hatcher_server_room_range  = q{^(141\.211\.168\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+my $hatcher_shapiro_bldg_range = q{^(141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+my $macc_data_center_range     = q{^(141\.213\.128\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+my $ulic_range                 = q{^(141\.211\.174\.(1(7[3-9]|[8-9][0-9])))$};
 
-# Staff, students are restricted to internal subnets. Friend-accounts
-# are locked to an exact IP address that should be hardcoded for the
-# 'iprestrict' key.
-#
-# Mon Apr 23 10:58:29 2012: Updated subset to match superuser defns
-# above
-#
-my $staff_subnet_ranges =
-  q{^(141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-4])))$|^(141\.211\.43\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+# superusers
+my @superuser_ranges = 
+  (
+   $lit_offices_range,
+   $library_vpn_range,
+   $hatcher_server_room_range, 
+   $hatcher_shapiro_bldg_range,
+   $macc_data_center_range,
+   $ulic_range,
+  );
+my $superuser_subnet_ranges = join('|', @superuser_ranges);
 
-# ULIC 141.211.174.173 - 141.211.174.199
-#
-my $ULIC_subnet_ranges =
-  q{^141\.211\.174\.(1(7[3-9]|[8-9][0-9]))$};
+# Staff
+my @staff_ranges = 
+  (
+   $hatcher_shapiro_bldg_range,
+   $lit_offices_range,
+  );
+my $staff_subnet_ranges = join('|', @staff_ranges);
+
+my $ULIC_subnet_ranges = $ulic_range;
 
 # black hole
 my $null_range = '^0\.0\.0\.0$';
@@ -145,6 +154,7 @@ sub __load_access_control_list {
     foreach my $hashref (@$ref_to_arr_of_hashref) {
         my $userid = $hashref->{userid};
 
+        $gAccessControlList{$userid}{userid} = $hashref->{userid};
         $gAccessControlList{$userid}{displayname} = $hashref->{displayname};
         $gAccessControlList{$userid}{usertype} = $hashref->{usertype};
         $gAccessControlList{$userid}{role} = $hashref->{role};

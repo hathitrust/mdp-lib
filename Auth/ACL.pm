@@ -7,9 +7,9 @@ Auth::ACL
 =head1 DESCRIPTION
 
 This package encapsulates access to the Access control list in
-MdpUsers.pm. It says whether an authenticated user has special
-authorization to use the 'debug' and 'attr' URL parameters among
-others.
+MdpUsers.pm. It says whether a user has special authorization to
+access in-copyright materials, use debugging functions, download as a
+proxy for print-disabled users, etc.
 
 =head1 VERSION
 

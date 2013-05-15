@@ -20,16 +20,17 @@ legacy code from Tim Prettyman which may be useful for normalizing
 dates from MARCXML or determining the format book v. serial v. ... of
 an item.  [git checkout ...]
 
-=head1 SYNOPSIS
+It provides for delivering the XML that will be valid in both XSLT and
+plain-text (e.g. PDF creation) contexts.  =head1 SYNOPSIS
 
 my $mmdo = new MarcMetadata($C, $id);
 
-my $marcxml_ref = $mmdo->get_metadata();
+my $marcxml_ref = $mmdo->get_metadata;
 
-my $title = $mmdo->get_title();
-my $author = $mmdo->get_author();
-my $publisher = $mmdo->get_publisher();
-my $vol = $mmdo->get_enumcron();
+my $title = $mmdo->get_title;
+my $author = $mmdo->get_author;
+my $publisher = $mmdo->get_publisher;
+my $vol = $mmdo->get_enumcron;
 
 
 =head1 METHODS
@@ -75,58 +76,29 @@ sub __initialize {
 
     $self->{_id} = $id;
 
-    my $root;
-    my $marcxml_ref;
-
     if ($self->{_initialized}) {
         # restore root if object is being restored from cache (implied
         # by having already been initialized)
-        $marcxml_ref = $self->{_marcxmlref};
-        $root = $self->__get_document_root($marcxml_ref);
+        $self->{_root} = $self->__get_document_root;
     }
     else {
-        $marcxml_ref = $self->__get_solr_result($C, $id);
+        my $marcxml_ref = $self->__get_solr_result($C, $id);
         if ($marcxml_ref && $$marcxml_ref) {
             $$marcxml_ref = Encode::decode_utf8($$marcxml_ref);
 
-            $root = $self->__get_document_root($marcxml_ref);
+            my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
-                my $marcxml = $root->serialize();
-                $marcxml_ref = \$marcxml;
+                $self->{_root} = $root;
+                my $marcxml = $root->serialize;
+                $self->{_marcxmlref} = \$marcxml;
                 $self->{_initialized} = 1;
+            }
+            else {
+                $self->{_metadatafailure} = 1;
             }
         }
     }
-    
-    if ($self->{_initialized}) {
-        $self->{_root} = $root;
-        $self->{_marcxmlref} = $marcxml_ref;
-    }
-    else {
-        $self->{_metadatafailure} = 1;
-    }
 }
-
-# ---------------------------------------------------------------------
-
-=item __get_d_root
-
-Public method called after a restore from cache must restore the
-document root so the (cached) xpaths will work.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_d_root {
-    my $self = shift;
-
-    unless ($self->{_root}) {
-        $self->__get_document_root($self->{_marcxmlref});
-    }
-    return $self->{_root};
-}
-
-
 
 # ---------------------------------------------------------------------
 
@@ -145,7 +117,7 @@ sub __get_solr_result {
     
     my $engine_uri = $C->get_object('MdpConfig')->get('engine_for_vSolr');
     my $searcher = new Search::Searcher($engine_uri);
-    my $rs = new Search::Result::SLIP_Raw();
+    my $rs = new Search::Result::SLIP_Raw;
 
     my $safe_id = Identifier::get_safe_Solr_id($id);
     my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord};
@@ -180,23 +152,34 @@ sub __get_solr_result {
 # ---------------------------------------------------------------------
 sub __get_document_root {
     my $self = shift;
-    my $marcxml_ref = shift || $self->{_marcxmlref};
+    my $marcxml_ref = shift;
 
     return undef if ($self->{_metadatafailure});
-
+    
     return $self->{_root} if ($self->{_root});
 
-    $$marcxml_ref =~ s,&lt;,<,gos,;
-    $$marcxml_ref =~ s,&gt;,>,gos,;
+    if (defined $marcxml_ref) {
+        # Process and cache the so-far-untouched MARCXML. Strip Solr
+        # markup and convert the contained XML within XML to just XML
+        # in a form that will pass the XSLT parser downstream.
+        $$marcxml_ref =~ s,&lt;,<,gos,;
+        $$marcxml_ref =~ s,&gt;,>,gos,;
 
-    # <doc><str name="fullrecord"><?xml version="1.0" encoding="UTF-8"?><collection xmlns="http://www.loc.gov/MARC21/slim">
-    $$marcxml_ref =~ s,^.*?<collection[^>]*>(.*?)</collection>.*$,<collection>$1</collection>,s;
+        # <doc>
+        #   <str name="fullrecord">
+        #     <?xml version="1.0" encoding="UTF-8"?>
+        #     <collection xmlns="http://www.loc.gov/MARC21/slim"> ...
+        $$marcxml_ref =~ s,^.*?<collection[^>]*>(.*?)</collection>.*$,<collection>$1</collection>,s;
+    }
+    else {
+        $marcxml_ref = $self->{_marcxmlref};
+    }
 
     my $root;
-    my $parser = XML::LibXML->new();
+    my $parser = XML::LibXML->new;
     eval {
         my $tree = $parser->parse_string($$marcxml_ref);
-        $root = $tree->getDocumentElement();
+        $root = $tree->getDocumentElement;
     };
     if ($@) {
         return undef;
@@ -228,7 +211,7 @@ sub __get_document_root {
 
     print STDERR "__get_document_root (refresh)" if ($DEBUG);
     
-    return $self->{_root} = $root;
+    return $root;
 }
 
 
@@ -279,22 +262,24 @@ sub restore_document_root {
 
 =item get_marcxml
 
-Description
+PUBLIC
 
 =cut
 
 # ---------------------------------------------------------------------
 sub get_metadata {
     my $self = shift;
+    my $unescape = shift;
+
     return undef if ($self->{_metadatafailure});
-    return $self->{_marcxmlref};
+    return ($unescape ? __xml_unescape($self->{_marcxmlref}) : $self->{_marcxmlref});
 }
 
 # ---------------------------------------------------------------------
 
 =item get_enumcron
 
-Description
+PUBLIC
 
  <datafield id="MDP" i1=" " i2=" ">
     <subfield label="u">mdp.39015055275872</subfield> (always unless serious error)
@@ -309,19 +294,23 @@ Description
 # ---------------------------------------------------------------------
 sub get_enumcron {
     my $self = shift;
+    my $unescape = shift;
 
     return '' if ($self->{_metadatafailure});
-    return $self->{_enumcron} if (defined $self->{_enumcron});
+    return ($unescape ? __xml_unescape($self->{_enumcron}) : $self->{_enumcron}) if (defined $self->{_enumcron});
 
-    my $root = $self->__get_d_root();
+    my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my $enumcron;
     my ($node) = $root->findnodes(qq{//datafield[\@tag='974']});
     if ($node) {
-        ($enumcron) = $node->findvalue(qq{subfield[\@code='z']});
+        my ($subfield_z) = $node->findnodes(qq{subfield[\@code='z']});
+        ($enumcron) = $subfield_z->textContent if ($subfield_z);
     }
+    $self->{_enumcron} = $enumcron;
 
-    return $self->{_enumcron} = $enumcron;
+    return ($unescape ? __xml_unescape($self->{_enumcron}) : $self->{_enumcron});
 }
 
 
@@ -329,24 +318,27 @@ sub get_enumcron {
 
 =item get_title
 
-Description
+PUBLIC
 
 =cut
 
 # ---------------------------------------------------------------------
 sub get_title {
     my $self = shift;
+    my $unescape = shift;
 
     return '' if ($self->{_metadatafailure});
-    return $self->{_title} if (defined $self->{_title});
+    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
 
-    my $root = $self->__get_d_root();
+    my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my @tmp = ();
     my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
     if ($node) {
         foreach my $code (qw(a b c)) {
-            my ($value) = $node->findvalue(qq{subfield[\@code='$code']});
+            my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
+            my ($value) = $subfield->textContent if ($subfield);
             if ($value) {
                 push @tmp, $value;
             }
@@ -360,26 +352,29 @@ sub get_title {
     if ($enumcron) {
         $title .= " " . $enumcron;
     }
+    $self->{_title} = $title;
 
-    return $self->{_title} = $title;
+    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
 }
 
 # ---------------------------------------------------------------------
 
 =item get_author
 
-Description
+PUBLIC
 
 =cut
 
 # ---------------------------------------------------------------------
 sub get_author {
     my $self = shift;
+    my $unescape = shift;
 
     return '' if ($self->{_metadatafailure});
-    return $self->{_author} if (defined $self->{_author});
+    return ($unescape ? __xml_unescape($self->{_author}) : $self->{_author}) if (defined $self->{_author});
 
-    my $root = $self->__get_d_root();
+    my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my @values = ();
     foreach my $node ($root->findnodes(qq{//datafield[\@tag='100']})) {
@@ -391,7 +386,8 @@ sub get_author {
         # d - dates associated with name
         my @tmp = ();
         foreach my $code (qw(a b c e q d)) {
-            my ($value) = $node->findvalue("subfield[\@code='$code']");
+            my ($subfield) = $node->findnodes("subfield[\@code='$code']");
+            my ($value) = $subfield->textContent if ($subfield);
             if ($value) {
                 push @tmp, $value;
             }
@@ -400,12 +396,14 @@ sub get_author {
     }
 
     foreach my $node ($root->findnodes(qq{//datafield[\@tag='110']})) {
-        my ($value) = $node->findvalue("subfield[\@code='a']");      # corporate name
+        my ($subfield) = $node->findnodes("subfield[\@code='a']");      # corporate name
+        my ($value) = $subfield->textContent if ($subfield);
         if ($value) {
             push @values, $value;
         }
         if ($node->exists("subfield[\@code='b']")) {                 # subordinate unit
-            ($value) = $node->findvalue("subfield[\@code='c']");     # location of meeting?
+            my ($subfield) = $node->findnodes("subfield[\@code='c']");     # location of meeting?
+            my ($value) = $subfield->textContent if ($subfield);
             if ($value) {
                 push @values, $value;
             }
@@ -413,37 +411,42 @@ sub get_author {
     }
 
     foreach my $node ($root->findnodes(qq{/datafield[\@tag='111']})) {
-        my ($value) = $node->findvalue("subfield[\@code='a']");      # meeting name
+        my ($subfield) = $node->findnodes("subfield[\@code='a']");      # meeting name
+        my ($value) = $subfield->textContent if ($subfield);      # meeting name
         if ($value) {
             push @values, $value;
         }
     }
+    $self->{_author} = join('; ', @values);
 
-    return $self->{_author} = join('; ', @values);
+    return ($unescape ? __xml_unescape($self->{_author}) : $self->{_author});
 }
 
 # ---------------------------------------------------------------------
 
 =item get_publisher
 
-Description
+PUBLIC
 
 =cut
 
 # ---------------------------------------------------------------------
 sub get_publisher {
     my $self = shift;
+    my $unescape = shift;
 
     return '' if ($self->{_metadatafailure});
-    return $self->{_publisher} if (defined $self->{_publisher});
+    return ($unescape ? __xml_unescape($self->{_publisher}) : $self->{_publisher}) if (defined $self->{_publisher});
 
-    my $root = $self->__get_d_root();
+    my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my ($node) = $root->findnodes(qq{//datafield[\@tag='260']});
     my @tmp = ();
     if ($node) {
         foreach my $code (qw(a b c d)) {
-            my ($value) = $node->findvalue("subfield[\@code='$code']");
+            my ($subfield) = $node->findnodes("subfield[\@code='$code']");
+            my ($value) = $subfield->textContent if ($subfield);
             if ($value) {
                 push @tmp, $value;
             }
@@ -452,8 +455,33 @@ sub get_publisher {
 
     my $publisher = join(' ', @tmp);
     $publisher =~ s,\s+, ,gsm;
+    $self->{_publisher} = $publisher;
 
-    return $self->{_publisher} = $publisher;
+    return ($unescape ? __xml_unescape($self->{_publisher}) : $self->{_publisher});
+}
+
+# ---------------------------------------------------------------------
+
+=item __xml_unescape
+
+Conditionally unescape &, <, > on already processed content for use in
+non-XML-parsed data contexts. 
+
+Leaves input unchanged.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __xml_unescape {
+    my $ref = shift;
+    
+    my $return_data = ref($ref) ? $$ref : $ref;
+    
+    $return_data =~ s,&lt;,<,gos,;
+    $return_data =~ s,&gt;,>,gos,;
+    $return_data =~ s,&amp;,&,gos,;
+
+    return ref($ref) ? \$return_data : $return_data;
 }
 
 # ---------------------------------------------------------------------
@@ -497,6 +525,10 @@ sub __get_bib_fmt {
 
 =item get_format
 
+PUBLIC 
+
+Does not require unescaping for any given context.
+
 Parse <leader>00000nam a22002531 4500</leader> bytes and call
 __get_bib_fmt.  Below rec_type is byte6, bib_level is byte7 (0-offset)
 
@@ -509,11 +541,12 @@ sub get_format {
     return '' if ($self->{_metadatafailure});    
     return $self->{_format} if (defined $self->{_format});
 
-    my $root = $self->__get_document_root();
+    my $root = $self->__get_document_root;
+    return '' unless($root);
 
     my ($leader) = $root->findnodes(qq{//leader});
 
-    my $LDR = $leader->textContent;
+    my $LDR = $leader->textContent if ($leader);
     my $rec_type = substr($LDR, 6, 1);
     my $bib_level = substr($LDR, 7, 1);
 
