@@ -1186,25 +1186,6 @@ sub ParseStructMap {
         handle_feature_record($pgftr, $order, $namespace, $featureRecordRef);
     }
 
-    ### APPROACH 1: post-process for RTL; requires changing a lot of pointers
-    # my @seq = sort { $a <=> $b } keys %{$$pageInfoHashRef{sequence}};
-    # my @reversed_seq = reverse @seq;
-    # my $i = 0;
-    # my $reversed_sequence = {}; my $reversed_seq2pn = {};
-    # while ( $i < scalar @seq ) {
-    #     $$reversed_sequence{$reversed_seq[$i]} = $$pageInfoHashRef{sequence}{$seq[$i]};
-    #     $$reversed_seq2pn{$reversed_seq[$i]} = $$seq2PageNumberHashRef{$seq[$i]};
-    #     $i += 1;
-    # }
-
-    # $i = 0;
-    # while ( $i < scalar @seq ) {
-    #     $$seq2PageNumberHashRef{$seq[$i]} = $$reversed_seq2pn{$seq[$i]};
-    #     $i += 1;
-    # }
-
-    # $$pageInfoHashRef{sequence} = $reversed_sequence;
-
     $self->SetHasPageNumbers($hasPNs);
     $self->SetHasPageFeatures($hasPFs);
 
@@ -1404,13 +1385,32 @@ sub ParseReadingOrder {
     }
 
     if ( ! $found_techMD || $self->Get('readingOrder') eq 'unknown' ) {
-        my $check = $root->findvalue(q{//METS:structMap[@TYPE='physical']/METS:div/METS:div[1]/@LABEL});
+        my $structMap = ($root->findnodes(q{//METS:structMap[@TYPE='physical']/METS:div}))[0];
+        my $check = $structMap->findvalue(q{METS:div[1]/@LABEL});
         if ( $check && $check =~ m,BACK_COVER, ) {
-            # a terrible hack?
-            $self->Set('readingOrder', 'right-to-left');
-            $self->Set('scanningOrder', 'left-to-right');
+            # a terrible hack? correction heuristic in case the title/toc would be
+            # located at the "back" of the book if the div's were reversed
+            my $total = $structMap->findvalue(q{count(METS:div)});
+            my $r = 1;
+            my @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TITLE')]});
+            unless ( scalar @features ) {
+                @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TABLE_OF_CONTENTS')]});
+            }
+            if ( scalar @features ) {
+                my $seq = $features[0]->getAttribute('ORDER');
+                $r = ( $seq / $total );
+            }
+
+            if ( $r >= 0.75 ) {
+                # title/toc is located at the "back" of the div's, meaning the front
+                # when we reverse this for right-to-left
+                $self->Set('readingOrder', 'right-to-left');
+                $self->Set('scanningOrder', 'left-to-right');
+            }
+
         }
     }
+
     
 }
 
