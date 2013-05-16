@@ -855,7 +855,10 @@ sub _Check_final_access_status {
     my ($final_access_status, $granted, $owner, $expires) =
         ($initial_access_status, 0, undef, '0000-00-00 00:00:00');
 
-    if
+    if ($initial_access_status eq 'deny') {
+        $final_access_status = 'deny';
+    }
+    elsif
       ($initial_access_status eq 'allow_by_us_geo_ipaddr') {
         $final_access_status = _resolve_access_by_GeoIP($C, 'US');
     }
