@@ -1364,6 +1364,10 @@ sub _resolve_access_by_held_BRLM {
 As of Tue Nov 29 13:17:04 2011, access is limited to one simultaneous
 ssd user where institution holds the item and user is on US soil
 
+As of Thu May 16 14:35:13 2013, ssd users and their proxies are not
+limited by *number* of print copies held but items must still be
+held. Consequently, it is no longer necessary to assert ownership.
+
 =cut
 
 # ---------------------------------------------------------------------
@@ -1379,11 +1383,16 @@ sub _resolve_ssd_access_by_held {
         $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         $held = Access::Holdings::id_is_held($C, $id, $inst);
         if ($held) {
-            if ($assert_ownership) {
-                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
-            }
-            else {
-                ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+            # new
+            $status = 'allow';
+            # obsolete
+            if (0) {
+                if ($assert_ownership) {
+                    ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+                }
+                else {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+                }
             }
         }
     }
@@ -1404,6 +1413,10 @@ As of Wed Jun 20 12:30:04 2012, access is limited to one simultaneous
 ssd user where institution holds the item and user is on US soil or
 simply allowed if user is at a non-US IP address
 
+As of Thu May 16 14:35:13 2013, ssd users and their proxies are not
+limited by *number* of print copies held but items must still be
+held. Consequently, it is no longer necessary to assert ownership.
+
 =cut
 
 # ---------------------------------------------------------------------
@@ -1419,11 +1432,16 @@ sub _resolve_ssd_access_by_held_by_GeoIP {
         $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         $held = Access::Holdings::id_is_held($C, $id, $inst);
         if ($held) {
-            if ($assert_ownership) {
-                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
-            }
-            else {
-                ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+            # new
+            $status = 'allow';
+            # obsolete
+            if (0) {
+                if ($assert_ownership) {
+                    ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+                }
+                else {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+                }
             }
         }
     }
