@@ -73,12 +73,7 @@ package RightsGlobals;
 
 =cut
 
-# Return codes from Database access
-our $OK_ID          = 0;
-our $BAD_ID         = 1;
-our $NO_ATTRIBUTE   = 2;
-our $NO_SOURCE      = 4;
-
+# Bad rights_current.{attr,source} value
 our $NOOP_ATTRIBUTE = 0;
 
 # ---------------------------------------------------------------------

@@ -76,6 +76,9 @@ use RightsGlobals;
 use Access::Holdings;
 use Access::Orphans;
 
+my $OK_ID  = 0;
+my $BAD_ID = 1;
+
 sub new {
     my $class = shift;
     my $self = {};
@@ -116,18 +119,7 @@ sub get_rights_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-
-    if (defined($self->{rights_attribute})) {
-        return $self->{rights_attribute}
-    }
-
-    # Access rights database
-    my ($rights_attribute, $rc) = _determine_rights_attribute($C, $id);
-
-    $rights_attribute = $RightsGlobals::NOOP_ATTRIBUTE
-        if ($rc != $RightsGlobals::OK_ID);
-
-    $self->{rights_attribute} = $rights_attribute;
+    my ($rights_attribute, $source_attribute) = $self->_determine_rights_values($C, $id);
 
     return $rights_attribute;
 }
@@ -147,17 +139,7 @@ sub get_source_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-
-    return $self->{source_attribute}
-        if (defined($self->{source_attribute}));
-
-    # Access rights database
-    my ($source_attribute, $rc) = _determine_source_attribute($C, $id);
-
-    $source_attribute = $RightsGlobals::NOOP_ATTRIBUTE
-        if ($rc != $RightsGlobals::OK_ID);
-
-    $self->{source_attribute} = $source_attribute;
+    my ($rights_attribute, $source_attribute) = $self->_determine_rights_values($C, $id);
 
     return $source_attribute;
 }
@@ -680,6 +662,95 @@ sub _validate_id {
            qq{Id="$id: not valid for this instance of Access::Rights object});
 }
 
+# ---------------------------------------------------------------------
+
+=item CLASS PRIVATE: __read_rights_database
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __read_rights_database {
+    my ($C, $id) = @_;
+
+    my $dbh = $C->get_object('Database')->get_DBH($C);
+
+    my $stripped_id = Identifier::get_id_wo_namespace($id);
+    my $namespace = Identifier::the_namespace($id);
+
+    my $row_hashref;
+    my $statement = qq{SELECT id, attr, source FROM rights_current WHERE id=? AND namespace=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
+
+    $row_hashref = $sth->fetchrow_hashref();
+    $sth->finish;
+
+    my $attr = $$row_hashref{attr};
+    my $source = $$row_hashref{source};
+    my $db_id = $$row_hashref{id};
+
+    my $rc = defined($db_id) ? $OK_ID : $BAD_ID;
+    unless ($rc == $OK_ID) {
+        $attr = $RightsGlobals::NOOP_ATTRIBUTE;
+        $source = $RightsGlobals::NOOP_ATTRIBUTE;
+    }
+
+    return ($attr, $source, $rc);
+}
+
+
+# ---------------------------------------------------------------------
+
+=item PRIVATE: _determine_rights_values
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _determine_rights_values {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    my $rc = $OK_ID;
+
+    my $attr = $self->{rights_attribute};
+    my $source = $self->{source_attribute};
+
+    if (defined(attr) && defined($source)) {
+        return ($attr, $source, $rc);
+    }
+
+    # local.conf over-ride only in development. Note HT_DEV is useless
+    # here because it is set on the beta-* hosts which could possibly
+    # be exposed to the outside world.
+    if (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+        my $conf = $C->get_object('MdpConfig', $config);
+        if ($conf->has('debug_attr_source')) {
+            ($attr, $source) = $conf->get('debug_attr_source');
+        }
+    }
+
+    # unless defined and attr > 0 and source > 0, skip and read database
+    my $local_conf = 0;
+    if ($attr && $source) {
+        $local_conf = 1;
+    }
+    else {
+        ($attr, $source, $rc) = __read_rights_database($C, $id);
+    }
+
+    if ($rc == $OK_ID) {
+        $self->{rights_attribute} = $attr;
+        $self->{source_attribute} = $source;
+    }
+
+    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$attr} local.conf=$local_conf</h4>});
+
+    return ($attr, $source);
+}
+
 # ----------------------------------------------------------------------
 #
 #                        Private Class Methods
@@ -734,10 +805,11 @@ Description
 sub _determine_initial_access_status {
     my ($rights_attribute, $access_type) = @_;
 
-    ASSERT( grep(/^$rights_attribute$/, @RightsGlobals::g_rights_attribute_values),
-           qq{Invalid rights attribute value="$rights_attribute"} );
-    ASSERT( grep(/^$access_type$/, @RightsGlobals::g_access_types),
-            qq{Invalid access type value="$access_type"} );
+    my $valid_rights_attribute = grep(/^$rights_attribute$/, @RightsGlobals::g_rights_attribute_values);
+    ASSERT( $valid_rights_attribute, qq{Invalid rights attribute value="$rights_attribute"} );
+
+    my $valid_access_type = grep(/^$access_type$/, @RightsGlobals::g_access_types);
+    ASSERT( $valid_access_type, qq{Invalid access type value="$access_type"} );
 
     my $initial_access_status =
         $RightsGlobals::g_rights_matrix{$rights_attribute}{$access_type};
@@ -916,117 +988,6 @@ sub _Check_final_access_status {
 
     return $final_access_status;
 
-}
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _determine_rights_attribute
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _determine_rights_attribute {
-    my ($C, $id) = @_;
-
-    my ($attr, $rc) = _get_rights_attribute($C, $id);
-
-    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr}</h4>});
-    return ($attr, $rc);
-}
-
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _determine_source_attribute
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _determine_source_attribute {
-    my ($C, $id) = @_;
-
-    my ($source, $rc) = _get_source_attribute($C, $id);
-
-    DEBUG('db,auth,all', qq{<h4>id="$id", source="$source" desc="$RightsGlobals::g_source_names{$source}"</h4>});
-    return ($source, $rc);
-}
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _get_rights_attribute
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _get_rights_attribute {
-    my ($C, $id) = @_;
-
-    my $db = $C->get_object('Database');
-    my $dbh = $db->get_DBH($C);
-
-    my $stripped_id = Identifier::get_id_wo_namespace($id);
-    my $namespace = Identifier::the_namespace($id);
-
-    my $row_hashref;
-    my $statement =
-        qq{SELECT id, attr FROM rights_current WHERE id=? AND namespace=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
-
-    $row_hashref = $sth->fetchrow_hashref();
-    $sth->finish;
-
-    my $attr = $$row_hashref{attr};
-    my $db_id = $$row_hashref{id};
-
-    my $rc = $RightsGlobals::OK_ID;
-
-    $rc |= $RightsGlobals::BAD_ID         if (! $db_id);
-    $rc |= $RightsGlobals::NO_ATTRIBUTE   if (! $attr);
-
-    return ($attr, $rc);
-}
-
-# ---------------------------------------------------------------------
-
-=item CLASS PRIVATE: _get_source_attribute
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub _get_source_attribute {
-    my ($C, $id) = @_;
-
-    my $db = $C->get_object('Database');
-    my $dbh = $db->get_DBH($C);
-
-    # NAMESPACE: Rights database lacks namespaces.
-    my $stripped_id = Identifier::get_id_wo_namespace($id);
-    my $namespace = Identifier::the_namespace($id);
-
-    my $row_hashref;
-    my $statement = qq{SELECT id, source FROM rights_current WHERE id=? AND namespace=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
-
-    $row_hashref = $sth->fetchrow_hashref();
-    $sth->finish;
-
-    my $source = $$row_hashref{source};
-    my $db_id = $$row_hashref{id};
-
-    my $rc = $RightsGlobals::OK_ID;
-
-    $rc |= $RightsGlobals::BAD_ID     if (! $db_id);
-    $rc |= $RightsGlobals::NO_SOURCE  if (! $source);
-
-    return ($source, $rc);
 }
 
 
@@ -1487,7 +1448,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-11 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-13 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
