@@ -348,10 +348,6 @@ sub get_title {
     my $title = join(' ', @tmp);
     $title =~ s,\s+, ,gsm;
 
-    my $enumcron = $self->get_enumcron();
-    if ($enumcron) {
-        $title .= " " . $enumcron;
-    }
     $self->{_title} = $title;
 
     return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});

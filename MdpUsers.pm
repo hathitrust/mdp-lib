@@ -94,6 +94,7 @@ my $null_range = '^0\.0\.0\.0$';
 # wide open (SSD)
 my $unrestricted_range = '.*';
 
+my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 my $GLOBAL_EXPIRE_DATE = '2013-12-31 23:59:59';
 
 # staff:{other} access expires on date:
@@ -160,16 +161,17 @@ sub __load_access_control_list {
         $gAccessControlList{$userid}{role} = $hashref->{role};
         $gAccessControlList{$userid}{access} = $hashref->{access};
 
-        my $expires = $hashref->{expires};
+        # Stored IP range and expiration date are used, if defined,
+        # else we use one of the above hardcoded ranges depending on
+        # usertype and role.
         my $iprestrict = $hashref->{iprestrict};
-
-        # Stored IP range and expiration date are in control, if
-        # defined, else we use one of the above hardcoded ranges
-        # depending on usertype and role.
-        if (defined($iprestrict)) {
+        if (defined $iprestrict) {
             $gAccessControlList{$userid}{iprestrict} = $iprestrict;
         }
-        if (defined($expires)) {
+
+        my $expires = $hashref->{expires};
+        $expires = ( ($expires eq $ZERO_TIMESTAMP) ? undef : $expires );
+        if (defined $expires) {
             $gAccessControlList{$userid}{expires} = $expires;
         }
 

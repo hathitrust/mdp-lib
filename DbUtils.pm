@@ -34,6 +34,7 @@ BEGIN
 
 use DBI;
 use Utils;
+use constant DATABASE_RETRY_SLEEP => 300; # 5 minutes
 
 
 # ---------------------------------------------------------------------
@@ -49,8 +50,15 @@ sub prep_n_execute
 {
     my ($dbh, $statement, @params) = @_;
 
-    # Ensure connection for long running jobs
-    $dbh->ping();
+    # Ensure connection for long running jobs and for apps that have
+    # to work across database maintenance intervals
+    my $db_ok = $dbh->ping();
+    if ($ENV{DATABASE_LONG_RETRY}) {
+        unless($db_ok) {
+            sleep DATABASE_RETRY_SLEEP;
+            $dbh->ping();
+        }
+    }
     
     @params = () if (! defined $params[0]);
 

@@ -73,12 +73,7 @@ package RightsGlobals;
 
 =cut
 
-# Return codes from Database access
-our $OK_ID          = 0;
-our $BAD_ID         = 1;
-our $NO_ATTRIBUTE   = 2;
-our $NO_SOURCE      = 4;
-
+# Bad rights_current.{attr,source} value
 our $NOOP_ATTRIBUTE = 0;
 
 # ---------------------------------------------------------------------
@@ -203,7 +198,7 @@ our $HT_AFFILIATE        = 7;
            $HT_ACL_USER           => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow',
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -216,8 +211,8 @@ our $HT_AFFILIATE        = 7;
    '3' => {
            $HT_ACL_USER           => 'allow',
            $ORDINARY_USER         => 'deny',
-           $SSD_USER              => 'allow_ssd_by_holdings', # US + exclusivity implied
-           $SSD_PROXY_USER        => 'allow',
+           $SSD_USER              => 'allow_ssd_by_holdings', # US implied
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
            $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
            $UM_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
            $HT_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
@@ -227,7 +222,7 @@ our $HT_AFFILIATE        = 7;
            $HT_ACL_USER           => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow',
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
            $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
            $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
            $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
@@ -237,7 +232,7 @@ our $HT_AFFILIATE        = 7;
            $HT_ACL_USER           => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow',
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -280,7 +275,7 @@ our $HT_AFFILIATE        = 7;
            $HT_ACL_USER           => 'allow',
            $ORDINARY_USER         => 'allow_by_us_geo_ipaddr', # US IP only
            $SSD_USER              => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
-           $SSD_PROXY_USER        => 'allow',
+           $SSD_PROXY_USER        => 'allow_us_aff_by_ipaddr',
            $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
            $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
@@ -291,7 +286,7 @@ our $HT_AFFILIATE        = 7;
             $HT_ACL_USER           => 'allow',
             $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
-            $SSD_PROXY_USER        => 'allow',
+            $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
             $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
             $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
@@ -361,7 +356,7 @@ our $HT_AFFILIATE        = 7;
             $HT_ACL_USER           => 'allow',
             $ORDINARY_USER         => 'deny',
             $SSD_USER              => 'allow_ssd_by_holdings',
-            $SSD_PROXY_USER        => 'allow',
+            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
             $LIBRARY_IPADDR_USER   => 'deny',
             $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',

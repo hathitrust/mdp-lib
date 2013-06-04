@@ -213,6 +213,26 @@ sub handle_INSTITUTION_NAME_PI
     return $institution_name;
 }
 
+# ---------------------------------------------------------------------
+
+=item handle_INSTITUTION_CODE_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_INSTITUTION_CODE_PI
+    : PI_handler(INSTITUTION_CODE)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $institution_code = $auth->get_institution_code($C, 'mapped');
+
+    return $institution_code;
+}
+
 
 # ---------------------------------------------------------------------
 
