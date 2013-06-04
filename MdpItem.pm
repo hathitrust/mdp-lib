@@ -842,6 +842,20 @@ sub GetSequenceForPageNumber {
     return $finalSequenceNumber;
 }
 
+sub GetPhysicalPageSequence {
+    my $self = shift;
+    my ( $seq ) = @_;
+    my $tmp = $self->Get('seqOrderMap') || {};
+    return $$tmp{"v2p",$seq} || $seq;
+}
+
+sub GetVirtualPageSequence {
+    my $self = shift;
+    my ( $seq ) = @_;
+    my $tmp = $self->Get('seqOrderMap') || {};
+    return $$tmp{"p2v",$seq} || $seq;
+}
+
 sub GetStoredFileType {
     my $self = shift;
     my $pageSequence = shift;
@@ -1142,13 +1156,17 @@ sub ParseStructMap {
 
     if ( $self->Get('readingOrder') eq 'right-to-left' && $self->Get('scanningOrder') eq 'left-to-right' ) {
         @orders = reverse @orders;
+        my $tmp = {};
         foreach my $i ( 0 .. $#orders ) {
+            $$tmp{"v2p",$orders[$i]} = $nodeListAndOrder[$i]->[0];
+            $$tmp{"p2v", $nodeListAndOrder[$i]->[0]} = $orders[$i];
             $nodeListAndOrder[$i]->[0] = $orders[$i];
         }
+        $self->Set('seqOrderMap', $tmp);
     }
 
     # foreach my $metsDiv ($structMap->get_nodelist) {
-    #     my $order = $metsDiv->getAttribute('ORDER');
+    #     my $order = $metsDiv->getAttribute('ORDER');2v
 
     while ( scalar @nodeListAndOrder ) {
         my ( $order, $metsDiv ) = @{ shift @nodeListAndOrder };
@@ -1395,6 +1413,9 @@ sub ParseReadingOrder {
             my @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TITLE')]});
             unless ( scalar @features ) {
                 @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TABLE_OF_CONTENTS')]});
+            }
+            unless ( scalar @features ) {
+                @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'FIRST_CONTENT_CHAPTER_START')]});
             }
             if ( scalar @features ) {
                 my $seq = $features[0]->getAttribute('ORDER');
