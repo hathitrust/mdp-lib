@@ -71,7 +71,7 @@ sub get_survey_by_collid {
     my ($C, $dbh, $collid) = @_;
 
     my $always_show = DEBUG('survey');    
-    my $date_clause = $always_show ? '' : qq{ AND ht_survey.effective_date >= NOW() AND ht_survey.expires_date < NOW()};
+    my $date_clause = $always_show ? '' : qq{ AND ht_survey.effective_date <= NOW() AND ht_survey.expires_date > NOW()};
                        
     my $statement = qq{SELECT ht_survey.* FROM ht_survey
                        WHERE ht_survey.MColl_ID = ?} . $date_clause;
