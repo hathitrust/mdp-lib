@@ -45,7 +45,7 @@ sub get_survey_by_itemid {
     my ($C, $dbh, $itemid) = @_;
     
     my $always_show = DEBUG('survey');    
-    my $date_clause = $always_show ? '' : qq{ AND ht_survey.effective_date >= NOW() AND ht_survey.expires_date < NOW()};
+    my $date_clause = $always_show ? '' : qq{ AND ht_survey.effective_date <= NOW() AND ht_survey.expires_date > NOW()};
                        
     my $statement = qq{SELECT ht_survey.* FROM ht_survey, mb_coll_item
                        WHERE mb_coll_item.extern_item_id = ? 
