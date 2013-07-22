@@ -981,25 +981,15 @@ Description
 sub handle_feature_record {
     my ($pgftr, $order, $namespace, $featureRecordRef) = @_;
 
-    if (($namespace eq 'miun') || ($namespace eq 'miua')) {
-        $featureRecordRef->{hasPF_FIRST_CONTENT}  = $order
-          if (! $featureRecordRef->{hasPF_FIRST_CONTENT}  && ($pgftr =~ m,1STPG,o));
-        $featureRecordRef->{hasPF_TITLE} = $order
-          if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TPG|CTP|VTP|VTV,o));
-        $featureRecordRef->{hasPF_TOC} = $order
-          if (! $featureRecordRef->{hasPF_TOC} && ($pgftr =~ m,TOC,o));
-    }
-    else {
-        $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
-          if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
-        $featureRecordRef->{hasPF_TITLE} = $order
-          if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TITLE,o));
-        $featureRecordRef->{hasPF_TOC} = $order
-          if (! $featureRecordRef->{hasPF_TOC} && ($pgftr =~ m,TABLE_OF_CONTENTS,o));
-        # Advance seq one image beyond boundary
-        $featureRecordRef->{hasPF_MULTI} = $order + 1
-          if (! $featureRecordRef->{hasPF_MULTI} && ($pgftr =~ m,MULTIWORK_BOUNDARY,o));
-    }
+    $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
+      if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
+    $featureRecordRef->{hasPF_TITLE} = $order
+      if (! $featureRecordRef->{hasPF_TITLE} && ($pgftr =~ m,TITLE,o));
+    $featureRecordRef->{hasPF_TOC} = $order
+      if (! $featureRecordRef->{hasPF_TOC} && ($pgftr =~ m,TABLE_OF_CONTENTS,o));
+    # Advance seq one image beyond boundary
+    $featureRecordRef->{hasPF_MULTI} = $order + 1
+      if (! $featureRecordRef->{hasPF_MULTI} && ($pgftr =~ m,MULTIWORK_BOUNDARY,o));
 }
 
 # ---------------------------------------------------------------------
@@ -1062,6 +1052,8 @@ sub BuildFileGrpHash {
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
+                next if ($fileGrpHashRef->{$id}{filetype} eq 'jp2');
+                
                 $fileGrpHashRef->{$id}{filename} = $filename;
                 $fileGrpHashRef->{$id}{filetype} = $filetype;
                 $fileGrpHashRef->{$id}{mimetype} = $filemimetype;
@@ -1073,47 +1065,6 @@ sub BuildFileGrpHash {
             $self->Set($has_key, 0) if ($totalFileSize == 0);
 
         }
-    }
-
-    return;
-
-    # Image fileGrp - tombstone objects lack this group
-    my $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='image']/METS:file};
-    my $imageFileGrp = $root->findnodes($xpath);
-
-    foreach my $node ($imageFileGrp->get_nodelist) {
-        my $id = $node->getAttribute('ID');
-        my $filesize = $node->getAttribute('SIZE');
-        my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
-        my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
-
-        $fileGrpHashRef->{$id}{filename} = $filename;
-        $fileGrpHashRef->{$id}{filetype} = $filetype;
-        $fileGrpHashRef->{$id}{filesize} = $filesize;
-        $fileGrpHashRef->{$id}{filegrp} = 'imagefile';
-    }
-
-    # OCR fileGrp - all tombstone and some live objects lack this group
-    $xpath = q{/METS:mets/METS:fileSec/METS:fileGrp[@USE='ocr']/METS:file};
-    my $textFileGrp = $root->findnodes($xpath);
-    $self->Set('has_ocr', scalar(@$textFileGrp));
-
-    if ($self->Get('has_ocr')) {
-        # Test for all zero-length OCR files.
-        my $totalFileSize = 0;
-        foreach my $node ($textFileGrp->get_nodelist) {
-            my $id = $node->getAttribute('ID');
-            my $filesize = $node->getAttribute('SIZE');
-            my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
-            my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
-
-            $fileGrpHashRef->{$id}{filename} = $filename;
-            $fileGrpHashRef->{$id}{filetype} = $filetype;
-            $fileGrpHashRef->{$id}{filesize} = $filesize;
-            $fileGrpHashRef->{$id}{filegrp} = 'ocrfile';
-            $totalFileSize += $filesize;
-        }
-        $self->Set('has_ocr', 0) if ($totalFileSize == 0);
     }
 }
 
@@ -1781,13 +1732,14 @@ sub DumpPageInfoToHtml {
         my $seq = $seqsArray[$i];
         my $imgfile  = $pageInfoHash{'sequence'}{ $seq }{'imagefile'} || 'NOTDEFINED';
         my $ocrfile  = $pageInfoHash{'sequence'}{ $seq }{'ocrfile'} || 'NOTDEFINED';
+        my $coordocrfile = $pageInfoHash{'sequence'}{ $seq }{'coordOCRfile'} || 'NOTDEFINED';
         my $ocrfilesize  = $pageInfoHash{'sequence'}{ $seq }{'ocrfilesize'};
         my $fileType = $pageInfoHash{'sequence'}{ $seq }{'filetype'};
         my $pagenum = $pageInfoHash{'sequence'}{ $seq }{'pagenumber'};
         my $featuresArrRef = $pageInfoHash{'sequence'}{ $seq }{'pagefeatures'};
         my $features = join( ',', @$featuresArrRef );
 
-        $s .= qq{<tr><td>seq="$seqsArray[$i]"</td><td>ocrsz="$ocrfilesize"</td><td>pg="$pagenum"</td><td>imgfile="$imgfile"</td><td>ocrfile="$ocrfile"</td><td>img fileType="$fileType"</td><td>features="$features"</td></tr>\n};
+        $s .= qq{<tr><td>seq="$seqsArray[$i]"</td><td>ocrsz="$ocrfilesize"</td><td>pg="$pagenum"</td><td>imgfile="$imgfile"</td><td>ocrfile="$ocrfile"</td><td>coordocrfile="$coordocrfile"</td><td>img fileType="$fileType"</td><td>features="$features"</td></tr>\n};
     }
     $s .= qq{</table>\n};
 

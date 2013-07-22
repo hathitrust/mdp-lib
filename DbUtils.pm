@@ -35,7 +35,7 @@ BEGIN
 use DBI;
 use Utils;
 use constant DATABASE_RETRY_SLEEP => 300; # 5 minutes
-
+use constant MAX_DATABASE_RETRIES => 12;  # 1 hour of outage
 
 # ---------------------------------------------------------------------
 
@@ -55,8 +55,13 @@ sub prep_n_execute
     my $db_ok = $dbh->ping();
     if ($ENV{DATABASE_LONG_RETRY}) {
         unless($db_ok) {
-            sleep DATABASE_RETRY_SLEEP;
-            $dbh->ping();
+            my $retries = 0;
+            while ($retries < MAX_DATABASE_RETRIES) {
+                sleep DATABASE_RETRY_SLEEP;
+                $db_ok = $dbh->ping();
+                last if ($db_ok);
+                $retries++;
+            }
         }
     }
     
