@@ -78,7 +78,7 @@ $ghOCREnabled          = 0;
     );
 
 
-
+# OBSOLETE
 %gMiunPageFeatureHash =
     (
      '1STPG' =>'First Page',
@@ -128,10 +128,7 @@ $ghOCREnabled          = 0;
      'VTV'  =>'Title Page',
 );     
 
-%gPageFeatureHash = (
-    'miun' => \%gMiunPageFeatureHash,
-    'miua' => \%gMiunPageFeatureHash,
-    'MARC.METADATA' => \%gMdpPageFeatureHash,
-);
+$gPageFeatureHashRef = \%gMdpPageFeatureHash,
+
 
 1;

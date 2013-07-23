@@ -979,7 +979,7 @@ Description
 
 # ---------------------------------------------------------------------
 sub handle_feature_record {
-    my ($pgftr, $order, $namespace, $featureRecordRef) = @_;
+    my ($pgftr, $order, $featureRecordRef) = @_;
 
     $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
       if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
@@ -1094,7 +1094,6 @@ sub ParseStructMap {
     my $featureTableCt = 0;
     my $featureHashRef = $self->GetFeatureHash();
     my @featureTags = keys( %$featureHashRef );
-    my $namespace = $self->Get('namespace');
 
     ## APPROACH 2: re-order the array of $metsDivs
     my @nodeListAndOrder = ();
@@ -1152,7 +1151,7 @@ sub ParseStructMap {
                              \%featureTable, \$featureTableCt)
           if ($order_has_PFs);
 
-        handle_feature_record($pgftr, $order, $namespace, $featureRecordRef);
+        handle_feature_record($pgftr, $order, $featureRecordRef);
     }
 
     $self->SetHasPageNumbers($hasPNs);
@@ -1520,19 +1519,7 @@ sub GetSequenceNumbers {
 sub GetFeatureHash {
     my $self = shift;
 
-    my $featureHashRef;
-
-    my $id = $self->GetId();
-
-    my $namespace = $self->Get('namespace');
-    if (defined($MdpGlobals::gPageFeatureHash{$namespace})) {
-        $featureHashRef = $MdpGlobals::gPageFeatureHash{$namespace};
-    }
-    else {
-        $featureHashRef = $MdpGlobals::gPageFeatureHash{'MARC.METADATA'};
-    }
-
-    return $featureHashRef;
+    return $MdpGlobals::gPageFeatureHashRef;
 }
 
 # ----------------------------------------------------------------------
