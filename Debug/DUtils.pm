@@ -484,26 +484,6 @@ sub handle_terminal_debug_msg {
     }
 }
 
-# ---------------------------------------------------------------------
-
-=item limited_debugging_enabled
-
-Allow debugging, attr= for a limited list of IDs
-
-=cut
-
-# ---------------------------------------------------------------------
-my @limit_ht_ids = qw( mdp.99999999999999 );
-
-sub limited_debugging_enabled {
-    my @debug_limited = split(/[ ]+/, $ENV{DEBUG_LIMITED});
-    foreach my $d (@debug_limited) {
-        if (grep(/^$d$/, @limit_ht_ids)) {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 # ---------------------------------------------------------------------
 
@@ -527,8 +507,7 @@ sub debugging_enabled {
 
     # Over-ride all authorization checking at the command line or by
     # flag.
-    my $___no_ACL_debugging_test = 
-      $ENV{TERM} || limited_debugging_enabled() || NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1;
+    my $___no_ACL_debugging_test = $ENV{TERM} || NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1;
  
     my $authorized = Auth::ACL::a_Authorized( {access => 'total'} );
     if ($___no_ACL_debugging_test) {

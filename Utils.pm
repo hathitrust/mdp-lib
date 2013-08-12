@@ -419,7 +419,7 @@ sub minimal_CER_to_NCR_map {
     return $h{$cer};
 }
 
-      
+
 # ---------------------------------------------------------------------
 
 =item map_chars_to_cers
@@ -870,7 +870,7 @@ sub get_uber_config_path {
     else {
         $path = $ENV{SDRROOT} . "/$app_name/vendor/common-lib/lib/Config/uber.conf"
     }
-    
+
     return $path;
 }
 
@@ -1009,28 +1009,52 @@ sub write_data_to_file
 
 # ---------------------------------------------------------------------
 
-=item resolve_data_root
+=item resolve_data_root, using_localdataroot
 
-Support alternative data root for sample HTDE environment
+Support alternative data root for sample HTDE environment and for
+developing outside the real repository for a designated list of IDs.
 
 =cut
 
 # ---------------------------------------------------------------------
+sub using_localdataroot {
+    my ($C, $id) = @_;
+
+    # Only in development or on the beta-* with a local.conf present
+    return unless (defined $ENV{HT_DEV});
+    # POSSIBLY NOTREACHED
+
+    # Attempt to stop use of local.conf::localdataroot = /sdr1
+    my $config = $C->get_object('MdpConfig');
+    if ($config->has('localdataroot')) {
+        my $localdataroot = $config->get('localdataroot');
+        die if ($localdataroot =~ m,^/sdr1,);
+
+        if ($config->has('localdevelopmentids')) {
+            my @development_ids = $config->get('localdevelopmentids');
+            if (grep(/^$id$/, @development_ids)) {
+                return $ENV{SDRDATAROOT} = $localdataroot;
+            }
+        }
+    }
+    # POSSIBLY NOTREACHED
+
+    return;
+}
+
 sub resolve_data_root {
+    my $id = shift;
     my $C = new Context;
 
-    my $config = $C->get_object('MdpConfig', 1);
     # This could be early in the Plack layers before app initialization
-    if (! defined $config) {
-        return '/dev/null';
-    }
+    my $config = $C->get_object('MdpConfig', 1);
+    return '/dev/null' unless (defined $config);
+    # POSSIBLY NOTREACHED
 
-    if ( $config->has('localdataroot') ) {
-        return $ENV{SDRDATAROOT} = $config->get('localdataroot');
-    }
-    else {
-        return $ENV{SDRDATAROOT};
-    }
+    my $dataroot = using_localdataroot($C, $id);
+
+    return $ENV{SDRDATAROOT} unless(defined $dataroot);
+    return $dataroot;
 }
 
 # ---------------------------------------------------------------------

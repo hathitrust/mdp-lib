@@ -237,7 +237,7 @@ sub get_item_location {
     chomp($id);
     __check_validation($id);
 
-    my $dataroot = Utils::resolve_data_root();
+    my $dataroot = Utils::resolve_data_root($id);
     my $path = $dataroot . qq{/obj/} . id_to_mdp_path($id);
     chomp($path);
 

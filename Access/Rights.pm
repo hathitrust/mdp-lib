@@ -722,22 +722,26 @@ sub _determine_rights_values {
         return ($attr, $source, $rc);
     }
 
-    # local.conf over-ride only in development. Note HT_DEV is useless
+    # local.conf over-ride only for superusers. Note HT_DEV is useless
     # here because it is set on the beta-* hosts which could possibly
     # be exposed to the outside world.
-    if (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
-        my $conf = $C->get_object('MdpConfig', $config);
-        if ($conf->has('debug_attr_source')) {
-            ($attr, $source) = $conf->get('debug_attr_source');
+    my $local_dataroot = Utils::using_localdataroot($C, $id);
+    my $superuser_set_rights = 0;
+
+    if (defined $local_dataroot) {
+        # (pd, dlps)
+        ($attr, $source) = (1,2);
+    }
+    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+        my $config = $C->get_object('MdpConfig', $config);
+        if ($config->has('debug_attr_source')) {
+            ($attr, $source) = $config->get('debug_attr_source');
+            $superuser_set_rights = 1 if ($attr && $source);
         }
     }
 
-    # unless defined and attr > 0 and source > 0, skip and read database
-    my $local_conf = 0;
-    if ($attr && $source) {
-        $local_conf = 1;
-    }
-    else {
+    # unless attr and source defined and > 0, skip and read database
+    unless ($attr && $source) {
         ($attr, $source, $rc) = __read_rights_database($C, $id);
     }
 
@@ -746,7 +750,7 @@ sub _determine_rights_values {
         $self->{source_attribute} = $source;
     }
 
-    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$attr} local.conf=$local_conf</h4>});
+    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$attr} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
 
     return ($attr, $source);
 }
