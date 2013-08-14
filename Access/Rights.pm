@@ -718,7 +718,7 @@ sub _determine_rights_values {
     my $attr = $self->{rights_attribute};
     my $source = $self->{source_attribute};
 
-    if (defined(attr) && defined($source)) {
+    if (defined($attr) && defined($source)) {
         return ($attr, $source, $rc);
     }
 
