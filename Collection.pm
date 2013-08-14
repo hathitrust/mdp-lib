@@ -456,6 +456,7 @@ sub copy_items {
     my $self = shift;
     my $coll_id = shift;
     my $id_arr_ref = shift;
+    my $force_ownership = shift;
 
     my $dbh = $self->get_dbh;
     my $coll_item_table_name = $self->get_coll_item_table_name;
@@ -463,8 +464,10 @@ sub copy_items {
     my $col_names_array_ref = ['extern_item_id','MColl_ID'];
     my $user_id = $self->get_user_id;
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Collection $coll_id not owned by user $user_id});
+    unless ($force_ownership) {
+        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
+               qq{Collection $coll_id not owned by user $user_id});
+    }
 
     foreach my $id (@$id_arr_ref) {
         if ($self->item_exists($id)) {
@@ -504,7 +507,7 @@ sub delete_items {
     my $dbh = $self->get_dbh();
     my $coll_item_table_name = $self->get_coll_item_table_name;
 
-    if (! $force_ownership) {
+    unless ($force_ownership) {
         my $user_id = $self->get_user_id;
         ASSERT($self->coll_owned_by_user($coll_id, $user_id),
                qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
@@ -531,14 +534,17 @@ Description
 sub delete_coll {
     my $self = shift;
     my $coll_id = shift;
+    my $force_ownership = shift;
 
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_item_table_name = $self->get_coll_item_table_name;
     my $user_id = $self->get_user_id;
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Collection $coll_id not owned by user $user_id});
+    unless ($force_ownership) {
+        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
+               qq{Collection $coll_id not owned by user $user_id});
+    }
 
     DbUtils::del_row_by_key($dbh, $coll_table_name, 'MColl_ID', $coll_id);
 
