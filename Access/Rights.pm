@@ -481,23 +481,6 @@ sub get_full_PDF_access_status {
 
 # ---------------------------------------------------------------------
 
-=item PUBLIC: id_is_non_cacheable
-
-Do not cache images of in-copyright or geo-restricted pd pages.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub id_is_non_cacheable {
-    my $self = shift;
-    my ($C, $id) = @_;
-
-    my $attr = $self->get_rights_attribute($C, $id);
-    return (grep(/^$attr$/, @RightsGlobals::g_image_non_cacheable_attribute_values));
-}
-
-# ---------------------------------------------------------------------
-
 =item PUBLIC: public_domain_world_creative_commons
 
 Can you think of a better name?

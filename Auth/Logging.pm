@@ -45,7 +45,7 @@ sub log_incopyright_access  {
     if ( $ar->check_final_access_status($C, $id) eq 'allow' ) {
         # ... serving something
         my $in_copyright = $ar->in_copyright($C, $id);
-        my $attribute = $ar->get_rights_attribute($C, $id);
+        my $attribute = $ar->get_rights_attribute($C, $id) || 0;
         my $access_type = $ar->get_access_type($C, 'as_string');
 
         if ($in_copyright) {
@@ -54,17 +54,11 @@ sub log_incopyright_access  {
            
             if (defined $usertype) {
                 my $role = Auth::ACL::a_GetUserAttributes('role');
-                Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attr;access=$access_type");
+                Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attribute;access=$access_type");
             }
             else {
-                # Better have SSD credentials, or be OP @OPB with proper authorization
-                my $is_ssd = $C->get_object('Auth')->get_eduPersonEntitlement_print_disabled($C);
-                if ($is_ssd) {
-                    Utils::add_header($C, $Header_Key, "user=ssd;attr=$attr;access=$access_type");
-                }
-                else {
-                    Utils::add_header($C, $Header_Key, "user=other;attr=$attr;access=$access_type");
-                }
+                # Users entitled to view OP @OPB brittle, lost, missing held by their institution
+                Utils::add_header($C, $Header_Key, "user=other,none;attr=$attribute;access=$access_type");
             }
         }
     }
