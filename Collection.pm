@@ -918,7 +918,7 @@ sub edit_coll_name {
 
     # specific processing: check proposed changed name isn't already
     # in use need to use CollectionSet->exists_coll_name_for_owner()
-    $self->_edit_metadata($coll_id, 'collname', $value, 50);
+    $self->_edit_metadata($coll_id, 'collname', $value, 100);
 }
 
 
