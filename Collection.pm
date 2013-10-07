@@ -884,7 +884,7 @@ sub edit_description {
     my $dbh = $self->get_dbh;
 
     # specific processing
-    $self-> _edit_metadata($coll_id, 'description', $value, 150);
+    $self-> _edit_metadata($coll_id, 'description', $value, 255);
 }
 
 
