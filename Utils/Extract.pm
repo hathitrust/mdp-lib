@@ -81,17 +81,18 @@ sub cleanup {
     my $tmp_root = __get_root();
     if (opendir(DIR, $tmp_root)) {
         my @targets = grep(! /(^\.$|^\.\.$)/, readdir(DIR));
-        my $pattern = qr{.*?_${pid}__.*};
-        if ( $suffix ) { $pattern = qr{.*?_${pid}__[0-9]+_${suffix}} }
-        # my @rm_pid_targets = grep(/.*?_${pattern}__.*/, @targets);
+        my $pattern = qr{.*?_1_${pid}_2_.*};
+        if ( $suffix ) { $pattern = qr{.*?_1_${pid}_2_[0-9]+_${suffix}} }
         my @rm_pid_targets = grep(/$pattern/, @targets);
+        # remove the temp files created by this pid
         foreach my $sd (@rm_pid_targets) {
             system("rm", "-rf", "$tmp_root/$sd");
         }
 
+        # remove expired temp files not cleaned up by failed pids
         my $now = time();
         foreach my $sd (@targets) {
-            my ($created) = ($sd =~ m,.*?__(\d+),);
+            my ($created) = ($sd =~ m,.*?_2_(\d+),);
             next unless ( $created );
             if (($now - $created) > $expired) {
                 system("rm", "-rf", "$tmp_root/$sd");
@@ -112,7 +113,7 @@ of this module. As such, there will never be a non-unique combination
 of pid and time.  The perl TMPDIR function with CLEANUP =>1 was
 inexplicably leaving directories behind hence this code.
 
-template: prefix_PID__TIME_suffix
+template: prefix_1_PID_2_TIME_suffix
 
 =cut
 
@@ -123,8 +124,8 @@ sub get_formatted_path {
     $delta = 0 || $delta;
     $suffix = qq{_$suffix} if ( $suffix );
 
-    ASSERT(($prefix !~ m,_,), qq{ERROR: prefix contains '_' character } . __get_df_report('/ram'));
-    my $path = $prefix . qq{_$$} . q{__} . (time() + $delta) . $suffix;
+    ASSERT(($prefix !~ m,_[12]_,), qq{ERROR: prefix contains '_[12]_' characters } . __get_df_report('/ram'));
+    my $path = $prefix . qq{_1_$$} . q{_2_} . (time() + $delta) . $suffix;
     return $path;
 }
 
