@@ -18,6 +18,8 @@ package RightsGlobals;
  12        um-dc-mp       University of Michigan, Duderstadt Center, Millennium Project
  13        uiuc           University of Illinois at Urbana-Champaign
  14        brooklynmuseum Brooklyn Museum
+ 15        uf             University of Florida
+ 16        tamu           Texas A&M
 
  ATTRIBUTES
  id        name        type      dscr
@@ -168,6 +170,8 @@ our $HT_AFFILIATE        = 7;
    '12' => 'um-dc-mp',
    '13' => 'uiuc',
    '14' => 'brooklynmuseum',
+   '15' => 'uf',
+   '16' => 'tamu',
   );
 
 @g_stmt_fields =
@@ -414,6 +418,8 @@ $g_orphan_candidate_attribute_value = 16;
                                            12, # um-dc-mp
                                            13, # uiuc
                                            14, # brooklynmuseum
+                                           15, # uf
+                                           16, # tamu
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
