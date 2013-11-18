@@ -86,6 +86,10 @@ sub __initialize {
         if ($marcxml_ref && $$marcxml_ref) {
             $$marcxml_ref = Encode::decode_utf8($$marcxml_ref);
 
+            # need to extract language before processing the fullrecord value
+            my $language = $self->__get_language($marcxml_ref);
+            $self->{_language} = $language;
+
             my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
                 $self->{_root} = $root;
@@ -120,7 +124,7 @@ sub __get_solr_result {
     my $rs = new Search::Result::SLIP_Raw;
 
     my $safe_id = Identifier::get_safe_Solr_id($id);
-    my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord};
+    my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord,language};
     $rs = $searcher->get_Solr_raw_internal_query_result($C, $query_string, $rs);
 
     my $responseOk = $rs->http_status_ok;
@@ -133,6 +137,28 @@ sub __get_solr_result {
     }
 
     return undef;
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_language
+
+ <arr name="language"><str>English</str></arr>
+
+=cut
+
+# ---------------------------------------------------------------------
+
+sub __get_language {
+    my $self = shift;
+    my $marcxml_ref = shift;
+
+    # get the language out of the results first
+    my $language;
+    # <arr name="language"><str>English</str></arr>
+    ( $language = $$marcxml_ref ) =~ s,.*?<arr name="language">(.*)</arr>.*,$1,;
+    $language =~ s,<str>,,; $language =~ s,</str>,,;
+    return $language;
 }
 
 # ---------------------------------------------------------------------
@@ -273,6 +299,21 @@ sub get_metadata {
 
     return undef if ($self->{_metadatafailure});
     return ($unescape ? __xml_unescape($self->{_marcxmlref}) : $self->{_marcxmlref});
+}
+
+# ---------------------------------------------------------------------
+
+=item get_language
+
+PUBLIC
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_language {
+    my $self = shift;
+    return undef if ($self->{_metadatafailure});
+    return $self->{_language};
 }
 
 # ---------------------------------------------------------------------
