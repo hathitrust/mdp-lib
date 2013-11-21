@@ -53,7 +53,7 @@ use DbUtils;
 
 # Mon Feb 13 2012 Superusers are restricted to these ranges
 # 141.211.43.128/25   141.211.43.129  - 141.211.43.254  - LIT offices
-# 141.211.84.128/25   141.211.84.129  - 141.211.84.254  - Library VPN
+# 141.211.84.128/25   141.211.84.129  - 141.211.84.254  - Library VPN - disallowed as of Thu Nov 21 12:21:13 2013
 # 141.211.168.128/25  141.211.168.129 - 141.211.168.254 - Hatcher server room
 # 141.211.172.0/22    141.211.172.1   - 141.211.175.254 - Hatcher/Shapiro buildings
 # 141.213.128.128/25  141.213.128.129 - 141.213.128.254 - MACC data center
@@ -70,7 +70,7 @@ my $ulic_range                 = q{^(141\.211\.174\.(1(7[3-9]|[8-9][0-9])))$};
 my @superuser_ranges = 
   (
    $lit_offices_range,
-   $library_vpn_range,
+   # $library_vpn_range, # per jweise, csnavely Thu Nov 21 12:20:33 2013
    $hatcher_server_room_range, 
    $hatcher_shapiro_bldg_range,
    $macc_data_center_range,
