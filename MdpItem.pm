@@ -78,6 +78,11 @@ sub GetMetsXmlModTime {
 
 # ---------------------------------------------------------------------
 
+sub GetLanguage {
+    my $self = shift;
+    return $self->{_mmdo}->get_language();
+}
+
 =item GetMetadata
 
 Description
