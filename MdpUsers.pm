@@ -66,6 +66,15 @@ my $hatcher_shapiro_bldg_range = q{^(141\.211\.(1(7[2-5]))\.([1-9]|[1-9][0-9]|1(
 my $macc_data_center_range     = q{^(141\.213\.128\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
 my $ulic_range                 = q{^(141\.211\.174\.(1(7[3-9]|[8-9][0-9])))$};
 
+# unique special ranges
+my @special_ranges_1 =
+(
+   $lit_offices_range,
+   $library_vpn_range, # per, csnavely Thu Nov 21 12:20:33 2013 for mslevine
+   $hatcher_shapiro_bldg_range,
+);
+my $special_subnet_range_1 =  join('|', @special_ranges_1);
+
 # superusers
 my @superuser_ranges = 
   (
@@ -166,7 +175,12 @@ sub __load_access_control_list {
         # usertype and role.
         my $iprestrict = $hashref->{iprestrict};
         if (defined $iprestrict) {
-            $gAccessControlList{$userid}{iprestrict} = $iprestrict;
+            if ($iprestrict eq 'special_1') {
+                $gAccessControlList{$userid}{iprestrict} = $special_subnet_range_1;
+            }
+            else {
+                $gAccessControlList{$userid}{iprestrict} = $iprestrict;
+            }
         }
 
         my $expires = $hashref->{expires};
