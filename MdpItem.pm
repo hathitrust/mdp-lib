@@ -340,7 +340,7 @@ sub SetItemType {
     my $root = $self->_GetMetsRoot();
 
     my $item_type;
-    foreach my $path_expr qw( //METS:structMap[@TYPE='logical']/METS:div/@TYPE  //METS:structMap[@TYPE='logical']/METS:div/@TYPE ) {
+    foreach my $path_expr ( qw( //METS:structMap[@TYPE='logical']/METS:div/@TYPE  //METS:structMap[@TYPE='logical']/METS:div/@TYPE ) ) {
         $item_type = $root->findvalue($path_expr);
         last if ( $item_type );
     }

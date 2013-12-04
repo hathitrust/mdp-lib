@@ -228,7 +228,8 @@ sub get_user_attributes {
 
     __load_access_control_list();
 
-    my $key = defined($user) ? $user : lc($ENV{'REMOTE_USER'});
+    my $remote_user = $ENV{REMOTE_USER} || '';
+    my $key = defined($user) ? $user : lc($remote_user);
     my $attrval = $gAccessControlList{$key}{$req_attribute};
 
     return $attrval;
