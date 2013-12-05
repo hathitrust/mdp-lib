@@ -88,8 +88,8 @@ my $staff_subnet_ranges = join('|', @staff_ranges);
 
 my $ULIC_subnet_ranges = $ulic_range;
 
-# black hole
-my $null_range = '^0\.0\.0\.0$';
+# blocked
+my $null_range = 'notanipaddress';
 
 # wide open (SSD)
 my $unrestricted_range = '.*';
