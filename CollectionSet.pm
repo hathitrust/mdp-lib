@@ -200,8 +200,11 @@ sub add_coll
     ASSERT(! $self->exists_coll_name_for_owner($coll_name, $owner),
            qq{CollectionSet::add_coll Collection name $coll_name for $owner is already in table $coll_table_name});
 
-    if (length($description) > 255) {
-        $description = substr($description, 0, 255);
+    if (length($coll_name) > 50) {
+        $coll_name = substr($coll_name, 0, 50);
+    }
+    if (length($description) > 150) {
+        $description = substr($description, 0, 150);
     }
 
     my $MColl_ID = DbUtils::generate_unique_id($dbh, $coll_table_name, 'MColl_ID');
@@ -465,7 +468,7 @@ sub _get_where
     my $user_id = $self->get_user_id;
     my @params;
 
-    ASSERT(($coll_type eq 'my_colls') || ($coll_type eq 'pub_colls') || ($coll_type eq 'all_colls') || ($coll_type eq 'featured_colls'),
+    ASSERT(($coll_type eq 'my_colls') || ( $coll_type eq 'my-collections') || ($coll_type eq 'pub_colls') || ($coll_type eq 'all_colls') || ($coll_type eq 'featured_colls'),
            qq{CollectionSet::list_colls(coll_type) is $coll_type.  Should be my_colls or pub_colls});
 
 

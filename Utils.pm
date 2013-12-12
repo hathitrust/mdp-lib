@@ -41,6 +41,7 @@ BEGIN
 
 use Carp;
 use CGI;
+use URI;
 use Encode;
 use LWP::UserAgent;
 
@@ -357,10 +358,10 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_tmp_logdir {
-    my $logdir = $ENV{SDRROOT} . '/logs/tmp'; 
+    my $logdir = $ENV{SDRROOT} . '/logs/tmp';
     Utils::mkdir_path($logdir);
     chmod(0777, $logdir) if (-o $logdir);
-    
+
     return $logdir;
 }
 
@@ -383,6 +384,39 @@ sub mkdir_path {
         eval { File::Path::mkpath( $path ); };
         ASSERT((! $@), qq{mkpath/mkdir error: "$@" for destination="$path"});
     }
+}
+
+# ---------------------------------------------------------------------
+
+=item minimal_CER_to_NCR_map
+
+Handle mapping to NCRs (so they'll parse in XML) a few CERs that are
+likely to appear in names. see Auth::Auth:: __get_parsed_displayName() e.g.
+
+Based on http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent
+
+=cut
+
+# ---------------------------------------------------------------------
+sub minimal_CER_to_NCR_map {
+    my $cer = shift;
+
+    $cer =~ s,[;&],,g;
+
+    my %h = (
+             Agrave => '&#192;', Aacute => '&#193;', Acirc  => '&#194;', Atilde => '&#195;', Auml   => '&#196;', Aring  => '&#197;',
+             AElig  => '&#198;', Ccedil => '&#199;', Egrave => '&#200;', Eacute => '&#201;', Ecirc  => '&#202;', Euml   => '&#203;',
+             Igrave => '&#204;', Iacute => '&#205;', Icirc  => '&#206;', Iuml   => '&#207;', ETH    => '&#208;', Ntilde => '&#209;',
+             Ograve => '&#210;', Oacute => '&#211;', Ocirc  => '&#212;', Otilde => '&#213;', Ouml   => '&#214;', Oslash => '&#216;',
+             Ugrave => '&#217;', Uacute => '&#218;', Ucirc  => '&#219;', Uuml   => '&#220;', Yacute => '&#221;', THORN  => '&#222;',
+             szlig  => '&#223;', agrave => '&#224;', aacute => '&#225;', acirc  => '&#226;', atilde => '&#227;', auml   => '&#228;',
+             aring  => '&#229;', aelig  => '&#230;', ccedil => '&#231;', egrave => '&#232;', eacute => '&#233;', ecirc  => '&#234;',
+             euml   => '&#235;', igrave => '&#236;', iacute => '&#237;', icirc  => '&#238;', iuml   => '&#239;', eth    => '&#240;',
+             ntilde => '&#241;', ograve => '&#242;', oacute => '&#243;', ocirc  => '&#244;', otilde => '&#245;', ouml   => '&#246;',
+             divide => '&#247;', oslash => '&#248;', ugrave => '&#249;', uacute => '&#250;', ucirc  => '&#251;', uuml   => '&#252;',
+             yacute => '&#253;', thorn  => '&#254;', yuml   => '&#255;',
+            );
+    return $h{$cer};
 }
 
 
@@ -457,21 +491,30 @@ sub remap_cers_to_chars
 
 # ---------------------------------------------------------------------
 
-=item escape_url_separators
+=item xml_escape_url_separators
 
-Description
+XML escape '&' in a &-separated URL. There is no predefined XML
+character entity reference for ';' which is also a legitimate URL
+separator but some services do not recognize it as a separator so to
+be friendly we convert ';' separators to &amp; too. Any occurrences of
+& and ; in parameter /values/ must already have been URL escaped to
+%26 and %3B or the URL would not have been valid.
 
 =cut
 
 # ---------------------------------------------------------------------
-sub escape_url_separators
-{
-    my $s = shift;
+sub xml_escape_url_separators {
+    my $url = shift;
 
-    $s =~ s,[&],%26,g;
-    $s =~ s,[;],%3B,g;
+    my $escaped_url = $url;
 
-    return $s;
+    $escaped_url =~ s,[&],&amp;,g;
+    if ($escaped_url eq $url) {
+        # was not &-separated. check for ;-separated
+        $escaped_url =~ s,[;],&amp;,g;
+    }
+
+    return $escaped_url;
 }
 
 # ---------------------------------------------------------------------
@@ -795,15 +838,15 @@ Construct $SDRROOT/{cache|cache-full}/$key
 sub get_true_cache_dir {
     my $C = shift;
     my $cache_dir_key = shift;
-    
+
     # polymorphic : allow MdpConfig or Context as parameter
     my $config = ref($C) eq 'Context' ? $C->get_object('MdpConfig') : $C;
 
     my $cache_dir = $ENV{SDRROOT} . $config->get($cache_dir_key);
     my $true_cache_component = ($ENV{SDRVIEW} eq 'full') ? 'cache-full' : 'cache';
-    
+
     $cache_dir =~ s,___CACHE___,$true_cache_component,;
-    
+
     return $cache_dir;
 }
 
@@ -966,28 +1009,52 @@ sub write_data_to_file
 
 # ---------------------------------------------------------------------
 
-=item resolve_data_root
+=item resolve_data_root, using_localdataroot
 
-Support alternative data root for sample HTDE environment 
+Support alternative data root for sample HTDE environment and for
+developing outside the real repository for a designated list of IDs.
 
 =cut
 
 # ---------------------------------------------------------------------
+sub using_localdataroot {
+    my ($C, $id) = @_;
+
+    # Only in development or on the beta-* with a local.conf present
+    return unless (defined $ENV{HT_DEV});
+    # POSSIBLY NOTREACHED
+
+    # Attempt to stop use of local.conf::localdataroot = /sdr1
+    my $config = $C->get_object('MdpConfig');
+    if ($config->has('localdataroot')) {
+        my $localdataroot = $config->get('localdataroot');
+        die if ($localdataroot =~ m,^/sdr1,);
+
+        if ($config->has('localdevelopmentids')) {
+            my @development_ids = $config->get('localdevelopmentids');
+            if (grep(/^$id$/, @development_ids)) {
+                return $ENV{SDRDATAROOT} = $localdataroot;
+            }
+        }
+    }
+    # POSSIBLY NOTREACHED
+
+    return;
+}
+
 sub resolve_data_root {
+    my $id = shift;
     my $C = new Context;
 
-    my $config = $C->get_object('MdpConfig', 1);
     # This could be early in the Plack layers before app initialization
-    if (! defined $config) {
-        return '/dev/null';
-    }
-    
-    if ( $config->has('localdataroot') ) {
-        return $ENV{SDRDATAROOT} = $config->get('localdataroot');
-    }
-    else {
-        return $ENV{SDRDATAROOT};
-    }
+    my $config = $C->get_object('MdpConfig', 1);
+    return '/dev/null' unless (defined $config);
+    # POSSIBLY NOTREACHED
+
+    my $dataroot = using_localdataroot($C, $id);
+
+    return $ENV{SDRDATAROOT} unless(defined $dataroot);
+    return $dataroot;
 }
 
 # ---------------------------------------------------------------------
@@ -1207,7 +1274,7 @@ add HTTP response header to HTTP::Headers object in Config.
 =cut
 
 # ---------------------------------------------------------------------
-sub add_header 
+sub add_header
 {
     my ($C, $key, $value) = @_;
     my $headers_ref = $C->get_object('HTTP::Headers', 1);
@@ -1228,22 +1295,27 @@ sub add_header
 sub get_user_status_cookie
 {
     my ($C, $auth) = @_;
-    
-    my $displayName = $auth->get_displayName($C);
-    my $institution = $auth->get_institution($C);
-    my $institution_name = $auth->get_institution_name($C);
+
+    my $displayName = $auth->get_user_display_name($C, 'unscoped');
+    my $institution = $auth->get_institution_code($C, 'mapped');
+    my $institution_name = $auth->get_institution_name($C, 'mapped');
     my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
-    my $auth_type = lc($ENV{AUTH_TYPE}); # should this require session?
-    
+    my $auth_type;
+    if ( $auth->auth_sys_is_SHIBBOLETH($C) ) {
+        $auth_type = 'shibboleth';
+    }
+    elsif ( $auth->auth_sys_is_COSIGN($C) ) {
+        $auth_type = 'cosign';
+    }
     my $status = { authType => $auth_type, displayName => $displayName, institution => $institution, affiliation => $institution_name, u => $print_disabled };
-    
+
     my $cookie = new CGI::Cookie(
-        -name => "HTstatus", 
-        -path => "/", 
-        -domain => get_cookie_domain(), 
+        -name => "HTstatus",
+        -path => "/",
+        -domain => get_cookie_domain(),
         -value => encode_json($status)
     );
-    
+
     return $cookie;
 }
 
@@ -1257,7 +1329,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

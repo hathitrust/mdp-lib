@@ -27,7 +27,7 @@ use Debug::DUtils;
 #
 # Addresses NOTE: Must coordinate with mdp-misc/scripts/email-monitor.pl
 #
-my $g_assert_email_to_addr   = q{dlxs-system@umich.edu};
+my $g_assert_email_to_addr   = q{hathitrust-system@umich.edu};
 my $g_assert_email_from_addr = q{"HathiTrust Mailer" <dlps-help@umich.edu>};
 my $g_email_archive_dir      = qq{$ENV{SDRROOT}/logs/assert};
 my $g_email_file             = qq{$g_email_archive_dir/hathitrust-email-digest-current};

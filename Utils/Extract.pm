@@ -38,6 +38,20 @@ my $UNZIP_PROG = "/l/local/bin/unzip";
 
 # ---------------------------------------------------------------------
 
+=item __get_df_report
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_df_report {
+    my $mount = shift;
+    return "\n" . `df -i $mount` . "\n" . `df -a $mount`;
+}
+
+# ---------------------------------------------------------------------
+
 =item __handle_EndBlock_cleanup
 
 Description
@@ -61,23 +75,24 @@ Description
 sub cleanup {
     my $pid = $$;
     my $suffix = shift;
-    my $expired = 120; # seconds
+    my $expired = 300; # seconds
 
     # regexp must match template in get_formatted_path()
     my $tmp_root = __get_root();
     if (opendir(DIR, $tmp_root)) {
         my @targets = grep(! /(^\.$|^\.\.$)/, readdir(DIR));
-        my $pattern = qr{.*?_${pid}__.*};
-        if ( $suffix ) { $pattern = qr{.*?_${pid}__[0-9]+_${suffix}} }
-        # my @rm_pid_targets = grep(/.*?_${pattern}__.*/, @targets);
+        my $pattern = qr{.*?_1_${pid}_2_.*};
+        if ( $suffix ) { $pattern = qr{.*?_1_${pid}_2_[0-9]+_${suffix}} }
         my @rm_pid_targets = grep(/$pattern/, @targets);
+        # remove the temp files created by this pid
         foreach my $sd (@rm_pid_targets) {
             system("rm", "-rf", "$tmp_root/$sd");
         }
 
+        # remove expired temp files not cleaned up by failed pids
         my $now = time();
         foreach my $sd (@targets) {
-            my ($created) = ($sd =~ m,.*?__(\d+),);
+            my ($created) = ($sd =~ m,.*?_2_(\d+),);
             next unless ( $created );
             if (($now - $created) > $expired) {
                 system("rm", "-rf", "$tmp_root/$sd");
@@ -98,7 +113,7 @@ of this module. As such, there will never be a non-unique combination
 of pid and time.  The perl TMPDIR function with CLEANUP =>1 was
 inexplicably leaving directories behind hence this code.
 
-template: prefix_PID__TIME_suffix
+template: prefix_1_PID_2_TIME_suffix
 
 =cut
 
@@ -109,8 +124,8 @@ sub get_formatted_path {
     $delta = 0 || $delta;
     $suffix = qq{_$suffix} if ( $suffix );
 
-    ASSERT(($prefix !~ m,_,), qq{ERROR: prefix contains '_' character});
-    my $path = $prefix . qq{_$$} . q{__} . (time() + $delta) . $suffix;
+    ASSERT(($prefix !~ m,_[12]_,), qq{ERROR: prefix contains '_[12]_' characters } . __get_df_report('/ram'));
+    my $path = $prefix . qq{_1_$$} . q{_2_} . (time() + $delta) . $suffix;
     return $path;
 }
 
@@ -134,7 +149,7 @@ sub __get_tmpdir {
     my $input_cache_dir = get_formatted_path("$tmp_root/$pairtree_form_id", $suffix, $delta);
     if (! -e $input_cache_dir) {
         my $rc = mkdir($input_cache_dir);
-        ASSERT($rc, qq{Failed to create dir=$input_cache_dir rc=$rc errno=$!});
+        ASSERT($rc, qq{Failed to create dir=$input_cache_dir rc=$rc errno=$! } . __get_df_report('/ram'));
     }
 
     return $input_cache_dir;
@@ -175,6 +190,8 @@ sub extract_file_to_temp_cache {
 
     my $cmd = qq{$UNZIP_PROG -j -qq -d $input_cache_dir $zip_file "$stripped_pairtree_id/$filename"};
     DEBUG('doc', qq{UNZIP: $cmd});
+
+    soft_ASSERT((-e qq{$input_cache_dir/$filename}, qq{Could not extract $filename to $input_cache_dir} . __get_df_report('/ram')));
 
     return
       (-e qq{$input_cache_dir/$filename})
@@ -234,7 +251,7 @@ sub extract_dir_to_temp_cache {
       );
     if (! $ok) {
         my $t_ref = read_file($error_file, 1);
-        my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref"};
+        my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref" } . __get_df_report('/ram');
         Utils::Logger::__Log_simple($msg);
         ASSERT(0, $msg);
     }

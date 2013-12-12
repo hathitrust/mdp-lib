@@ -476,6 +476,8 @@ sub _render_template
 
     if (DEBUG('xml,rawxml')) {
         $$template_data_ref = Encode::encode_utf8($$template_data_ref);
+        # remove empty PI handlers to avoid browser rendering issues
+        Utils::remove_PI($template_data_ref);
         $self->output_HTTP($C, $template_data_ref, 'text/xml' );
         exit 0;
     }
@@ -564,10 +566,39 @@ sub P_output_data_HTTP {
     
     print STDOUT "Status: 200" . $CGI::CRLF;
     print STDOUT $headers_ref->as_string($CGI::CRLF);
-    print STDOUT $CGI::CRLF . $CGI::CRLF;
+    print STDOUT $CGI::CRLF;
+    $$data_ref =~ s,^<!DOCTYPE [^>]+>,<!DOCTYPE html>,;
+    _add_ie_specific_code($data_ref);
     print STDOUT $$data_ref;
 }
 
+sub IF_LT_IE9 {
+    return <<END;
+<!--[if lt IE 9]>
+<script src="//ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
+<script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+END
+}
+
+sub IF_LT_IE8 {
+    return <<END;
+<!--[if lt IE 8]>
+<link rel="stylesheet" type="text/css" href="/common/unicorn/css/ie7.css" />
+<script src="/common/unicorn/vendor/js/selectivizr.js" type="text/javascript"></script>
+<![endif]-->
+END
+}
+
+sub _add_ie_specific_code {
+    my ( $data_ref ) = @_;
+
+    my $html = IF_LT_IE9();
+    $$data_ref =~ s{<!--IE PRE-SETUP-->}{$html};
+    $html = IF_LT_IE8();
+    $$data_ref =~ s{<!--IE POST-SETUP-->}{$html};
+
+}
 
 
 

@@ -28,7 +28,14 @@ use Net::DNS;
 use Debug::DUtils;
 
 my $resolver = new Net::DNS::Resolver;
+
+# Default send() is UDP (datagram) unless $resolver->usevc(1). However
+# there seem to be codepaths that will forct TCP so set tcp_timeout
+# too
+$resolver->udp_timeout(1);
 $resolver->tcp_timeout(1);
+$resolver->retrans(0);
+$resolver->retry(0);
 
 my %blacklist_services =
   (
@@ -37,9 +44,18 @@ my %blacklist_services =
    '__IPADDRESS__.__PORT__.__SERVER__.ip-port.exitlist.torproject.org' => '127.0.0.2',
   );
 
+# Eliminate some calls out to DNS
+my %ip_address_cache = ();
+
 sub blacklisted {
     my ($dbh, $ip_addr, $server_addr, $port) = @_;
 
+    # Check cache
+    if (defined $ip_address_cache{$ip_addr}) {
+        DEBUG('proxy', qq{<pre>return cached blacklist=$blacklist</pre>});
+        return $ip_address_cache{$ip_addr};
+    }
+    
     # Check database
     my $blacklist = __bl_check_db($dbh, $ip_addr);
 
@@ -48,6 +64,10 @@ sub blacklisted {
         $blacklist = __bl_check_services($ip_addr, $server_addr, $port);
     }
 
+    # Cache
+    $ip_address_cache{$ip_addr} = $blacklist;
+    DEBUG('proxy', qq{<pre>set cache blacklist=$blacklist</pre>});
+    
     return $blacklist;
 }
 
@@ -56,7 +76,7 @@ sub __bl_check_db {
 
     my $blacklist = 0;
 
-    my $statement = qq{SELECT ip FROM proxies WHERE ip='$ip_addr'};
+    my $statement = qq{SELECT ip FROM ht_proxies WHERE ip='$ip_addr'};
     my $sth;
     eval { $sth = $dbh->prepare($statement); };
     if (! $@) {
@@ -93,7 +113,9 @@ sub __bl_check_services {
               sub {
                   require Data::Dumper;
                   my $d = Data::Dumper::Dumper($query);
-                  "<pre>Service: $service ::: " . $d . "</pre>";
+                  my $retry = $resolver->retry;
+                  my $retrans = $resolver->retrans;
+                  "<pre>Service: $service ::: " . $d . " retries=$retry retrans=$retrans</pre>";
               });
 
         eval {

@@ -52,7 +52,7 @@ the exclusion of all other users.
 
 SCHEMA
 
- CREATE TABLE `n_exclusivity` (
+ CREATE TABLE `pt_exclusivity` (
   `item_id`     varchar(32)  NOT NULL DEFAULT '',
   `owner`       varchar(256) NOT NULL DEFAULT '',
   `affiliation` varchar(128) NOT NULL DEFAULT '',
@@ -84,6 +84,8 @@ use constant EXCLUSIVITY_LIMIT => 86400; # 24 hours in seconds
 
 =item acquire_exclusive_access
 
+PUBLIC
+
 If no one has exclusivity or someone who has exclusivity has exhaused
 their 24 hours grant exclusivity.
 
@@ -95,11 +97,11 @@ the former user for another EXCLUSIVITY_LIMIT.
 
 # ---------------------------------------------------------------------
 sub acquire_exclusive_access {
-    my ($C, $item_id) = @_;
+    my ($C, $item_id, $brlm) = @_;
 
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
-    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 1);
+    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 1, $brlm);
 
     return ($granted, $owner, $expires);
 }
@@ -109,6 +111,8 @@ sub acquire_exclusive_access {
 
 =item check_exclusive_access
 
+PUBLIC
+
 Like acquire_exclusive_access() except just tests for the possibility
 of exclusive acquisition but does not assert exclusivity.
 
@@ -116,13 +120,56 @@ of exclusive acquisition but does not assert exclusivity.
 
 # ---------------------------------------------------------------------
 sub check_exclusive_access {
-    my ($C, $item_id) = @_;
+    my ($C, $item_id, $brlm) = @_;
 
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
-    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 0);
+    my ($granted, $owner, $expires) = __grant_access($C, $dbh, $item_id, 0, $brlm);
 
     return ($granted, $owner, $expires);
+}
+
+# ---------------------------------------------------------------------
+
+=item update_exclusive_access
+
+PUBLIC
+
+An unauthenticated user in a library can acquire exclusive access. If
+that user then authenticates, update the exclusivity record with the
+users new persistent ID so xe can continue to have access.
+
+There is no need to update the institution code (affiliation field)
+because if the user was in a library, SDRINST (institution code) will
+have been set. 
+
+The current rules will not allow the implementation of support for
+unauthenticated users outside a library to acquire exclusive
+access. Their institution will be undef so here is no way to determine
+number of copies held.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub update_exclusive_access {
+    my ($C, $temporary_user_id, $persistent_user_id) = @_;
+
+    # Get current user's identity and expiration date
+    my $dbh = $C->get_object('Database')->get_DBH();
+
+    my ($sth, $statement);
+    $statement = qq{LOCK TABLES pt_exclusivity WRITE};
+    DEBUG('auth', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+    # Update owner field for all IDs
+    $statement = qq{UPDATE pt_exclusivity SET owner=? WHERE owner=?};
+    DEBUG('auth', qq{DEBUG: $statement : $persistent_user_id $temporary_user_id});
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $persistent_user_id, $temporary_user_id);
+
+    $statement = qq{UNLOCK TABLES};
+    DEBUG('auth', qq{DEBUG: $statement});
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
 }
 
 
@@ -130,26 +177,37 @@ sub check_exclusive_access {
 
 =item __grant_access
 
+PRIVATE
+
 An item can be owned by more than one user if their affiliations are
 different.
 
-Note: 'affiliation is the Shib sdrinst institution code, e.g. 'uom' not 'umich.edu'.
+Note: 'affiliation is the Shib sdrinst institution code, e.g. 'uom'
+not 'umich.edu'.
+
+If $brittle_lost_missing, check the access_count for number of these
+held not the total number held.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub __grant_access {
-    my ($C, $dbh, $id, $assert_ownership) = @_;    
+    my ($C, $dbh, $id, $assert_ownership, $brittle_lost_missing) = @_;    
 
     my $granted = 0;
     my $grant_owner;
     my $expires;
 
     my $auth = $C->get_object('Auth');
-    my $inst_code = $auth->get_institution($C);
+    my $inst_code = $auth->get_institution_code($C, 'mapped');
     my $identity = $auth->get_user_name($C);
 
-    my $num_held = Access::Holdings::id_is_held($C, $id, $inst_code);
+    my $num_held = 
+      (
+       $brittle_lost_missing 
+         ? Access::Holdings::id_is_held_and_BRLM($C, $id, $inst_code)
+           : Access::Holdings::id_is_held($C, $id, $inst_code)
+      );
 
     if (
         (! $identity) 
@@ -157,17 +215,19 @@ sub __grant_access {
         (! $inst_code)
         ||
         ($num_held == 0)
+        ||
+        DEBUG('nogrant')
        ) {
         return ($granted, $grant_owner, $expires);
     }        
 
     my ($sth, $statement);
-    $statement = qq{LOCK TABLES n_exclusivity WRITE};
+    $statement = qq{LOCK TABLES pt_exclusivity WRITE};
     DEBUG('auth', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement);
 
     # Get all rows matching id in institution-namespace of identity 
-    $statement = qq{SELECT * FROM n_exclusivity WHERE item_id=? AND affiliation=?};
+    $statement = qq{SELECT * FROM pt_exclusivity WHERE item_id=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $id $inst_code});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $inst_code);
 
@@ -185,6 +245,11 @@ sub __grant_access {
             $identity_expire_date = $hashref->{expires};
             last;
         }
+    }
+
+    # Act like identity has already been granted access
+    if (DEBUG('grant')) {
+        $identity_has_slot = 1;
     }
 
     # identity occupies a slot
@@ -278,7 +343,7 @@ sub __grant_access {
 
 =item ___get_expiration_date
 
-Description
+PRIVATE
 
 =cut
 
@@ -291,7 +356,7 @@ sub ___get_expiration_date {
 
 =item ___acquire_from
 
-Description
+PRIVATE
 
 =cut
 
@@ -299,7 +364,7 @@ Description
 sub ___acquire_from {
     my ($C, $dbh, $id, $old_owner, $new_owner, $inst_code) = @_;
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE item_id=? AND owner=? AND affiliation=?};
+    my $statement = qq{DELETE FROM pt_exclusivity WHERE item_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $id : $old_owner : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $old_owner, $inst_code);
 
@@ -310,7 +375,7 @@ sub ___acquire_from {
 
 =item ___grant
 
-Description
+PRIVATE
 
 =cut
 
@@ -321,7 +386,7 @@ sub ___grant {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{INSERT INTO n_exclusivity SET item_id=?, owner=?, affiliation=?, expires=?};
+        qq{INSERT INTO pt_exclusivity SET item_id=?, owner=?, affiliation=?, expires=?};
     DEBUG('auth', qq{DEBUG: $statement : $id : $identity : $inst_code : $expiration_date});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $identity, $inst_code, $expiration_date);
 
@@ -331,6 +396,8 @@ sub ___grant {
 # ---------------------------------------------------------------------
 
 =item ___renew
+
+PRIVATE
 
 Same item may be exclusively owned by users with different affiliations.
 
@@ -343,7 +410,7 @@ sub ___renew {
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{UPDATE n_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
+        qq{UPDATE pt_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $expiration_date : $id : $identity : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $id, $identity, $inst_code);
 
@@ -354,7 +421,7 @@ sub ___renew {
 
 =item ___cleanup_expired_grants
 
-Description
+PRIVATE
 
 =cut
 
@@ -364,7 +431,7 @@ sub ___cleanup_expired_grants {
 
     my $now = Utils::Time::iso_Time();
 
-    my $statement = qq{DELETE FROM n_exclusivity WHERE expires < ?};
+    my $statement = qq{DELETE FROM pt_exclusivity WHERE expires < ?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $now);
 
     Utils::map_chars_to_cers(\$statement, [q{"}, q{'}]);
@@ -382,7 +449,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2010 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2010-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

@@ -21,8 +21,6 @@ package MdpGlobals;
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-$gMirlynErrorReportingEnabled = 0;
-
 # Set path to feedback cgi as a function of development state and auth state.
 my $cgi_path_component = ($ENV{'AUTH_TYPE'} eq 'shibboleth') ? '/shcgi' : '/cgi';
 my $protocol  = defined($ENV{'AUTH_TYPE'}) ? 'https://' : 'http://';
@@ -80,7 +78,7 @@ $ghOCREnabled          = 0;
     );
 
 
-
+# OBSOLETE
 %gMiunPageFeatureHash =
     (
      '1STPG' =>'First Page',
@@ -130,10 +128,7 @@ $ghOCREnabled          = 0;
      'VTV'  =>'Title Page',
 );     
 
-%gPageFeatureHash = (
-    'miun' => \%gMiunPageFeatureHash,
-    'miua' => \%gMiunPageFeatureHash,
-    'MARC.METADATA' => \%gMdpPageFeatureHash,
-);
+$gPageFeatureHashRef = \%gMdpPageFeatureHash,
+
 
 1;

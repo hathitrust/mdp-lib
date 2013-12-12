@@ -135,14 +135,6 @@ sub start_session
     # environment is set up
     Debug::DUtils::debugging_enabled();
 
-    DEBUG('db,all',
-          sub
-          {
-              my $db = $C->get_object('Database');
-              my $msg = qq{DSN=} . $db->get_dsn() . qq{, username=} . $db->get_db_user();
-              return qq{<p><font color="green">$msg</font></p>};
-          });
-
     DEBUG('session,all',
           sub
           {
@@ -261,6 +253,7 @@ sub _make_persistent
                                      LockHandle => $dbh,
                                   };
     } else {
+        $Apache::Session::Store::DBI::TableName = 'ht_sessions';
         $session_store_attrsref = {
                                      Handle     => $dbh,
                                      Commit     => 1       # for InnoDB transactions

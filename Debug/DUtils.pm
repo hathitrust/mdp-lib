@@ -35,6 +35,7 @@ use Encode;
 use Session;
 use Utils;
 use Auth::ACL;
+use RightsGlobals;
 
 
 # Package lexical to enable debug message buffering for later display
@@ -47,32 +48,26 @@ our $g_xml_debugging = undef;
 my $non_HathiTrust_IP = '0.0.0.0';
 my %HathiTrust_IP_hash =
   (
-   'uom'  => '141.211.175.37', # clamato
-   'wisc' => '198.150.174.127',
-   'ind'  => '192.203.115..127',
-   'ucal' => '128.195.127.127',
-   'msu'  => '207.73.115..127',
-   'nwu'  => '209.100.79.127',
-   'osu'  => '128.146.127.127',
-   'psu'  => '150.231.127.127',
-   'ucm'  => '147.96.1.135', # Universidad Complutense de Madrid, non-US
-
+   'wisc' => {'ip' => '198.150.174.127', 'name' => 'University of Wisconsin',   'aff' => 'member@wisc.edu',},
+   'ind'  => {'ip' => '192.203.115.127', 'name' => 'University of Indiana',     'aff' => 'member@iu.edu',},
+   'ucsd' => {'ip' => '128.195.127.127', 'name' => 'University of California, San Diego',  'aff' => 'member@ucsd.edu',},
+   'msu'  => {'ip' => '207.73.115.127' , 'name' => 'Michigan State University', 'aff' => 'member@msu.edu',},
+   'nwu'  => {'ip' => '209.100.79.127' , 'name' => 'Northwestern University',   'aff' => 'member@nwu.edu',},
+   'osu'  => {'ip' => '128.146.127.127', 'name' => 'Ohio State University',     'aff' => 'member@osu.edu',},
+   'ias'  => {'ip' => '128.112.203.62' , 'name' => 'Princeton University',      'aff' => 'member@ias.edu',},
+   'prnc' => {'ip' => '128.112.203.127', 'name' => 'Princeton University',      'aff' => 'member@princeton.edu',},
+   'psu'  => {'ip' => '150.231.127.127', 'name' => 'Penn State University',     'aff' => 'member@psu.edu',},
+   'ucm'  => {'ip' => '147.96.1.135',    'name' => 'Universidad Complutense de Madrid', 'aff' => 'member@ucm.es',}, # non-US
   );
 
 # ---------------------------------------------------------------------
 
 =item setup_debug_environment
 
-Set DEBUG envvar based on debug CGI param.  We want
-CGI::Carp::DebugScreen when we are not running under the
-debugger.
-
-Under the web server we want the debug screen when in a
-development environment and the error screen when in a production
-environment.
-
-Should be called early in the compilation phase to
-reliably report errors.
+Set DEBUG envvar based on debug CGI param.  Must be called after
+Database is connected because the CL is a database table. Previously
+we had CGI::Carp::DebugScreen. Now we have a debug traceback set up in
+app.choke.
 
 =cut
 
@@ -86,10 +81,17 @@ sub setup_debug_environment {
     return if (! debugging_enabled());
 
     my $cgi = new CGI;
+
+    if ($ENV{DEBUG_LOCAL}) {
+        my $d = $cgi->param('debug');
+        $cgi->param('debug', "$d,local") unless ($d =~ m,local,);
+    }
+
     my $debugging = $cgi->param('debug');
 
-    $ENV{'DEBUG'} = $debugging
+    $ENV{DEBUG} = $debugging
       if ($debugging);
+    
 
     my @requested_switches =  split(',', $debugging);
     set_xml_debugging_enabled(\@requested_switches);
@@ -110,9 +112,6 @@ sub setup_debug_environment {
 Allow debug switches debug=hathi,{ind|pst|...|uc1}, debug=nonhathi by
 setting corresponding IP addrs.
 
-debug=nonlib allows SDRINST untouched but makes it appear that user is
-not in a library building.
-
 =cut
 
 # ---------------------------------------------------------------------
@@ -124,25 +123,12 @@ sub set_HathiTrust_debug_environment {
             if (DEBUG($inst_code)) {
                 $ENV{SDRINST} = $inst_code;
                 delete $ENV{SDRLIB};
-                $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{$inst_code};
+                $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{$inst_code}{ip};
+                $ENV{affiliation} = $HathiTrust_IP_hash{$inst_code}{aff};
                 last;
             }
         }
-    }
-    
-    if (DEBUG('shib')) {
-        # Appear to be a shib login at whatever IP you are at
-        $ENV{AUTH_TYPE} = 'shibboleth';
-        $ENV{affiliation} = 'member@umich.edu';
-        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
-    }
-
-    if (DEBUG('cosign')) {
-        # Stomp shib. Appear to be a cosign login at whatever IP you are at
-        $ENV{AUTH_TYPE} = 'cosign';
-        $ENV{affiliation} = 'member@umich.edu';
-        $ENV{REMOTE_USER} = 'pfarber';
-    }
+    }    
 
     if (DEBUG('ssd')) {
         $ENV{entitlement} = 'http://www.hathitrust.org/access/enhancedText'
@@ -165,20 +151,11 @@ sub set_HathiTrust_debug_environment {
     if (DEBUG('nonus')) {
         # Not at a US IP address (Madrid)
         $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{'ucm'};
-    }
-    
-    if (DEBUG('notlogged')) {
-        delete $ENV{REMOTE_USER};
-        delete $ENV{AUTH_TYPE};
-        delete $ENV{eppn};
-        delete $ENV{affiliation};
-        delete $ENV{entitlement};
-    }
-
-    if (DEBUG('nonlib')) {
-        delete $ENV{SDRLIB};
-        $ENV{REMOTE_ADDR} = $non_HathiTrust_IP;
-    }
+        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
+        $ENV{SDRINST} = 'ucm';
+        $ENV{AUTH_TYPE} = 'shibboleth';
+        $ENV{affiliation} = 'member@ucm.es';
+    }    
 
     DEBUG('auth',
           qq{HathiTrust: SDRINST=$ENV{SDRINST} SDRLIB=$ENV{SDRLIB} affiliation=$ENV{affiliation} eppn=$ENV{eppn} entitlement=$ENV{entitlement} displayName=$ENV{displayName} AUTH_TYPE=$ENV{AUTH_TYPE} REMOTE_ADDR=$ENV{REMOTE_ADDR}});
@@ -226,28 +203,6 @@ sub xml_debugging_enabled {
     return $g_xml_debugging;
 }
 
-# ---------------------------------------------------------------------
-
-=item setup_DebugScreen
-
-=cut
-
-# ---------------------------------------------------------------------
-sub setup_DebugScreen {
-    if (under_server()) {
-        my $development = $ENV{'HT_DEV'};
-
-        require CGI::Carp::DebugScreen;
-        import CGI::Carp::DebugScreen ('engine' => 'HTML::Template');
-        CGI::Carp::DebugScreen->debug($development);
-        CGI::Carp::DebugScreen->show_modules(0);
-        CGI::Carp::DebugScreen->show_environment($development);
-        CGI::Carp::DebugScreen->ignore_overload(0);
-        CGI::Carp::DebugScreen->show_raw_error($development);
-    }
-    # Support early DEBUG calls before Session is created.
-    setup_debug_environment();
-}
 
 # ---------------------------------------------------------------------
 
@@ -310,18 +265,18 @@ sub handle_template_file {
     my $msg = shift;
 
     my $template_ref;
+    my $appname = ___determine_app();
 
     if (defined($ENV{'UNAVAILABLE'})) {
-        my $filename = $ENV{'SDRROOT'} . '/mdp-web/MBooks_unavailable.html';
+        my $filename = $ENV{'SDRROOT'} . '/$appname/common-web/MBooks_unavailable.html';
         $template_ref = Utils::read_file($filename, 1);
         process_availability_file_msg($template_ref, $msg);
     }
     else {
-        my $filename = $ENV{'SDRROOT'} . '/mdp-web/production_error.html';
+        my $filename = $ENV{'SDRROOT'} . '/$appname/common-web/production_error.html';
         $template_ref = Utils::read_file($filename, 1);
     }
 
-    my $appname = ___determine_app();
     $$template_ref =~ s,\./,/$appname/common-web/,g;
 
     CGI::Carp::DebugScreen->set_error_template($$template_ref)
@@ -547,12 +502,14 @@ ranges when authenticated. VPN required when outside these ranges.
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
-    my $role = shift;
 
-    # Over-ride all authorization checking at the command line.
-    my $___no_ACL_debugging_test = $ENV{'TERM'};
+    use constant NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1 => 0;
 
-    my $authorized = Auth::ACL::a_Authorized($role);
+    # Over-ride all authorization checking at the command line or by
+    # flag.
+    my $___no_ACL_debugging_test = $ENV{TERM} || NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1;
+ 
+    my $authorized = Auth::ACL::a_Authorized( {access => 'total'} );
     if ($___no_ACL_debugging_test) {
         return 1;
     }

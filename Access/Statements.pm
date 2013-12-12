@@ -10,8 +10,7 @@ This package provides an interface to the Access and Use statements
 database. 
 
 PROGRAMMING NOTE: This module is shared between HT apps (like pt) and
-the Data API. Be judicious about adding additional Perl 'use'
-statements to keep it as lightweight as possible.
+the Data API.
 
 =head1 SYNOPSIS
 
@@ -48,7 +47,7 @@ my $stmt_ref = Access::Statements::get_stmt_by_key($C, $dbh, $key
                                  });
 
 
-Refer to mdp-lib/RightsGlobals.pm fpr definitions of attributes, sources, statement-keys etc.
+Refer to mdp-lib/RightsGlobals.pm for definitions of attributes, sources, statement-keys etc.
 
 =head1 METHODS
 
@@ -63,13 +62,13 @@ use RightsGlobals;
 
 my %ALL_FIELDS = 
   (
-   stmt_key      => 'database',
-   stmt_head     => 'database',
-   stmt_text     => 'database',
-   stmt_url      => 'database',
-   stmt_url_aux  => 'hash',
-   stmt_icon     => 'hash',
-   stmt_icon_aux => 'hash',
+   stmt_key      => 1,
+   stmt_head     => 1,
+   stmt_text     => 1,
+   stmt_url      => 1,
+   stmt_url_aux  => 1,
+   stmt_icon     => 1,
+   stmt_icon_aux => 1,
   );
  
 # ---------------------------------------------------------------------
@@ -101,16 +100,13 @@ sub get_stmt_by_rights_values {
     my $key = $sth->fetchrow_array();
     $req_ref->{stmt_key} = $key;
 
-    my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
+    my $database_fields_arr_ref = __build_field_lists($req_ref);
     my $database_fields = join(', ', @$database_fields_arr_ref);
     
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$key_SELECT_clause};
     my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
-
     $sth = DbUtils::prep_n_execute($_dbh, $statement, $attr_key, $source_key);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    __add_hash_fields_for($key, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
     return $ref_to_arr_of_hashref;
 }
@@ -129,16 +125,13 @@ sub get_stmt_by_key {
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
-    my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
+    my $database_fields_arr_ref = __build_field_lists($req_ref);
     my $database_fields = join(', ', @$database_fields_arr_ref);
 
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key=?};
     my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
-
     my $sth = DbUtils::prep_n_execute($_dbh, $statement, $key);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    __add_hash_fields_for($key, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
     return $ref_to_arr_of_hashref;
 }
@@ -157,15 +150,12 @@ sub get_all_stmts {
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
-    my ($database_fields_arr_ref, $hash_fields_arr_ref) = __build_field_lists($req_ref);
+    my $database_fields_arr_ref = __build_field_lists($req_ref);
     my $database_fields = join(', ', @$database_fields_arr_ref);
 
     my $statement = qq{SELECT $database_fields FROM access_stmts };
-
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    __add_hash_fields_for(undef, $ref_to_arr_of_hashref, $hash_fields_arr_ref);
 
     return $ref_to_arr_of_hashref;
 }
@@ -185,7 +175,6 @@ sub get_all_mappings {
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
     my $statement = qq{SELECT * FROM access_stmts_map };
-
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
@@ -206,49 +195,18 @@ sub __build_field_lists {
     my $req_hashref = shift;
 
     my @database_fields = ();
-    my @hash_fields = ();
     
     foreach my $field (keys %$req_hashref) {
-        if ($ALL_FIELDS{$field} eq 'database') {
+        if ($ALL_FIELDS{$field}) {
             if ($req_hashref->{$field}) {
                 push(@database_fields, $field);
             }
         }
-        elsif ($ALL_FIELDS{$field} eq 'hash') {
-            if ($req_hashref->{$field}) {
-                push(@hash_fields, $field);
-            }
-        }
     }
 
-    return (\@database_fields, \@hash_fields);
+    return \@database_fields;
 }
-# ---------------------------------------------------------------------
 
-=item __add_hash_fields
-
-Add hash-based fields to return hash
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __add_hash_fields_for {
-    my $stmt_key = shift;
-    my $dest_ref_to_arr_of_hashref = shift;
-    my $src_arr_ref = shift;
-
-    my @stmt_keys = (defined $stmt_key) ? $stmt_key : (keys %RightsGlobals::g_stmt_keys);
-    
-    foreach my $key (@stmt_keys) {
-        foreach my $hashref (@$dest_ref_to_arr_of_hashref) {
-            if ($hashref->{stmt_key} eq $key) {
-                foreach my $field (@$src_arr_ref) {
-                    $hashref->{$field} = $RightsGlobals::g_stmt_keys{$key}{$field};
-                }
-            }
-        }
-    }
-}
 
 1;
 
@@ -261,7 +219,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2011 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2011-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

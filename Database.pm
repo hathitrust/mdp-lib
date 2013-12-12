@@ -10,13 +10,19 @@ Database (db)
 This class encapsulates the database connection and access to the
 database handle.
 
+There are currently two database users with different permissions:
+ht_web and ht_maintenance for web-based apps and crontab-based
+scripts, respectively.
+
 =head1 SYNOPSIS
 
-my $config = new MdpConfig('some.conf');
-
-my $db = new Database($config);
-
+my $db_user = 'ht_web'
+my $db = new Database($db_user);
 $C->set_object('Database', $db);
+
+Interactively
+
+my $db = new Database('jones', 'somepassword', 'adbname', 'adbserver');
 
 
 =head1 METHODS
@@ -31,9 +37,17 @@ use DBI;
 use Utils;
 use Debug::DUtils;
 use DbUtils;
+use MdpConfig;
 
-sub new
-{
+my $_prod_root = q{/htapps/babel/etc/};
+my $_test_root = q{/htapps/test.babel/etc/};
+
+my $Production_Config_Root = (-e $_prod_root) ? $_prod_root : $_test_root ;
+
+my $Full_Access_Config_Root = q{/htapps/test.babel/etc/};
+my $Sample_Access_Config_Root = q{/htapps/} . $ENV{HT_DEV} . q{.babel/etc/};
+
+sub new {
     my $class = shift;
 
     my $self = {};
@@ -43,6 +57,48 @@ sub new
     return $self;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_db_connect_params
+
+The config file to use depends on whether the development user is
+config'd for the sample environment or the full.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___conf_file {
+    my ($root, $user) = @_;
+    my $conf_file = $root . $user . q{.conf};
+    return $conf_file;
+}
+
+sub __get_db_connect_params {
+    my $_db_user = shift;
+
+    my $conf_file;
+    if ($ENV{HT_DEV}) {
+        if ($ENV{SDRVIEW} eq 'sample') {
+            $conf_file = ___conf_file($Sample_Access_Config_Root, $_db_user);
+        }
+        else {
+            $conf_file = ___conf_file($Full_Access_Config_Root, $_db_user);
+        }
+    }
+    else {
+        $conf_file = ___conf_file($Production_Config_Root, $_db_user);
+    }
+    ASSERT(-e $conf_file, qq{Config file=$conf_file missing for db_user=$_db_user});
+
+    my $db_config = new MdpConfig($conf_file);
+
+    my $db_name   = $db_config->get('db_name');
+    my $db_user   = $db_config->get('db_user');
+    my $db_passwd = $db_config->get('db_passwd');
+    my $db_server = $db_config->get('db_server');
+
+    return ($db_user, $db_passwd, $db_name, $db_server);
+}
 
 # ---------------------------------------------------------------------
 
@@ -53,34 +109,32 @@ Initialize Database
 =cut
 
 # ---------------------------------------------------------------------
-sub _initialize
-{
+sub _initialize {
     my $self = shift;
-    my $config = shift;
+    my ($_db_user, $_db_passwd, $_db_name, $_db_server) = @_;
 
-    my $db_prefix = ($ENV{SDRVIEW} eq 'sample') ? "$ENV{HT_DEV}_" : '';
-    
-    my $db_name =  $db_prefix . $config->get('db_name');
-    my $db_user = $config->get('db_user');
-    my $db_passwd = $config->get('db_passwd');
-    
+    my ($db_user, $db_passwd,  $db_name, $db_server);
 
-    my $db_server = $config->get('db_server');
+    # If all args supplied (interactively) just connect
+    if ($_db_user && $_db_passwd && $_db_name && $_db_server) {
+        ($db_user, $db_passwd, $db_name, $db_server) = ($_db_user, $_db_passwd, $_db_name, $_db_server);
+    }
+    else {
+        ($db_user, $db_passwd, $db_name, $db_server) = __get_db_connect_params($_db_user);
+    }
+
     my $dsn = qq{DBI:mysql:$db_name:$db_server};
 
-    $self->{'dsn'} = $dsn;
-    $self->{'db_user'} = $db_user;
-    
     my $dbh;
     my $connect_attempts = 3;
     while ($connect_attempts) {
         $connect_attempts--;
-        
+
         eval {
             $dbh = DBI->connect(
-                                $dsn, 
-                                $db_user, 
-                                $db_passwd, 
+                                $dsn,
+                                $db_user,
+                                $db_passwd,
                               {
                                # Do our own checks, below
                                RaiseError => 0,
@@ -104,22 +158,6 @@ sub _initialize
     $dbh->{mysql_enable_utf8} = 1;
 
     $self->{'dbh'} = $dbh;
-
-    $self->test_schema_version($config);
-    
-}
-
-# ---------------------------------------------------------------------
-
-=item test_schema_version
-
-Description: virtual, subclass optional
-
-=cut
-
-# ---------------------------------------------------------------------
-sub test_schema_version
-{
 }
 
 # ---------------------------------------------------------------------
@@ -131,48 +169,11 @@ Database handle accessor
 =cut
 
 # ---------------------------------------------------------------------
-sub get_DBH
-{
+sub get_DBH {
     my $self = shift;
     my $C = shift;
-    
     return $self->{'dbh'};
 }
-
-# ---------------------------------------------------------------------
-
-=item get_dsn
-
-Database data source name (dsn) accessor
-
-=cut
-
-# ---------------------------------------------------------------------
-sub get_dsn
-{
-    my $self = shift;
-    my $C = shift;
-    
-    return $self->{'dsn'};
-}
-
-# ---------------------------------------------------------------------
-
-=item get_db_user
-
-Database user name accessor
-
-=cut
-
-# ---------------------------------------------------------------------
-sub get_db_user
-{
-    my $self = shift;
-    my $C = shift;
-    
-    return $self->{'db_user'};
-}
-
 
 # ---------------------------------------------------------------------
 
@@ -183,12 +184,10 @@ Clean up the database connection
 =cut
 
 # ---------------------------------------------------------------------
-sub dispose
-{
+sub dispose {
     my $self = shift;
     my $dbh = $self->get_DBH();
-    if ($dbh->{Active})
-    {
+    if ($dbh->{Active}) {
         $dbh->disconnect();
     }
 }

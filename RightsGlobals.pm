@@ -6,19 +6,26 @@ package RightsGlobals;
  id        name           dscr
  1         google         Google
  2         lit-dlps-dc    LIT, DLPS, Digital Conversion
- 3         ump            University of Michigan Press 
+ 3         ump            University of Michigan Press
  4         ia             Internet Archive
  5         yale           Yale University
  6         umn            University of Minnesota
  7         mhs            Minnesota Historical Society
- 8         usu            Utah State University
+ 8         usup           Utah State University Press
  9         ucm            Universidad Complutense de Madrid
+ 10        purd           Purdue University
+ 11        getty          Getty Research Institute
+ 12        um-dc-mp       University of Michigan, Duderstadt Center, Millennium Project
+ 13        uiuc           University of Illinois at Urbana-Champaign
+ 14        brooklynmuseum Brooklyn Museum
+ 15        uf             University of Florida
+ 16        tamu           Texas A&M
 
  ATTRIBUTES
  id        name        type      dscr
  1         pd          copyright public domain
  2         ic          copyright in-copyright
- 3         opb         copyright out-of-print and brittle (implies in-copyright)
+ 3         op          copyright out-of-print (implies in-copyright) @OPB
  4         orph        copyright copyright-orphaned (implies in-copyright)
  5         und         copyright undetermined copyright status
  6         umall       access    available to UM affiliates and walk-in patrons (all campuses)
@@ -26,6 +33,7 @@ package RightsGlobals;
  8         nobody      access    available to nobody; blocked for all users
  9         pdus        copyright public domain only when viewed in the US
  18        und-world   access    undetermined copyright status and permitted as world viewable
+ 19        icus        copyright in copyright in the US
 
  (Creative Commons)
 
@@ -44,32 +52,32 @@ package RightsGlobals;
  16        orphcand    copyright   orphan candidate - in 90-day holding period (implies in-copyright)
 
  STATEMENT KEYS
+
+ by-permission
+ candidates
+ cc-by
+ cc-by-nc
+ cc-by-nc-nd
+ cc-by-nc-sa
+ cc-by-nd
+ cc-by-sa
+ cc-zero
+ ic
+ ic-access
+ ic-us
+ ic-us-google
+ oa
+ oa-google
+ orphans
  pd
  pd-google
  pd-us
  pd-us-google
- oa
- oa-google
- section108
- ic
- cc-by
- cc-by-nd
- cc-by-nc-nd
- cc-by-nc
- cc-by-nc-sa
- cc-by-sa
- orphcand
- cc-zero
 
 =cut
 
-# Return codes from Database access
-use constant OK_ID        => 0;
-use constant BAD_ID       => 1;
-use constant NO_ATTRIBUTE => 2;
-use constant NO_SOURCE    => 4;
- 
-use constant NOOP_ATTRIBUTE => 0;
+# Bad rights_current.{attr,source} value
+our $NOOP_ATTRIBUTE = 0;
 
 # ---------------------------------------------------------------------
 # Keys are attributes in the Rights Matrix database Attributes table
@@ -79,34 +87,38 @@ use constant NOOP_ATTRIBUTE => 0;
 # 'in a library building'
 # 'UM authenticated'
 # ---------------------------------------------------------------------
-$ORDINARY_USER          = 1;
-$SSD_USER               = 2;
-$LIBRARY_IPADDR_USER    = 3;
-$UM_AFFILIATE           = 4;
-$HT_AFFILIATE           = 5;
+our $HT_ACL_USER         = 1;
+our $ORDINARY_USER       = 2;
+our $SSD_USER            = 3;
+our $SSD_PROXY_USER      = 4;
+our $LIBRARY_IPADDR_USER = 5;
+our $UM_AFFILIATE        = 6;
+our $HT_AFFILIATE        = 7;
 
-@g_access_types = ($ORDINARY_USER .. $HT_AFFILIATE);
+@g_access_types = ($HT_ACL_USER .. $HT_AFFILIATE);
 
-%g_access_type_names = 
+%g_access_type_names =
     (
+     $HT_ACL_USER            => 'ht_acl_user',
      $ORDINARY_USER          => 'ordinary_user',
      $SSD_USER               => 'ssd_user',
+     $SSD_PROXY_USER         => 'ssd_proxy_user',
      $LIBRARY_IPADDR_USER    => 'in_library_user',
      $UM_AFFILIATE           => 'um_affiliate',
      $HT_AFFILIATE           => 'ht_affiliate',
     );
 
-%g_attribute_names = 
+%g_attribute_names =
   (
    '1'  => 'public-domain',
    '2'  => 'in-copyright',
-   '3'  => 'in-copyright out-of-print brittle',
+   '3'  => 'in-copyright out-of-print',
    '4'  => 'in-copyright orphaned',
    '5'  => 'undetermined copyright',
    '6'  => 'available to um affiliates + walk-ins',
    '7'  => 'available to everyone',
    '8'  => 'available to nobody',
-   '9'  => 'public-domain in us', 
+   '9'  => 'public-domain in us',
    '10' => 'copyright attribute work in manner specified by author',
    '11' => 'copyright cc-by + no derivatives upon distribution',
    '12' => 'copyright cc-by-nd + only non-commercial use only',
@@ -116,13 +128,14 @@ $HT_AFFILIATE           = 5;
    '16' => 'in-copyright orphan candidate',
    '17' => 'cc0 no rights reserved license implies pd',
    '18' => 'available to everyone',
+   '19' => 'in copyright in the US',
   );
 
 %g_attribute_keys =
   (
    1  => 'pd',
    2  => 'ic',
-   3  => 'opb',
+   3  => 'op',
    4  => 'orph',
    5  => 'und',
    6  => 'umall',
@@ -138,9 +151,10 @@ $HT_AFFILIATE           = 5;
    16 => 'orphcand',
    17 => 'cc-zero',
    18 => 'und-world',
+   19 => 'icus',
   );
 
-%g_source_names = 
+%g_source_names =
   (
    '1'  => 'google',
    '2'  => 'lit-dlps-dc',
@@ -149,11 +163,18 @@ $HT_AFFILIATE           = 5;
    '5'  => 'yale',
    '6'  => 'mdl',
    '7'  => 'mhs',
-   '8'  => 'usu',
+   '8'  => 'usup',
    '9'  => 'ucm',
+   '10' => 'purd',
+   '11' => 'getty',
+   '12' => 'um-dc-mp',
+   '13' => 'uiuc',
+   '14' => 'brooklynmuseum',
+   '15' => 'uf',
+   '16' => 'tamu',
   );
 
-@g_stmt_fields = 
+@g_stmt_fields =
   qw(
         stmt_key
         stmt_url
@@ -164,252 +185,241 @@ $HT_AFFILIATE           = 5;
         stmt_text
    );
 
-# Coordinates with table=mdp.access_stmts
-%g_stmt_keys =
-  (
-   'pd'           => {
-                      'stmt_icon' => '',
-                     },
-   'pd-google'    => {
-                      'stmt_icon' => '',
-                     },
-   'pd-us'        => {
-                      'stmt_icon' => '',
-                     },
-   'pd-us-google' => {
-                      'stmt_icon' => '',
-                     },
-   'oa'           => {
-                      'stmt_icon' => '',
-                     },
-   'oa-google'    => {
-                      'stmt_icon' => '',
-                     },
-   'section108'   => {
-                      'stmt_icon' => '',
-                     },
-   'ic'           => {
-                      'stmt_icon' => '',
-                     },
-   'cc-by'        => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by/3.0/us/',
-                     },
-   'cc-by-nd'     => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nd/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nd/3.0/us/',
-                     },
-   'cc-by-nc-nd'  => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc-nd/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc-nd/3.0/us/',
-                     },
-   'cc-by-nc'     => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc/3.0/us/',
-                     },
-   'cc-by-nc-sa'  => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-nc-sa/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-nc-sa/3.0/us/',
-                     },
-   'cc-by-sa'     => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/by-sa/3.0/us/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/licenses/by-sa/3.0/us/',
-                     },
-   'cc-zero'      => {
-                      'stmt_icon_aux' => 'http://i.creativecommons.org/l/zero/1.0/80x15.png',
-                      'stmt_url_aux'  => 'http://creativecommons.org/publicdomain/zero/1.0/',
-                     },
-   'candidates'   => {
-                      'stmt_icon' => '',
-                     },
-   'orphans'      => {
-                      'stmt_icon' => '',
-                     },
-  );
 
 %g_rights_matrix =
   (
-     # public domain
-     '1' => { 
-             $ORDINARY_USER         => 'allow',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'allow',
-             $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'allow',
-            },
-     # in-copyright
-     '2' => { 
-             $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_ssd_by_holdings',
-             $LIBRARY_IPADDR_USER   => 'deny',
-             $UM_AFFILIATE          => 'deny',
-             $HT_AFFILIATE          => 'deny',
-            },
-   # OPB out-of-print and brittle (implies in-copyright).
-   # ---------------------------------------------------------------
-   # 1) As of Feb 2010, UM affiliates can view OPB without being in a
-   # library but only one such user is allowed to do so at a
-   # time. Exclusivity is enforced and access granted downstream.  
-   #
-   # 2) Holding is implied @ Wed Aug 10 2011 for allow_by_lib_ipaddr,
-   # and allow_by_exclusivity because all OPB in database are held by
-   # uom. THIS WILL CHANGE WHEN WE HAVE CONDITION DATA IN Holdings
-   # databse FOR OTHER INSTITUTIONS.
-     '3' => { 
-             $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_ssd_by_holdings',
-             $LIBRARY_IPADDR_USER   => 'allow_by_lib_ipaddr',
-             $UM_AFFILIATE          => 'allow_by_exclusivity',
-             $HT_AFFILIATE          => 'deny', 
-            },
-     # copyright-orphaned (implies in-copyright)
-     '4' => { 
-             $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_ssd_by_holdings',
-             $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
-             $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
-             $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
-            },
-     # undetermined copyright status
-     '5' => { 
-             $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'allow_ssd_by_holdings',
-             $LIBRARY_IPADDR_USER   => 'deny',
-             $UM_AFFILIATE          => 'deny',
-             $HT_AFFILIATE          => 'deny',
-            },
-     # available to UM affiliates and UM walk-in patrons (all
-     # campuses), these moved to 7 (world) so then are equivalent to 7
-     # if a volume appears as 6
-     '6' => { 
-             $ORDINARY_USER         => 'allow',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'allow',
-             $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'allow',
-            },
-     # available to everyone in the world
-     '7' => { 
-             $ORDINARY_USER         => 'allow',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'allow',
-             $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'allow',
-            },
-     # available to no one in the world
-     '8' => { 
-             $ORDINARY_USER         => 'deny',
-             $SSD_USER              => 'deny',
-             $LIBRARY_IPADDR_USER   => 'deny',
-             $UM_AFFILIATE          => 'deny',
-             $HT_AFFILIATE          => 'deny',
-            },
-     # available if IP is in the "U.S." As of Mon Aug 23 15:13:41
-     # 2010, per JPW, authenticated users can see pdus outside U.S.
-     '9' => { 
-             $ORDINARY_USER         => 'allow_by_geo_ipaddr',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'allow',
-             $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'allow',
-            },
-     # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
-     '10' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-             },
-     # available to everyone in the world http://creativecommons.org/licenses/by-nd/3.0/
-     '11' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-             },  
-     # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/3.0/
-     '12' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-             },  
-     # available to everyone in the world http://creativecommons.org/licenses/by-nc/3.0/
-     '13' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-             },  
-     # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/3.0/
-     '14' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-             },  
-     # available to everyone in the world http://creativecommons.org/licenses/by-sa/3.0/
-     '15' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-             },
-     # orphan candidate (implied in-copyright)
-     '16' => { 
-              $ORDINARY_USER         => 'deny',
-              $SSD_USER              => 'allow_ssd_by_holdings',
-              $LIBRARY_IPADDR_USER   => 'deny',
-              $UM_AFFILIATE          => 'deny',
-              $HT_AFFILIATE          => 'deny',
-            },
-     # available to everyone in the world http://creativecommons.org/publicdomain/zero/1.0/
-     '17' => { 
-              $ORDINARY_USER         => 'allow',
-              $SSD_USER              => 'allow',
-              $LIBRARY_IPADDR_USER   => 'allow',
-              $UM_AFFILIATE          => 'allow',
-              $HT_AFFILIATE          => 'allow',
-            },
-     # available to everyone in the world
-     '18' => { 
-             $ORDINARY_USER         => 'allow',
-             $SSD_USER              => 'allow',
-             $LIBRARY_IPADDR_USER   => 'allow',
-             $UM_AFFILIATE          => 'allow',
-             $HT_AFFILIATE          => 'allow',
-            },
-    );
+   # public domain
+   '1' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'allow',
+           $SSD_USER              => 'allow',
+           $SSD_PROXY_USER        => 'allow',
+           $LIBRARY_IPADDR_USER   => 'allow',
+           $UM_AFFILIATE          => 'allow',
+           $HT_AFFILIATE          => 'allow',
+          },
+   # in-copyright
+   '2' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'deny',
+           $SSD_USER              => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $LIBRARY_IPADDR_USER   => 'deny',
+           $UM_AFFILIATE          => 'deny',
+           $HT_AFFILIATE          => 'deny',
+          },
+   # OP out-of-print (implies in-copyright). (Was OPB out-of-print, brittle) @OPB
+   # ----------------------------------------------------------------------------
+   # As of Wed Nov 28 12:52:40 2012 we have HOLDINGS so access
+   # exclusivity is granted if on US Soil and:
+   # ((OP AND BRLM) AND (LIBRARY_IPADDR_USER OR *_AFFILIATE)) OR (OP AND SSD_USER)
+   '3' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'deny',
+           $SSD_USER              => 'allow_ssd_by_holdings', # US implied
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
+           $UM_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
+           $HT_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
+          },
+   # copyright-orphaned (implies in-copyright)
+   '4' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'deny',
+           $SSD_USER              => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
+           $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
+           $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
+          },
+   # undetermined copyright status
+   '5' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'deny',
+           $SSD_USER              => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $LIBRARY_IPADDR_USER   => 'deny',
+           $UM_AFFILIATE          => 'deny',
+           $HT_AFFILIATE          => 'deny',
+          },
+   # available to UM affiliates and UM walk-in patrons (all
+   # campuses), these moved to 7 (world) so then are equivalent to 7
+   # if a volume appears as 6
+   '6' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'allow',
+           $SSD_USER              => 'allow',
+           $SSD_PROXY_USER        => 'allow',
+           $LIBRARY_IPADDR_USER   => 'allow',
+           $UM_AFFILIATE          => 'allow',
+           $HT_AFFILIATE          => 'allow',
+          },
+   # available to everyone in the world
+   '7' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'allow',
+           $SSD_USER              => 'allow',
+           $SSD_PROXY_USER        => 'allow',
+           $LIBRARY_IPADDR_USER   => 'allow',
+           $UM_AFFILIATE          => 'allow',
+           $HT_AFFILIATE          => 'allow',
+          },
+   # available to no one in the world
+   '8' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'deny',
+           $SSD_USER              => 'deny',
+           $SSD_PROXY_USER        => 'deny',
+           $LIBRARY_IPADDR_USER   => 'deny',
+           $UM_AFFILIATE          => 'deny',
+           $HT_AFFILIATE          => 'deny',
+          },
+   # available if IP is US or affiliated with a US partner at any
+   # IP address
+   '9' => {
+           $HT_ACL_USER           => 'allow',
+           $ORDINARY_USER         => 'allow_by_us_geo_ipaddr', # US IP only
+           $SSD_USER              => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
+           $SSD_PROXY_USER        => 'allow_us_aff_by_ipaddr',
+           $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
+           $UM_AFFILIATE          => 'allow', # US affiliate any IP
+           $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
+          },
+   # available if IP is non-US or affiliated with non-US partner at
+   # any IP address
+   '19' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
+            $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
+            $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
+            $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
+            $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
+            $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
+   '10' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nd/3.0/
+   '11' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/3.0/
+   '12' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nc/3.0/
+   '13' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/3.0/
+   '14' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-sa/3.0/
+   '15' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # orphan candidate (implied in-copyright)
+   '16' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'deny',
+            $SSD_USER              => 'allow_ssd_by_holdings',
+            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+            $LIBRARY_IPADDR_USER   => 'deny',
+            $UM_AFFILIATE          => 'deny',
+            $HT_AFFILIATE          => 'deny',
+           },
+   # available to everyone in the world http://creativecommons.org/publicdomain/zero/1.0/
+   '17' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world
+   '18' => {
+            $HT_ACL_USER           => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+  );
 
 # ---------------------------------------------------------------------
-# "Public domain"
+# Attribute sets
 # ---------------------------------------------------------------------
 #
-@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17);
-@g_public_domain_world_attribute_values = (1, 7, 9, 18);
-@g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16);
+@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17); # All users
+@g_public_domain_world_attribute_values = (1, 7, 9, 18, 19); # All users
+@g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16); # SSD only, if institution holds
 
+$g_access_requires_brittle_holdings_attribute_value = 3; # Some users, if institution holds
 $g_available_to_no_one_attribute_value = 8;
 $g_public_domain_US_attribute_value = 9;
+$g_public_domain_non_US_attribute_value = 19;
 $g_orphan_attribute_value = 4;
 $g_orphan_candidate_attribute_value = 16;
 
 # ---------------------------------------------------------------------
 # Source values authorized for full book PDF download.
 # ---------------------------------------------------------------------
-#                                          
+#
 @g_full_PDF_download_open_source_values = (
-                                           2, # lit-dlps-dc
-                                           4, # ia
-                                           5, # yale
-                                           8, # usu
-                                           9, # ucm
+                                           2,  # lit-dlps-dc
+                                           4,  # ia
+                                           5,  # yale
+                                           8,  # usup
+                                           9,  # ucm
+                                           10, # purd
+                                           11, # getty
+                                           12, # um-dc-mp
+                                           13, # uiuc
+                                           14, # brooklynmuseum
+                                           15, # uf
+                                           16, # tamu
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
@@ -422,9 +432,9 @@ $g_orphan_candidate_attribute_value = 16;
 # Geographic IP Information
 # ---------------------------------------------------------------------
 # Country codes used to determine public domain via the GeoIP database
-# for attribute number 9
+# for attribute numbers 9, 19
 #
-@g_pdus_country_codes = 
+@g_pdus_country_codes =
     (
      'US', # United States
      'UM', # United States Minor Outlying Islands
@@ -439,7 +449,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-11 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-13 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

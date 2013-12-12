@@ -73,55 +73,23 @@ use XML::LibXML;
 use Utils;
 use Debug::DUtils;
 use Session;
+use Auth::ACL;
+use Auth::Exclusive;
+use Institutions;
 
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
-# eduPersonENtitlement attribute values that qualify as print disabled
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP = 
+# eduPersonEntitlement attribute values that qualify as print disabled
+my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
   qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
 
-# Which eduPersonScopedAffiliation attribute values can be considered
+# eduPersonScopedAffiliation attribute values that can be considered
 # for print disabled status
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
 
-use constant UMICH_SSD_LIST => 
-  qw ( 
-         ijohns
-         rubind
-         gsheena
-         hkanter
-         jrmorak
-         kmbally
-         orodrigu
-         kimjiy
-         kqread
-         jrcarmon
-         jlfr
-         shanorwo
-         caone
-         brekac
-         nicolejg
-         noahw
-         ccarpey
-         ekderus
-         echols
-         mshoe
-         dgoraya
-         krausant
-         rparten
-         crwils
-         sydfried
-         rgottfri
-         benmb
-         mikenuss
-         nlcp
-         kshalosk
-         rpetrak
-    );
- 
 sub new {
     my $class = shift;
     my $C = shift;
@@ -142,12 +110,34 @@ Initialize Auth::Auth
 =cut
 
 # ---------------------------------------------------------------------
+sub __debug_auth {
+    my $self = shift;
+    my ($C, $ses) = @_;
+
+    my $auth_str =
+      q{AUTH: userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
+        . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+          . q{ authsys=} . __get_auth_sys($ses)
+            . q{ newlogin=} . $self->isa_new_login()
+              . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                  . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
+                    . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
+                      . q{ is_umich=} . $self->affiliation_is_umich($C)
+                        . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                          . q{ entitlement=} . $ENV{entitlement}
+                            . q{ print-disabled-proxy=} . $self->get_PrintDisabledProxyUserSignature($C)
+                              . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
+
+    DEBUG('auth', $auth_str);
+    # print STDERR "Auth str: " . $auth_str . "\n";
+    # print STDERR "REMOTE_USER: " . $ENV{REMOTE_USER} . "\n";
+}
+
 sub _initialize {
     my $self = shift;
     my $C = shift;
 
-    $self->{institution_map} = __load_institutions_xml($C);
-    
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
         my $was_logged_in_via = __get_auth_sys($ses);
@@ -158,80 +148,24 @@ sub _initialize {
 
             $self->set_isa_new_login($was_logged_in_via ne $now_logged_in_via);
 
-            DEBUG('auth',
-                  sub {
-                      q{AUTH: user=} . $self->get_user_name($C) . q{ disp=} . $self->get_user_display_name($C)
-                        . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
-                          . q{ authsys=} . __get_auth_sys($ses)
-                            . q{ newlogin=} . $self->isa_new_login()
-                              . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                                . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                                  . q{ institution=} . $self->get_institution($C)
-                                    . q{ is_umich=} . $self->affiliation_is_umich($C)
-                                      . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                        . q{ entitlement=} . $ENV{entitlement}
-                                          . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
-                                });
+            if ($self->isa_new_login()) {
+                Auth::Exclusive::update_exclusive_access(
+                                                         $C,
+                                                         $ses->get_session_id(),
+                                                         $self->get_user_name($C),
+                                                        );
+            }
+
+            $self->__debug_auth($C, $ses);
         }
         else {
             # Not authenticated: THIS MAY BE CONDITION X:
             # See pod (above).
-            DEBUG('auth', q{AUTH: Not Authed. user=} . $self->get_user_name($C)
-                  . q{ disp=} . $self->get_user_display_name($C));
-
+            $self->__debug_auth($C, $ses);
             $self->handle_possible_redirect($C, $was_logged_in_via);
             # POSSIBLY NOTREACHED
         }
     }
-}
-
-# ---------------------------------------------------------------------
-
-=item __load_institutions_xml
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __load_institutions_xml {
-    my $C = shift;
-
-    my $app = $C->get_object('App')->get_app_name($C);
-    my $institution_file = qq{$ENV{SDRROOT}/$app/web/common-web/institutions.xml};
-    
-    my $xml_ref = Utils::read_file($institution_file);
-    my $parser = XML::LibXML->new();
-    my $tree = $parser->parse_string($$xml_ref);
-    my $root = $tree->getDocumentElement();
-
-    my $xpath = q{/Institutions/Inst};
-    my $xml_instMap = $root->findnodes($xpath);
-    my $inst_map = {};
-    
-    foreach my $inst ($xml_instMap->get_nodelist) {
-        my $domain = $inst->getAttribute('domain');
-        $inst_map->{$domain} = {
-            'sdrinst' => $inst->getAttribute('sdrinst'),
-            'name'    => $inst->textContent
-        };
-    }
-
-    return $inst_map;
-}
-
-# ---------------------------------------------------------------------
-
-=item get_institution_map
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub get_institution_map {
-    my $self = shift;
-    return $self->{institution_map}    
 }
 
 # ---------------------------------------------------------------------
@@ -400,7 +334,7 @@ sub auth_sys_is_SHIBBOLETH {
     }
 
     return $is;
-    
+
 }
 
 # ---------------------------------------------------------------------
@@ -416,6 +350,9 @@ priority scheme) that we recognize as asserting authentication
 # ---------------------------------------------------------------------
 sub is_logged_in {
     my $self = shift;
+
+    return 0 if (DEBUG('notlogged'));
+
     return exists($ENV{'REMOTE_USER'});
 }
 
@@ -435,50 +372,100 @@ sub login_realm_is_friend {
 
 # ---------------------------------------------------------------------
 
-=item get_institution_by_ip_address
+=item __get_institution_by_ip_address
+
+*** PRIVATE CLASS METHOD ***
 
 Note this associates the REMOTE_ADDR via a list of institutions codes
 maintained by Core Services for Apache.
 
+Clients of this class should use get_institution_code()
+
 =cut
 
 # ---------------------------------------------------------------------
-sub get_institution_by_ip_address {
-    my $self = shift;
+sub __get_institution_by_ip_address {
     return $ENV{'SDRINST'};
 }
 
 # ---------------------------------------------------------------------
 
-=item get_institution
+=item __get_domain_from_affiliation
 
-Note this maps users eduPersonScopedAffiliation to the institution code. 
+Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_institution {
+sub __get_domain_from_affiliation {
+    my $aff = shift;
+    my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
+
+    return $domain;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_code
+
+Note this maps users eduPersonScopedAffiliation to the (possibly
+mapped) institution code.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_code {
     my $self = shift;
     my $C = shift;
-    
+    my $mapped = shift;
+
+    my $inst_code;
+
     my $aff = $self->get_eduPersonScopedAffiliation($C);
-    my $map_ref = $self->get_institution_map();
-    
-    my $inst;
-    
-    if ($aff) {    
-        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain}->{sdrinst};
+    if ($aff) {
+        my $domain = __get_domain_from_affiliation($aff);
+        $inst_code = Institutions::get_institution_domain_field_val($C, $domain, 'sdrinst', $mapped);
+    }
+    else {
+        my $inst = __get_institution_by_ip_address();
+        $inst_code = Institutions::get_institution_sdrinst_field_val($C, $inst, 'sdrinst', $mapped);
     }
 
-    return $inst;
+    return $inst_code;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_us_status
+
+Is user's institution in the US?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_us_status {
+    my $self = shift;
+    my $C = shift;
+
+    my $status = 'notaff';
+
+    my $aff = $self->get_eduPersonScopedAffiliation($C);
+    if ($aff) {
+        my $domain = __get_domain_from_affiliation($aff);
+        my $is_us = Institutions::get_institution_domain_field_val($C, $domain, 'us');
+        # Trap mismatch between value in ht_institutions.domain and scoping affiliation
+        $status = (defined($is_us) ? ($is_us ? 'affus' : 'affnonus') : 'notaff');
+    }
+
+    return $status;
 }
 
 # ---------------------------------------------------------------------
 
 =item get_institution_name
 
-Note this maps users eduPersonScopedAffiliation to the institution name. 
+Note this maps users SDRINST environment var or
+eduPersonScopedAffiliation to the institution name.
 
 =cut
 
@@ -486,37 +473,55 @@ Note this maps users eduPersonScopedAffiliation to the institution name.
 sub get_institution_name {
     my $self = shift;
     my $C = shift;
-    
+    my $mapped = shift;
+
+    my $inst_name;
+
     my $aff = $self->get_eduPersonScopedAffiliation($C);
-    my $map_ref = $self->get_institution_map();
-    
-    my $inst;
-    
-    if ($aff) {    
-        my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-        $inst = $map_ref->{$domain}->{name};
+    if ($aff) {
+        my $domain = __get_domain_from_affiliation($aff);
+        $inst_name = Institutions::get_institution_domain_field_val($C, $domain, 'name', $mapped);
+    }
+    else {
+        my $inst = __get_institution_by_ip_address();
+        $inst_name = Institutions::get_institution_sdrinst_field_val($C, $inst, 'name', $mapped);
     }
 
-    return $inst;
+    return $inst_name;
 }
 
 # ---------------------------------------------------------------------
 
 =item is_in_library
 
-This plays a role in Section 108 brittle book access authorization. We
-do not currently have IP addresses of non-UM Library buildings. If we
-did, we could consult the Holdings database for book's condition.
+This plays a role in Section 108 brittle book access authorization and
+pd full book PDF download. We do not currently have complete IP
+addresses of non-UM Library buildings. If we did, we could consult the
+Holdings database for book's condition when condition data becomes
+available in that database.
+
+As of Thu Mar 8 15:15:52 2012 We are adding LOC to the in-library IP
+ranges.
+
+As of Mon Apr 30 12:41:49 2012 We are adding NYPL to the in-library IP
+ranges.
+
+As of Mon Jun 4 13:38:38 2012 We are adding GETTY to the in-library IP
+ranges.
+
 
 =cut
 
 # ---------------------------------------------------------------------
 sub is_in_library {
     my $self = shift;
-    my $institution = $self->get_institution_by_ip_address();
-    return ($institution && ($institution eq 'uom') && $ENV{'SDRLIB'});
-}
 
+    return 0 if (DEBUG('nonlib'));
+    return 1 if (DEBUG('inlib'));
+
+    my $institution = __get_institution_by_ip_address();
+    return ($institution && $ENV{SDRLIB});
+}
 
 # ---------------------------------------------------------------------
 
@@ -537,7 +542,7 @@ sub __get_prioritized_scoped_affiliation {
     my $self = shift;
 
     my @aff_prios = qw(member faculty staff student alum affiliate);
-    my @affs = split(/\s*;\s*/, $ENV{'affiliation'});
+    my @affs = split(/\s*;\s*/, $ENV{affiliation});
     @affs = map {lc($_)} @affs;
 
     my %aff_hash = map { ($_) =~ (m,(.*?)@.*$,) => $_ } @affs;
@@ -598,6 +603,34 @@ sub get_eduPersonScopedAffiliation {
 
 # ---------------------------------------------------------------------
 
+=item get_eduPersonUnScopedAffiliation
+
+This is the full eduPersonScopedAffiliation, e.g. member@umich.edu
+with stripped of the acope.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_eduPersonUnScopedAffiliation {
+    my $self = shift;
+    my $C = shift;
+
+    my $eduPersonUnScopedAffiliation;
+
+    if ($self->auth_sys_is_COSIGN($C)) {
+        if (! $self->login_realm_is_friend()) {
+            $eduPersonScopedAffiliation = 'member';
+        }
+    }
+    elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
+        $eduPersonUnScopedAffiliation = $self->__get_prioritized_unscoped_affiliation();
+    }
+
+    return $eduPersonUnScopedAffiliation;
+}
+
+# ---------------------------------------------------------------------
+
 =item get_eduPersonPrincipalName
 
 This is the eduPersonPrincipalName, e.g. janedoe@umich.edu
@@ -630,6 +663,58 @@ sub get_eduPersonPrincipalName {
 
 # ---------------------------------------------------------------------
 
+=item get_PrintDisabledProxyUserSignature
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_PrintDisabledProxyUserSignature {
+    my $self = shift;
+
+    my $signature = '';
+    my $role =  Auth::ACL::a_GetUserAttributes('role');
+    if ($role eq 'ssdproxy') {
+        $signature = Auth::ACL::a_GetUserAttributes('userid') || 'undefined';
+    }
+    
+    return $signature;
+}
+
+# ---------------------------------------------------------------------
+
+=item user_is_print_disabled_proxy
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub user_is_print_disabled_proxy {
+    my $self = shift;
+
+    my $role =  Auth::ACL::a_GetUserAttributes('role');
+    return ($role eq 'ssdproxy');
+}
+
+
+# ---------------------------------------------------------------------
+
+=item __user_is_print_disabled_in_ACL
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __user_is_print_disabled_in_ACL {
+    my $role =  Auth::ACL::a_GetUserAttributes('role');
+    return ($role =~ m,^ssd,);
+}
+
+# ---------------------------------------------------------------------
+
 =item get_eduPersonEntitlement_print_disabled
 
 This is the eduPersonEntitlement attribute value that equates to print disabled status.
@@ -654,20 +739,21 @@ sub get_eduPersonEntitlement_print_disabled {
     my $self = shift;
     my $C = shift;
 
-    my $is_print_disabled = 0;
+    # Auth-system-independent tests
+    my $print_disabled = __user_is_print_disabled_in_ACL() || DEBUG('ssd');
 
-    if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
-        if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
-            my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
-            $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+    # Auth-system-dependent tests
+    if (! $print_disabled) {
+        if ($self->auth_sys_is_SHIBBOLETH($C)) {
+            my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
+            if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
+                my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+                $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
+            }
         }
     }
-    elsif ($self->auth_sys_is_COSIGN($C)) {
-        $is_print_disabled = grep(/^$ENV{REMOTE_USER}$/, UMICH_SSD_LIST) || DEBUG('ssd');
-    }
 
-    return $is_print_disabled;
+    return $print_disabled;
 }
 
 
@@ -704,8 +790,10 @@ sub get_eduPersonTargetedID {
 
 =item __get_parsed_displayName
 
-Parse eduperson displayName returning first element in case multiple
-values are released.
+Parse eduPerson displayName. We've seen the environment return exactly
+both: '&amp;eacute\;' and '&eacute\;' de-shibify the escaped
+semi-colons and unescape the &amp; contextually for both character
+entity references and for numeric character references.
 
 =cut
 
@@ -713,23 +801,31 @@ values are released.
 sub __get_parsed_displayName {
     my $self = shift;
 
-    my @elems = split(/\s*;\s*/, $ENV{displayName});
+    my $name = $ENV{displayName};
+    # unescape XML and un-shibify semicolons
+    $name =~ s,(&)(amp;)?(#?x?[a-zA-Z0-9]+)\\(;),$1$3$4,gi;
+    # map to parseable NCRs
+    $name =~ s,(&[a-zA-Z0-9]+;),&Utils::minimal_CER_to_NCR_map($1),eg;
 
-    return $elems[0];
+    return $name;
 }
 
 # ---------------------------------------------------------------------
 
-=item get_displayName
+=item __get_displayName
 
 This is the displayName attribute, e.g. Franklin Lumpkin, Esq.
 
 http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#displayName
 
+users of Auth::Auth should call:
+
+$self->get_user_display_name($C, [scoped(0)|unscoped(1)])
+
 =cut
 
 # ---------------------------------------------------------------------
-sub get_displayName {
+sub __get_displayName {
     my $self = shift;
     my $C = shift;
 
@@ -795,6 +891,8 @@ sub affiliation_is_hathitrust {
     my $self = shift;
     my $C = shift;
 
+    return 1 if (DEBUG('hathi'));
+
     my $is_hathitrust = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
@@ -831,18 +929,27 @@ Shibboleth displayName, eppn, etc.
 sub get_user_display_name {
     my $self = shift;
     my $C = shift;
+    my $unscoped = shift;
 
     my $user_display_name = 'anonymous';
 
     if ($C->has_object('Session')) {
         if ($self->is_logged_in()) {
-            if ($self->auth_sys_is_COSIGN($C)) {
-                $user_display_name = $ENV{'REMOTE_USER'};
+            if ($self->user_is_print_disabled_proxy($C)) {
+                # We want value recorded in ht.ht_users not environment
+                # displayName or affiliation values
+                $user_display_name = Auth::ACL::a_GetUserAttributes('displayname');
+            }
+            elsif ($self->auth_sys_is_COSIGN($C)) {
+                $user_display_name = $ENV{REMOTE_USER};
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name =
-                    $self->get_displayName($C)
-                            || $self->get_eduPersonScopedAffiliation($C);
+                  $self->__get_displayName($C)
+                    || ( $unscoped
+                         ? $self->get_eduPersonUnScopedAffiliation($C)
+                         : $self->get_eduPersonScopedAffiliation($C)
+                       );
             }
         }
         else {
@@ -873,7 +980,7 @@ sub get_user_name {
     my $user_id;
 
     if ($self->is_logged_in()) {
-        $user_id = $ENV{'REMOTE_USER'};
+        $user_id = $ENV{REMOTE_USER};
     }
     else {
         if ($C->has_object('Session')) {
@@ -929,7 +1036,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-2010 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007, 2010, 2012 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

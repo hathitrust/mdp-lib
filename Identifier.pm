@@ -36,76 +36,54 @@ use Context;
 use Database;
 use DbUtils;
 
-our $non_um_in_copyright_id = 'coo.31924050725880';
-
+# New short ID mapping scheme 1[g]-19[g] correspond to rights
+# attributes 1-19.  A 'g' suffix means Google-sourced, otherwise
+# non-Google sourced. Fully alpha ids select an ID from the indicated
+# namespace.
 my %g_default_debug_ids =
-    (
-     # Internal library id results from a bug in a screen-scraper script
-     '0' => {
-            },
-     # no page metadata testing. monograph
-     '1' => {
-             'id'  => 'mdp.39015015394847',
-            },
-     # Internet Archive source=4, public-domain, attr=9
-     '2' => {
-             'id'  => 'uc2.ark:/13960/t0dv1g69b',
-            },
-     # MIUN namespace, should go to title page
-     '3' => {
-             'id'  => 'miun.aas8778.0001.001',
-            },
-     # Serial (volume data), turncated title, no page metadata,
-     # accented Latin characters
-     '4' => {
-             'id'  => 'mdp.39015062775989',
-            },
-     # size testing 1.2G, 1469 pages
-     '5' => {
-             'id'  => 'mdp.39015035951055',
-            },
-     # UM Press volume, public-domain attr=7
-     '6' => {
-             'id'  => 'mdp.39015009120471',
-            },
-     # HathiTrust pfarber ssd volume public-domain
-     '7' => {
-             'id'  => 'mdp.39015069378902',
-            },
-     # HathiTrust pfarber ssd volume in-copyright
-     '8' => {
-             'id'  => 'mdp.39015026496847',
-            },
-     # OPB attr=3
-     '9' => {
-             'id'  => 'mdp.39015004314111',
-            },
-     # pd, selected from reduced repository for HT dev environment
-     '10' => {
-             'id'  => 'mdp.39015051323379',
-             },
-     # Islamic MSS, all OCR is zero length
-     '11' => {
-             'id'  => 'mdp.39015079124874',
-             },
-     # CC Creative Commons Attribution-NonCommercial-ShareAlike
-     '12' => {
-             'id'  => 'mdp.39015015823563',
-             },
-     # pdus
-     '13' => {
-              'id'  => 'inu.30000000123830',
-             },
-     # not held by UM, in-copyright
-     '14' => {
-              'id' => $non_um_in_copyright_id,
-             },
-     # tombstone in pfarber sample data repository: truncated METS, no zip
-     '15' => {
-              'id' => 'mdp.39015000287568',
-             },
+  (
+   '1'     => 'pur1.32754063106516',
+   '1g'    => 'mdp.39015000272388',
+   '2'     => 'mdp.39015007162160',
+   '2g'    => 'inu.30000000106090',
+   '3'     => 'mdp.39015005761732',
+   '3g'    => 'mdp.39015008422266',
+   '4'     => '0',
+   '4g'    => '0',
+   '5'     => 'mdp.39015022393097',
+   '5g'    => 'inu.30000003148040',
+   '6'     => '0',
+   '6g'    => '0',
+   '7'     => 'mdp.39015001787368',
+   '7g'    => 'inu.32000003311323',
+   '8'     => 'miun.aql8896.0001.001',
+   '8g'    => 'mdp.39015000308703',
+   '9'     => 'mdp.39015000630403',
+   '9g'    => 'inu.30000000209332',
+   '10'    => 'mdp.39015088004018',
+   '10g'   => 'inu.30000041642848',
+   '11'    => '0',
+   '11g'   => 'coo.31924052765348',
+   '12'    => 'usu.39060016612839',
+   '12g'   => 'mdp.39015001981979',
+   '13'    => 'mdp.39015062008340',
+   '13g'   => 'mdp.39015000000623',
+   '14'    => 'uiuo.ark:/13960/t7pn9188r',
+   '14g'   => 'inu.30000011561242',
+   '15'    => '0',
+   '15g'   => 'inu.39000000843933',
+   '16'    => '0',
+   '16g'   => '0',
+   '17'    => 'loc.ark:/13960/t89g5s93h',
+   '17g'   => 'mdp.39015005094613',
+   '18'    => 'mdl.reflections.umn16596a',
+   '18g'   => 'umn.31951d00814843v',
+   '19'    => 'uc2.ark:/13960/t02z16p6s',
+   '19g'   => 'mdp.39015000579790',
 
-    );
+   'islam' => 'mdp.39015079124874',
+   'mongo' => 'mdp.39015035951055',
+  );
 
 # ---------------------------------------------------------------------
 
@@ -119,24 +97,46 @@ consistent with the value in the CGI object.
 # ---------------------------------------------------------------------
 sub validate_mbooks_id {
     my $arg = shift;
-
-    my $candidate_id;
-    if (ref($arg) =~ m/^CGI/) {
-        $candidate_id = $arg->param('id');
-    }
-    else {
-        $candidate_id = $arg;
-    }
-
-    # Set a known well-formed id on the cgi for debugging
-    my $id = __set_debug_id($candidate_id);
-
-    # Set id on the cgi and QUERY_STRING
-    __set_id_globally($id, $arg);
-    
-    return $id;
+    return __check_validation($arg);
 }
 
+
+# ---------------------------------------------------------------------
+
+=item __split_id
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __split_id {
+    my $id = shift;
+
+    my ($namespace) = ($id =~ m,^(.+?)\..+$,);
+    my ($barcode) = ($id =~ m,^$namespace\.(.+)$,);
+
+    return ($namespace, $barcode);
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: split_id
+
+Remove the namspace identifier if id is being sent to a service
+that does not understand it (yet).
+
+=cut
+
+# ---------------------------------------------------------------------
+sub split_id {
+    my $id = shift;
+
+    __check_validation($id);
+    my ($namespace, $barcode) = __split_id($id);
+
+    return ($namespace, $barcode);
+}
 
 # ---------------------------------------------------------------------
 
@@ -152,10 +152,9 @@ sub get_id_wo_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
-    $id  =~ s,^$namespace\.,,;
+    my ($namespace, $barcode) = __split_id($id);
 
-    return $id;
+    return $barcode;
 }
 
 
@@ -179,10 +178,9 @@ sub get_pairtree_id_with_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
-    $id =~ s,^$namespace\.,,;
+    my ($namespace, $barcode) = __split_id($id);
 
-    return qq{$namespace.} . File::Pairtree::s2ppchars($id);
+    return qq{$namespace.} . File::Pairtree::s2ppchars($barcode);
 }
 
 # ---------------------------------------------------------------------
@@ -200,10 +198,9 @@ sub get_pairtree_id_wo_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
-    $id =~ s,^$namespace\.,,;
+    my ($namespace, $barcode) = __split_id($id);
 
-    return File::Pairtree::s2ppchars($id);
+    return File::Pairtree::s2ppchars($barcode);
 }
 
 # ---------------------------------------------------------------------
@@ -219,7 +216,7 @@ sub the_namespace {
     my $id = shift;
 
     __check_validation($id);
-    my ($namespace) = ($id =~ m,^(.+?)\..+$,);
+    my ($namespace, $barcode) = __split_id($id);
 
     return $namespace;
 }
@@ -240,7 +237,7 @@ sub get_item_location {
     chomp($id);
     __check_validation($id);
 
-    my $dataroot = Utils::resolve_data_root();
+    my $dataroot = Utils::resolve_data_root($id);
     my $path = $dataroot . qq{/obj/} . id_to_mdp_path($id);
     chomp($path);
 
@@ -264,13 +261,11 @@ sub id_to_mdp_path {
     my $id = shift;
 
     __check_validation($id);
-    my $namespace = the_namespace($id);
+    my ($namespace, $barcode) = __split_id($id);
     my $root = $namespace . q{/pairtree_root};
 
     # Initial pairtree module
     $File::Pairtree::root = $root;
-
-    my $barcode = get_id_wo_namespace($id);
     my $path = File::Pairtree::id2ppath($barcode) . File::Pairtree::s2ppchars($barcode);
 
     return $path;
@@ -287,30 +282,33 @@ Description
 
 # ---------------------------------------------------------------------
 sub __check_validation {
-    my $id = shift;
-    ASSERT(validate_mbooks_id($id), qq{Invalid id="$id"});
-}
+    my $arg = shift;
 
-# ---------------------------------------------------------------------
+    my $id;
+    my $arg_is_CGI = (ref($arg) =~ m/^CGI/);
 
-=item PRIVATE: __set_debug_id
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __set_debug_id {
-    my $id = shift;
-
-    # Set up '1', '2', ... as easy IDs to remember
-    if (grep(/^$id$/, keys %g_default_debug_ids)) {
-        silent_ASSERT(($id ne '0'), qq{Bogus debug id: 0});
-        return $g_default_debug_ids{$id}{'id'};
+    if ($arg_is_CGI) {
+        $id = $arg->param('id');
     }
+    else {
+        $id = $arg;
+    }
+
+    if ($id eq 'r') {
+        $id = randomize_id($id);
+    }
+    else {
+        # Set up '1', '1g', '2', ... as easy IDs to remember
+        $id = $g_default_debug_ids{$id} if (grep(/^$id$/, keys %g_default_debug_ids));
+    }
+
+    silent_ASSERT(defined $id, 'id not defined');
+
+    # Set id on the cgi and QUERY_STRING
+    __set_id_globally($id, $arg) if ($arg_is_CGI);
+
     return $id;
 }
-
 
 # ---------------------------------------------------------------------
 
@@ -323,17 +321,16 @@ Description
 # ---------------------------------------------------------------------
 sub __set_id_globally {
     my $id = shift;
-    my $arg = shift;
+    my $cgi = shift;
 
-    my $QUERY_STRING;
-    if (ref($arg) =~ m/^CGI/) {
-        $QUERY_STRING = $arg->query_string();
-        $QUERY_STRING =~ s,id=.+?[\;\&]?,,g;
-        $arg->param('id', $id);
-        $QUERY_STRING = qq{id=$id;} . $QUERY_STRING;
-        $ENV{'QUERY_STRING'} = $QUERY_STRING;
-    }
+    my $query_string;
+    $query_string = $cgi->query_string();
+    $query_string =~ s,id=.+?[\;\&]?,,g;
+    $cgi->param('id', $id);
+    $query_string = qq{id=$id;} . $query_string;
+    $ENV{'QUERY_STRING'} = $query_string;
 }
+
 
 # ---------------------------------------------------------------------
 
@@ -355,28 +352,28 @@ sub get_safe_Solr_id {
 
 =item randomize_id
 
-If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.  
+If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub randomize_id {
-    my $C = shift;
-    my $cgi = shift;
-    
-    if ($cgi->param('id') eq 'r') {
-        my $dbh = $C->get_object('Database')->get_DBH();
-        my $statement = qq{SELECT CONCAT(namespace, '.', id) FROM small ORDER BY RAND() LIMIT 0,1};
-        my $sth = DbUtils::prep_n_execute($dbh, $statement);
-        my $random_id = $sth->fetchrow_array;
-        if ($random_id) {
-            $cgi->param('id', $random_id);
-        }
-        else {
-            $cgi->param('id', 'mdp.39015015394847');
-        }
-    }
+    my $id = shift;
+
+    my $C = new Context;
+    my $dbh = $C->get_object('Database')->get_DBH();
+    my ($statement, $sth);
+    $statement = qq{SELECT count(*) FROM rights_current WHERE attr=1};
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $count = $sth->fetchrow_array;
+    my $rand_int = int(rand()*$count) + 1;
+    $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current WHERE attr=1 LIMIT 1 OFFSET $rand_int};
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $id = $sth->fetchrow_array || $g_default_debug_ids{1};
+
+    return $id;
 }
+
 
 1;
 
@@ -388,7 +385,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-10 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-10, 2103 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

@@ -18,12 +18,16 @@ BEGIN
 =over 8
 
 =cut
+use Encode;
 
 use Utils;
 use Debug::DUtils;
 use Utils::Js;
 use Access::Statements;
 use Access::Rights;
+use Access::Holdings;
+use Auth::Auth;
+use Auth::ACL;
 
 # ---------------------------------------------------------------------
 
@@ -38,9 +42,9 @@ sub handle_CGI_GLOBALS_PI
     : PI_handler(CGI_GLOBALS)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
+
     my $cgi = $C->get_object('CGI');
-    
+
     my $output;
     foreach my $param_name ($cgi->param())
     {
@@ -50,7 +54,7 @@ sub handle_CGI_GLOBALS_PI
             $output .= wrap_string_in_tag($val, 'Param', [['name', $param_name]]);
         }
     }
-    
+
     return $output;
 }
 
@@ -67,10 +71,10 @@ sub handle_SESSION_ID_PI
     : PI_handler(SESSION_ID)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
+
     my $ses = $C->get_object('Session');
     my $sid = $ses->get_session_id();
-    
+
     return $sid;
 }
 
@@ -87,12 +91,12 @@ sub handle_HAS_OCR_PI
     : PI_handler(HAS_OCR)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
-    my $mdp_item = $C->get_object('MdpItem');    
+
+    my $mdp_item = $C->get_object('MdpItem');
     my $has_ocr = $mdp_item->Get('has_ocr') ? 'YES':'NO';
-    
+
     return $has_ocr;
-    
+
 }
 
 # ---------------------------------------------------------------------
@@ -108,12 +112,12 @@ sub handle_HT_ID_PI
     : PI_handler(HT_ID)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
-    my $mdp_item = $C->get_object('MdpItem');    
+
+    my $mdp_item = $C->get_object('MdpItem');
     my $id = $mdp_item->GetId();
-    
+
     return $id;
-    
+
 }
 
 # ---------------------------------------------------------------------
@@ -137,8 +141,8 @@ sub handle_ACCESS_USE_PI
     my $attr = $ar->get_rights_attribute($C, $id);
     my $source = $ar->get_source_attribute($C, $id);
 
-    my $ref_to_arr_of_hashref = 
-      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $source, 
+    my $ref_to_arr_of_hashref =
+      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $source,
                                                   {
                                                    stmt_url      => 1,
                                                    stmt_url_aux  => 1,
@@ -152,7 +156,7 @@ sub handle_ACCESS_USE_PI
     my $head = $hashref->{stmt_head};
     my $icon = $hashref->{stmt_icon};
     my $aux_icon = $hashref->{stmt_icon_aux};
-        
+
     my $s;
     $s .= wrap_string_in_tag($head, 'Header');
     $s .= wrap_string_in_tag($url, 'Link');
@@ -162,6 +166,111 @@ sub handle_ACCESS_USE_PI
 
     return $s;
 }
+
+# ---------------------------------------------------------------------
+
+=item handle_IN_LIBRARY_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_IN_LIBRARY_PI
+    : PI_handler(IN_LIBRARY)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+
+    my $inst = $auth->get_institution_code($C, 'mapped');
+    my $is_in = $auth->is_in_library($C) ? 'YES' : 'NO';
+
+    my $s;
+    $s .= wrap_string_in_tag($is_in, 'Status');
+    $s .= wrap_string_in_tag($inst, 'Institution');
+
+    return $s;
+}
+
+# ---------------------------------------------------------------------
+
+=item handle_INSTITUTION_NAME_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_INSTITUTION_NAME_PI
+    : PI_handler(INSTITUTION_NAME)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $institution_name = $auth->get_institution_name($C, 'mapped');
+
+    return $institution_name;
+}
+
+# ---------------------------------------------------------------------
+
+=item handle_INSTITUTION_CODE_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_INSTITUTION_CODE_PI
+    : PI_handler(INSTITUTION_CODE)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $institution_code = $auth->get_institution_code($C, 'mapped');
+
+    return $institution_code;
+}
+
+
+# ---------------------------------------------------------------------
+
+=item handle_ACCESS_HOLDINGS_PI
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_ACCESS_HOLDINGS_PI
+    : PI_handler(ACCESS_HOLDINGS)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $held = 'NO';
+    my $brittle_held = 'NO';
+    my $inst = 'notaninstitution';
+
+    my $id = $C->get_object('CGI')->param('id');
+    if ($id) {
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
+        if (Access::Holdings::id_is_held($C, $id, $inst)) {
+            $held = 'YES';
+        }
+        if (Access::Holdings::id_is_held_and_BRLM($C, $id, $inst)) {
+            $brittle_held = 'YES';
+        }
+    }
+
+    my $s;
+    $s .= wrap_string_in_tag($held, 'Held');
+    $s .= wrap_string_in_tag($brittle_held, 'BrittleHeld');
+    $s .= wrap_string_in_tag($inst, 'Institution');
+
+    return $s;
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -176,12 +285,12 @@ sub handle_LOGGED_IN_PI
     : PI_handler(LOGGED_IN)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
-    my $auth = $C->get_object('Auth');    
+
+    my $auth = $C->get_object('Auth');
     my $is_logged_in = $auth->is_logged_in($C) ? 'YES':'NO';
-    
+
     return $is_logged_in;
-    
+
 }
 
 # ---------------------------------------------------------------------
@@ -197,13 +306,13 @@ sub handle_LOGGED_IN_JS_PI
     : PI_handler(LOGGED_IN_JS)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
+
     my $auth = $C->get_object('Auth');
     my $function_name = 'isLoggedIn';
     my $var_name = 'LoggedInVar';
     my $var_val = $auth->is_logged_in($C) ? 'true':'false';
     my $js = Utils::Js::build_javascript_var($function_name, $var_name,$var_val);
-    
+
     return $js;
 }
 
@@ -223,7 +332,7 @@ sub handle_DEBUG_SWITCH_PI
     my ($C, $act, $piParamHashRef) = @_;
     my $config = $C->get_object('MdpConfig');
     my $debug_css = $config->get('debug_css');
-    
+
     my $debug = 'NO';
     if (DEBUG('listinfo,xml,all'))
     {
@@ -253,8 +362,52 @@ sub handle_ENV_VAR_PI
     # occassionally environment variable has chars in need of
     # mapping. e.g., AT&T
     Utils::map_chars_to_cers(\$v);
+    # occassionally environment variable contains invalid XML cahrs
+    $v = Encode::decode_utf8($v);
+    Utils::remove_nonprinting_chars(\$v);
 
     return $v;
+}
+
+# ---------------------------------------------------------------------
+
+=item handle_SUPPRESS_ACCESS_BANNER : PI_handler(SUPPRESS_ACCESS_BANNER)
+
+Prevent access_banner_01.js from posting dialog for ACL access=total
+users -- it gets in the way of routine work. Allow it to model
+behavior correctly when certain debug= parameters are present.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub handle_SUPPRESS_ACCESS_BANNER
+    : PI_handler(SUPPRESS_ACCESS_BANNER)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $suppress;
+
+    my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
+    if (defined $usertype) {
+        if (Auth::ACL::a_Authorized( {access => 'total'} )) {
+            $suppress = 'true'
+        }
+        else {
+            $suppress = 'false'
+        }
+    }
+    else {
+        $suppress = 'false'
+    }
+
+    # Correctly model certain debug behaviors
+    if ($suppress eq 'true') {
+        if (DEBUG('ord,ssd,hathi')) {
+            $suppress = 'false';
+        }
+    }
+
+    return $suppress;
 }
 
 
@@ -271,15 +424,15 @@ sub handle_DEBUG_UNCOMPRESSED_PI
     : PI_handler(DEBUG_UNCOMPRESSED)
 {
     my ($C, $act, $piParamHashRef) = @_;
-    
+
     # Debug message buffer support
     my $config = $C->get_object('MdpConfig');
     my $debug_js = $config->get('debug_uncompressed_js');
     my $debug_css = $config->get('debug_uncompressed_css');
-    
+
     my $s;
-    $s .= wrap_string_in_tag($debug_js, JS);
-    $s .= wrap_string_in_tag($debug_css, CSS);
+    $s .= wrap_string_in_tag($debug_js, 'JS');
+    $s .= wrap_string_in_tag($debug_css, 'CSS');
     return $s;
 }
 

@@ -65,6 +65,7 @@ my %g_skin_map =
      'michigan'  => '/web/m/michigan',
      'wisconsin' => '/web/w/wisconsin',
      'crms'      => '/pt/web/crms',
+     'crmsworld' => '/pt/web/crms',
      'mobile'   =>  '/pt/web/mobile',
      'mobilewayf' => '/wayf/web/mobile',  
     );
@@ -75,14 +76,14 @@ my %g_skin_map =
 # public but owned by others
 my %g_coll_id_map = 
     (
-     '1729205717' => 'umpress:UM_Press',    # pfarber
-     '383'        => 'umpress:UM_Press',    # suzchap
-     '622231186'  => 'umpress:UM_Press',    # umpress
-     '1715299752' => 'aadl:moaa_resources',
-     '1874608773' => 'aadl:moaa',
-     '0000000000' => 'umhistmath',
-     '781708252'  => 'keanuniv:NJ_History_Project',
-     '247770968'  => 'estc:estc',
+     # '1729205717' => 'umpress:UM_Press',    # pfarber
+     # '383'        => 'umpress:UM_Press',    # suzchap
+     # '622231186'  => 'umpress:UM_Press',    # umpress
+     # '1715299752' => 'aadl:moaa_resources',
+     # '1874608773' => 'aadl:moaa',
+     # '0000000000' => 'umhistmath',
+     # '781708252'  => 'keanuniv:NJ_History_Project',
+     # '247770968'  => 'estc:estc',
     );
 
 # Map permanent collection name to web directory path
@@ -95,7 +96,6 @@ my %g_collection_map =
      'keanuniv:NJ_History_Project' => '/mb/web/k/kean',
      'estc:estc'                   => '/mb/web/e/estc',
     );
-
 
 sub new
 {

@@ -456,6 +456,7 @@ sub copy_items {
     my $self = shift;
     my $coll_id = shift;
     my $id_arr_ref = shift;
+    my $force_ownership = shift;
 
     my $dbh = $self->get_dbh;
     my $coll_item_table_name = $self->get_coll_item_table_name;
@@ -463,8 +464,10 @@ sub copy_items {
     my $col_names_array_ref = ['extern_item_id','MColl_ID'];
     my $user_id = $self->get_user_id;
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Collection $coll_id not owned by user $user_id});
+    unless ($force_ownership) {
+        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
+               qq{Collection $coll_id not owned by user $user_id});
+    }
 
     foreach my $id (@$id_arr_ref) {
         if ($self->item_exists($id)) {
@@ -489,7 +492,7 @@ sub copy_items {
 
 delete_items($coll_id,\@ids)
 
-only removes the relationship between collection and items does not
+Only removes the relationship between collection and items does not
 affect item metadata checks that user is owner of collection
 
 =cut
@@ -499,13 +502,16 @@ sub delete_items {
     my $self = shift;
     my $coll_id = shift;
     my $id_arr_ref = shift;
+    my $force_ownership = shift;
 
     my $dbh = $self->get_dbh();
     my $coll_item_table_name = $self->get_coll_item_table_name;
-    my $user_id = $self->get_user_id;
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
+    unless ($force_ownership) {
+        my $user_id = $self->get_user_id;
+        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
+               qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
+    }
 
     my $id_string = $self->arr_ref2SQL_in_string($id_arr_ref);
 
@@ -528,14 +534,17 @@ Description
 sub delete_coll {
     my $self = shift;
     my $coll_id = shift;
+    my $force_ownership = shift;
 
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_item_table_name = $self->get_coll_item_table_name;
     my $user_id = $self->get_user_id;
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Collection $coll_id not owned by user $user_id});
+    unless ($force_ownership) {
+        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
+               qq{Collection $coll_id not owned by user $user_id});
+    }
 
     DbUtils::del_row_by_key($dbh, $coll_table_name, 'MColl_ID', $coll_id);
 
@@ -572,6 +581,7 @@ sub list_items {
     my @metadata_fields = $self->get_item_display_fields_arr;
     push(@metadata_fields, 'rights');
     push(@metadata_fields, 'extern_item_id');
+    # push(@metadata_fields, 'book_id');
 
     my $item_sort_fields_arr_ref = $self->get_item_sort_fields_arr_ref;
 
@@ -630,7 +640,7 @@ sub list_items {
         $LIMIT = "LIMIT $offset, $recs_per_slice";
     }
 
-    my $statement = join(' ', qq{$SELECT $FROM $WHERE $ORDER $LIMIT});
+    my $statement = join(' ', qq{SELECT * FROM ($SELECT $FROM $WHERE $ORDER) AS t1 $LIMIT});
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
@@ -676,6 +686,33 @@ sub arr_ref2SQL_in_string {
 #
 # Should these be moved to a true collection object and the list mgt
 # functions be in a listMgr object?
+
+# ---------------------------------------------------------------------
+
+=item get_coll_record
+
+Description
+
+Fetches the row for $coll_id and caches the result.
+
+=cut
+
+# ---------------------------------------------------------------------
+my %cache = ();
+sub get_coll_record {
+    my $self = shift;
+    my $coll_id = shift;
+
+    unless ( $cache{$coll_id} ) {
+        my $dbh = $self->get_dbh();
+        my $coll_table_name = $self->get_coll_table_name;
+        my $statement = qq{SELECT * from $coll_table_name WHERE MColl_ID=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
+        $cache{$coll_id} = $sth->fetchrow_hashref;
+    }
+    return $cache{$coll_id} || {};
+}
+
 # ----------------------------------------------------------------------
 # shared_status is 1 if public 0 if private
 
@@ -693,14 +730,8 @@ sub get_shared_status {
     my $self = shift;
     my $coll_id = shift;
 
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
     my $status_string = "";
-
-    my $statement = qq{SELECT shared from $coll_table_name WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $status = $ary[0];
+    my $status = $self->get_coll_record($coll_id)->{shared};
 
     # instead of returning 1 or 0 return strings
     if ($status == 0) {
@@ -730,15 +761,8 @@ does mysql return? What does DBI return?
 sub get_description {
     my $self = shift;
     my $coll_id = shift;
-
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
-    my $statement = qq{SELECT description from $coll_table_name WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $description = $ary[0];
-
-    return $description;
+    
+    return $self->get_coll_record($coll_id)->{description};
 }
 
 
@@ -751,20 +775,24 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+
 sub get_coll_name {
     my $self = shift;
     my $coll_id = shift;
-
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
-    my $statement = qq{SELECT collname from $coll_table_name WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $coll_name = $ary[0];
-
-    return $coll_name;
+    return $self->get_coll_record($coll_id)->{collname};
 }
 
+sub get_coll_featured {
+    my $self = shift;
+    my $coll_id = shift;
+    return $self->get_coll_record($coll_id)->{featured};
+}
+
+sub get_coll_contact_info {
+    my $self = shift;
+    my $coll_id = shift;
+    return $self->get_coll_record($coll_id)->{contact_info};
+}
 
 # ---------------------------------------------------------------------
 
@@ -780,7 +808,8 @@ sub _edit_metadata {
     my $coll_id = shift;
     my $field = shift;
     my $value = shift;
-
+    my $max_length = shift;
+    
     my $user_id = $self->get_user_id;
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
@@ -789,11 +818,17 @@ sub _edit_metadata {
     ASSERT($self->coll_owned_by_user($coll_id, $user_id),
            qq{Can not edit this collection: Collection $coll_name id = $coll_id not owned by user $user_id});
 
-    # XXX Insert any anti SQL injection processing here
-    # $value=&cleanit($value);
+    if (defined($max_length)) {
+        if (length($value) > $max_length) {
+            $value = substr($value, 0, $max_length);
+        }
+    }
 
     my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
+    
+    # clear the cache
+    delete $cache{$coll_id};
 }
 
 
@@ -835,7 +870,7 @@ sub edit_status {
 $co->edit_description($coll_id, $desc)
 
 Saves description to datbase client is responsible for making sure
-$desc is less than 255 characters.
+$desc is less than 150 characters.
 
 
 =cut
@@ -848,12 +883,8 @@ sub edit_description {
 
     my $dbh = $self->get_dbh;
 
-    if (length($value) > 255) {
-        $value = substr($value, 0, 255);
-    }
-
     # specific processing
-    $self-> _edit_metadata($coll_id, 'description', $value);
+    $self-> _edit_metadata($coll_id, 'description', $value, 255);
 }
 
 
@@ -880,14 +911,14 @@ sub edit_coll_name {
     my $dbh = $self->get_dbh;
     my $config = $self->get_config;
 
-    my $CS = CollectionSet->new($dbh,$self->{config},$owner) ;
+    my $CS = CollectionSet->new($dbh,$self->{config}, $owner);
 
     ASSERT(! $CS->exists_coll_name_for_owner($coll_name, $owner),
            qq{Can't change collection name because a collection owned by $owner already exists with that name $coll_name});
 
     # specific processing: check proposed changed name isn't already
     # in use need to use CollectionSet->exists_coll_name_for_owner()
-    $self->_edit_metadata($coll_id, 'collname', $value);
+    $self->_edit_metadata($coll_id, 'collname', $value, 100);
 }
 
 
@@ -1275,6 +1306,7 @@ sub get_metadata_for_item {
     push(@metadata_fields, 'rights');
     push(@metadata_fields, 'extern_item_id');
     push(@metadata_fields, 'sort_title');
+    push(@metadata_fields, 'book_id');
 
     my $dbh = $self->get_dbh();
     # my $q_id = $dbh->quote($id);
@@ -1407,6 +1439,32 @@ sub get_full_text_ids {
 
     my $statement = qq{SELECT extern_item_id FROM $item_table $WHERE};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_ary_ref, @$rights_ref);
+    my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
+
+    my $ids_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
+
+    return $ids_ary_ref;
+}
+
+# ---------------------------------------------------------------------
+
+=item  get_item_id_slice
+
+Return a slice of ID from mb_item
+
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_item_id_slice {
+    my $self = shift;
+    my ($offset, $size) = @_;
+
+    my $item_table = $self->get_item_table_name;
+    my $dbh = $self->get_dbh();
+
+    my $statement = qq{SELECT extern_item_id FROM $item_table LIMIT ?, ?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $offset, $size);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
 
     my $ids_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];

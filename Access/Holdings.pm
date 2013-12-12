@@ -44,15 +44,104 @@ sub id_is_held {
     else {
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
-        my $SELECT_clause = 
-          qq{SELECT copy_count FROM mdp_holdings.htitem_htmember_jn WHERE volume_id=? AND member_id=?};
+        my $SELECT_clause =
+          qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
         my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
-        $held = $sth->fetchrow_array();
+        $held = $sth->fetchrow_array() || 0;
     }
     DEBUG('auth,all,held,notheld', qq{<h4>Holdings for inst=$inst id="$id": held=$held</h4>});
-    
+
     return $held;
 }
+
+# ---------------------------------------------------------------------
+
+=item id_is_held_and_BRLM
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub id_is_held_and_BRLM {
+    my ($C, $id, $inst) = @_;
+
+    my $held = 0;
+
+    if (DEBUG('heldb')) {
+        $held = 1;
+    }
+    elsif (DEBUG('notheldb')) {
+        $held = 0;
+    }
+    else {
+        my $dbh = $C->get_object('Database')->get_DBH($C);
+
+        my $SELECT_clause =
+          qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
+        $held = $sth->fetchrow_array() || 0;
+    }
+    DEBUG('auth,all,heldb,notheldb', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
+
+    # @OPB
+    return $held;
+}
+
+# ---------------------------------------------------------------------
+
+=item holding_institutions
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub holding_institutions {
+    my ($C, $id) = @_;
+
+    my $dbh = $C->get_object('Database')->get_DBH($C);
+
+    my $SELECT_clause = qq{SELECT member_id FROM holdings_htitem_htmember WHERE volume_id=?};
+    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id);
+    my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
+
+    my $inst_arr_ref = [];
+    if (scalar(@$ref_to_arr_of_arr_ref)) {
+        $inst_arr_ref = [ map {$_->[0]} @$ref_to_arr_of_arr_ref ];
+    }
+    DEBUG('auth,all,held,notheld', qq{<h4>Holding institutions for id="$id": } . join(' ', @$inst_arr_ref) . q{</h4>});
+
+    return $inst_arr_ref;
+}
+
+# ---------------------------------------------------------------------
+
+=item holding_BRLM_institutions
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub holding_BRLM_institutions {
+    my ($C, $id) = @_;
+
+    my $dbh = $C->get_object('Database')->get_DBH($C);
+
+    my $SELECT_clause = qq{SELECT member_id FROM holdings_htitem_htmember WHERE volume_id=? AND access_count > 0};
+    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id);
+    my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
+
+    my $inst_arr_ref = [];
+    if (scalar(@$ref_to_arr_of_arr_ref)) {
+        $inst_arr_ref = [ map {$_->[0]} @$ref_to_arr_of_arr_ref ];
+    }
+    DEBUG('auth,all,held,notheld', qq{<h4>Holding (BRLM) institutions for id="$id": } . join(' ', @$inst_arr_ref) . q{</h4>});
+
+    return $inst_arr_ref;
+}
+
 
 
 1;
@@ -66,7 +155,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2011 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2011-12 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
