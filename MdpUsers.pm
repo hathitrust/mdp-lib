@@ -95,7 +95,7 @@ my $null_range = 'notanipaddress';
 my $unrestricted_range = '.*';
 
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
-my $GLOBAL_EXPIRE_DATE = '2013-12-31 23:59:59';
+my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
 # staff:{other} access expires on date:
 my $staff_expire_date = $GLOBAL_EXPIRE_DATE;
