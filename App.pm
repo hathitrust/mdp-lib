@@ -68,6 +68,7 @@ sub _initialize {
     my $C = shift;
     my $name = shift;
 
+    $self->{'application_name'} = $name;
     test_availability();
 }
 
