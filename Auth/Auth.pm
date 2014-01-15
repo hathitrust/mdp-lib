@@ -67,6 +67,9 @@ browser is closed or else after between 6 months and one year.
 
 =cut
 
+use strict;
+use warnings;
+
 use File::Basename;
 use XML::LibXML;
 
@@ -82,8 +85,8 @@ use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
 # eduPersonEntitlement attribute values that qualify as print disabled
-my $ENTITLEMENT_PRINT_DISABLED_REGEXP =
-  qr,^http://www.hathitrust.org/access/(enhancedText|enhancedTextProxy)$,ios;
+my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
+my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
 
 # eduPersonScopedAffiliation attribute values that can be considered
 # for print disabled status
@@ -125,9 +128,10 @@ sub __debug_auth {
                     . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
                       . q{ is_umich=} . $self->affiliation_is_umich($C)
                         . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                          . q{ entitlement=} . $ENV{entitlement}
-                            . q{ print-disabled-proxy=} . $self->get_PrintDisabledProxyUserSignature($C)
-                              . q{ print-disabled=} . $self->get_eduPersonEntitlement_print_disabled($C);
+                          . q{ env entitlement=} . ($ENV{entitlement} || '')
+                            . q{ computed entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                              . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                . q{ print-disabled=} . $self->user_is_print_disabled($C);
 
     DEBUG('auth', $auth_str);
     # print STDERR "Auth str: " . $auth_str . "\n";
@@ -234,7 +238,8 @@ sub get_WAYF_login_href {
 
     my $WAYF_url = $C->get_object('MdpConfig')->get('WAYF_url');
 
-    $WAYF_url =~ s,___HOST___,$ENV{'HTTP_HOST'},;
+    my $host = $ENV{HTTP_HOST} || 'localhost';
+    $WAYF_url =~ s,___HOST___,$host},;
     $WAYF_url .= qq{?target=$return_to_url};
 
     return $WAYF_url;
@@ -285,7 +290,7 @@ PRIVATE CLASS METHOD
 # ---------------------------------------------------------------------
 sub __get_auth_sys {
     my $ses = shift;
-    return $ses->get_persistent('authenticated_via');
+    return $ses->get_persistent('authenticated_via') || 'null';
 }
 
 # ---------------------------------------------------------------------
@@ -306,7 +311,8 @@ sub auth_sys_is_COSIGN {
 
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
-        $is = ($ses->get_persistent('authenticated_via') eq COSIGN);
+        my $authenticated_via = $ses->get_persistent('authenticated_via') || 'null';
+        $is = ($authenticated_via eq COSIGN);
     }
 
     return $is;
@@ -330,7 +336,8 @@ sub auth_sys_is_SHIBBOLETH {
 
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
-        $is = ($ses->get_persistent('authenticated_via') eq SHIBBOLETH);
+        my $authenticated_via = $ses->get_persistent('authenticated_via') || 'null';
+        $is = ($authenticated_via eq SHIBBOLETH);
     }
 
     return $is;
@@ -542,7 +549,8 @@ sub __get_prioritized_scoped_affiliation {
     my $self = shift;
 
     my @aff_prios = qw(member faculty staff student alum affiliate);
-    my @affs = split(/\s*;\s*/, $ENV{affiliation});
+    my $affiliation = $ENV{affiliation} || '';
+    my @affs = split(/\s*;\s*/, $affiliation);
     @affs = map {lc($_)} @affs;
 
     my %aff_hash = map { ($_) =~ (m,(.*?)@.*$,) => $_ } @affs;
@@ -551,7 +559,7 @@ sub __get_prioritized_scoped_affiliation {
         return $aff_hash{$aff} if ($aff_hash{$aff});
     }
 
-    return undef;
+    return '';
 }
 
 # ---------------------------------------------------------------------
@@ -567,7 +575,7 @@ sub __get_prioritized_unscoped_affiliation {
     my $self = shift;
 
     my $scoped_aff = $self->__get_prioritized_scoped_affiliation();
-    my ($unscoped_aff) = ($scoped_aff =~ m,^(.*?)@.*$,);
+    my ($unscoped_aff) = ($scoped_aff =~ m,^(.*?)@.*$,) || '';
 
     return $unscoped_aff;
 }
@@ -587,7 +595,7 @@ sub get_eduPersonScopedAffiliation {
     my $self = shift;
     my $C = shift;
 
-    my $eduPersonScopedAffiliation;
+    my $eduPersonScopedAffiliation = '';
 
     if ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend()) {
@@ -615,11 +623,11 @@ sub get_eduPersonUnScopedAffiliation {
     my $self = shift;
     my $C = shift;
 
-    my $eduPersonUnScopedAffiliation;
+    my $eduPersonUnScopedAffiliation = '';
 
     if ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend()) {
-            $eduPersonScopedAffiliation = 'member';
+            $eduPersonUnScopedAffiliation = 'member';
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
@@ -663,6 +671,57 @@ sub get_eduPersonPrincipalName {
 
 # ---------------------------------------------------------------------
 
+=item __get_shibboleth_print_disability_entitlement
+
+http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#eduPersonEntitlement
+
+The Shibboleth entitlement values follow the URL-type scheme:
+
+http://www.hathitrust.org/access/standard
+http://www.hathitrust.org/access/enhancedText
+http://www.hathitrust.org/access/enhancedTextProxy
+
+standard - no special privs
+enhancedText - print disabled
+enhancedTextProxy - assist print disabled
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_shibboleth_print_disability_entitlement {
+    my $self = shift;
+    my $C = shift;
+
+    my $entitlement = '';
+
+    if (Auth::ACL::S___superuser_role) {
+        $entitlement = 'ssd' if (DEBUG('ssd'));
+        $entitlement = 'ssdproxy' if (DEBUG('ssdproxy'));
+    }
+
+    unless ($entitlement) {
+        if ($self->auth_sys_is_SHIBBOLETH($C)) {
+            my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
+            if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
+                my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+
+                if ( grep(/$ENTITLEMENT_PRINT_DISABLED_VALUE/, @eduPersonEntitlement_vals) ) {
+                    $entitlement = 'ssd';
+                }
+                elsif ( grep(/$ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE/, @eduPersonEntitlement_vals) ) {
+                    $entitlement = 'ssdproxy';
+                }
+                else {
+                }
+            }
+        }
+    }
+
+    return $entitlement;
+}
+
+# ---------------------------------------------------------------------
+
 =item get_PrintDisabledProxyUserSignature
 
 Description
@@ -672,13 +731,14 @@ Description
 # ---------------------------------------------------------------------
 sub get_PrintDisabledProxyUserSignature {
     my $self = shift;
+    my $C = shift;
 
-    my $signature = '';
-    my $role =  Auth::ACL::a_GetUserAttributes('role');
-    if ($role eq 'ssdproxy') {
-        $signature = Auth::ACL::a_GetUserAttributes('userid') || 'undefined';
+    my $signature = 'undefined';
+
+    if ( $self->user_is_print_disabled_proxy($C) ) {
+        $signature = Auth::ACL::a_GetUserAttributes('userid');
     }
-    
+
     return $signature;
 }
 
@@ -693,44 +753,59 @@ Description
 # ---------------------------------------------------------------------
 sub user_is_print_disabled_proxy {
     my $self = shift;
+    my $C = shift;
 
-    my $role =  Auth::ACL::a_GetUserAttributes('role');
-    return ($role eq 'ssdproxy');
+    # ACL test
+    my $is_proxy = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
+    # Authentication test
+    unless ($is_proxy) {
+        my $entitlement = $self->__get_shibboleth_print_disability_entitlement($C);
+        $is_proxy = ($entitlement eq 'ssdproxy');
+    }
+
+    return $is_proxy;
 }
-
 
 # ---------------------------------------------------------------------
 
-=item __user_is_print_disabled_in_ACL
+=item user_is_print_disabled
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub __user_is_print_disabled_in_ACL {
-    my $role =  Auth::ACL::a_GetUserAttributes('role');
-    return ($role =~ m,^ssd,);
+sub user_is_print_disabled {
+    my $self = shift;
+    my $C = shift;
+
+    # ACL test
+    my $is_disabled = (
+                       Auth::ACL::a_Authorized( {role => 'ssd'})
+                       ||
+                       Auth::ACL::a_Authorized( {role => 'ssdnfb'})
+                      );
+    # Authentication test
+    unless ($is_disabled) {
+        my $entitlement = $self->__get_shibboleth_print_disability_entitlement($C);
+        $is_disabled = ($entitlement eq 'ssd') || ($entitlement eq 'ssdnfb')
+    }
+
+    return $is_disabled;
 }
 
 # ---------------------------------------------------------------------
 
 =item get_eduPersonEntitlement_print_disabled
 
-This is the eduPersonEntitlement attribute value that equates to print disabled status.
+This is the eduPersonEntitlement attribute value that equates to print
+disabled status. It covers all the cases of print-disability access:
 
-http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#eduPersonEntitlement
+1) ssd/ssdnfb (a disabled user)
+2) ssdproxy (a user entitled to act on behalf of a disabled user)
 
-The values follow the URL-type scheme:
-
-http://www.hathitrust.org/access/standard
-http://www.hathitrust.org/access/enhancedText
-http://www.hathitrust.org/access/enhancedTextProxy
-where N can be:
-
-standard - no special privs
-enhancedText - print disabled
-enhancedTextProxy - assist print disabled
+If it is necessary to differentiate between (1) and (2) call
+user_is_print_disabled[_proxy]
 
 =cut
 
@@ -739,21 +814,7 @@ sub get_eduPersonEntitlement_print_disabled {
     my $self = shift;
     my $C = shift;
 
-    # Auth-system-independent tests
-    my $print_disabled = __user_is_print_disabled_in_ACL() || DEBUG('ssd');
-
-    # Auth-system-dependent tests
-    if (! $print_disabled) {
-        if ($self->auth_sys_is_SHIBBOLETH($C)) {
-            my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
-            if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
-                my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
-                $is_print_disabled = grep(/$ENTITLEMENT_PRINT_DISABLED_REGEXP/, @eduPersonEntitlement_vals);
-            }
-        }
-    }
-
-    return $print_disabled;
+    return $self->user_is_print_disabled($C) || $self->user_is_print_disabled_proxy($C);
 }
 
 
@@ -783,7 +844,9 @@ OID: 1.3.6.1.4.1.5923.1.1.1.10 values to persistent_id. We parse just one out.
 # ---------------------------------------------------------------------
 sub get_eduPersonTargetedID {
     my $self = shift;
-    return ( split(/;/, $ENV{'persistent_id'}) )[0];
+
+    my $targeted_id = $ENV{'persistent_id'} || '';
+    return ( split(/;/, $targeted_id) )[0] || '';
 }
 
 # ---------------------------------------------------------------------
@@ -935,7 +998,7 @@ sub get_user_display_name {
 
     if ($C->has_object('Session')) {
         if ($self->is_logged_in()) {
-            if ($self->user_is_print_disabled_proxy($C)) {
+            if ( $self->user_is_print_disabled_proxy($C) ) {
                 # We want value recorded in ht.ht_users not environment
                 # displayName or affiliation values
                 $user_display_name = Auth::ACL::a_GetUserAttributes('displayname');

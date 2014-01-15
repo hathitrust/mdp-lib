@@ -67,18 +67,8 @@ sub _initialize {
     my $self = shift;
     my $C = shift;
     my $name = shift;
-    my $production_disabled = shift;
 
-    $self->{'application_name'} = $name;
-    $self->{'production_disabled'} = $production_disabled;
-
-    # See if the UNAVAILABLE envvar switch is on due to server
-    # maintenance ...
-    $self->test_availability();
-
-    # ... or set it in code if app is production disabled except for
-    # development
-    $self->__test_app_enabled();
+    test_availability();
 }
 
 
@@ -117,45 +107,6 @@ sub get_app_name {
 
 # ---------------------------------------------------------------------
 
-=item __test_app_enabled
-
-Description: Temporary switch to allow development subnet to see full
-functionality not yet available in production.  
-
-=cut
-
-# ---------------------------------------------------------------------
-my $g_override_enabled_test = 1;
-
-sub __test_app_enabled {
-    my $self = shift;
-    
-    if ($ENV{'HT_DEV'}) {
-        return 1;
-    }
-    else
-    {
-        # Skip tests if flag is set
-        return 1
-            if ($g_override_enabled_test);
-
-        # Can everyone see me in production or test for
-        # debugging_enabled() allows me to run just from development
-        # subnet
-        if ($self->{'production_disabled'}) {
-            if (! Debug::DUtils::debugging_enabled()) {
-                $ENV{'UNAVAILABLE'} = 1;
-                ASSERT(0);
-            }
-        }
-    }
-}
-
-
-
-
-# ---------------------------------------------------------------------
-
 =item test_availability
 
 Determine whether this app is allowed to run by testing the
@@ -170,9 +121,7 @@ display of a friendly page explaining the outage.
 =cut
 
 # ---------------------------------------------------------------------
-sub test_availability
-{
-    my $self = shift;
+sub test_availability {
 
     # Set by the virtual host for maintenance
     ASSERT(0)

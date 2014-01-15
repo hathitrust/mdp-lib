@@ -387,14 +387,8 @@ sub handle_SUPPRESS_ACCESS_BANNER
 
     my $suppress;
 
-    my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
-    if (defined $usertype) {
-        if (Auth::ACL::a_Authorized( {access => 'total'} )) {
-            $suppress = 'true'
-        }
-        else {
-            $suppress = 'false'
-        }
+    if (Auth::ACL::S___total_access()) {
+        $suppress = 'true'
     }
     else {
         $suppress = 'false'

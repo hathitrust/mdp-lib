@@ -87,7 +87,7 @@ our $NOOP_ATTRIBUTE = 0;
 # 'in a library building'
 # 'UM authenticated'
 # ---------------------------------------------------------------------
-our $HT_ACL_USER         = 1;
+our $HT_TOTAL_USER       = 1;
 our $ORDINARY_USER       = 2;
 our $SSD_USER            = 3;
 our $SSD_PROXY_USER      = 4;
@@ -95,11 +95,11 @@ our $LIBRARY_IPADDR_USER = 5;
 our $UM_AFFILIATE        = 6;
 our $HT_AFFILIATE        = 7;
 
-@g_access_types = ($HT_ACL_USER .. $HT_AFFILIATE);
+@g_access_types = ($HT_TOTAL_USER .. $HT_AFFILIATE);
 
 %g_access_type_names =
     (
-     $HT_ACL_USER            => 'ht_acl_user',
+     $HT_TOTAL_USER          => 'ht_total_user',
      $ORDINARY_USER          => 'ordinary_user',
      $SSD_USER               => 'ssd_user',
      $SSD_PROXY_USER         => 'ssd_proxy_user',
@@ -190,7 +190,7 @@ our $HT_AFFILIATE        = 7;
   (
    # public domain
    '1' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'allow',
            $SSD_USER              => 'allow',
            $SSD_PROXY_USER        => 'allow',
@@ -200,7 +200,7 @@ our $HT_AFFILIATE        = 7;
           },
    # in-copyright
    '2' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
@@ -211,10 +211,10 @@ our $HT_AFFILIATE        = 7;
    # OP out-of-print (implies in-copyright). (Was OPB out-of-print, brittle) @OPB
    # ----------------------------------------------------------------------------
    # As of Wed Nov 28 12:52:40 2012 we have HOLDINGS so access
-   # exclusivity is granted if on US Soil and:
+   # exclusivity is granted if on US Soil and held and:
    # ((OP AND BRLM) AND (LIBRARY_IPADDR_USER OR *_AFFILIATE)) OR (OP AND SSD_USER)
    '3' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings', # US implied
            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
@@ -224,7 +224,7 @@ our $HT_AFFILIATE        = 7;
           },
    # copyright-orphaned (implies in-copyright)
    '4' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
@@ -234,7 +234,7 @@ our $HT_AFFILIATE        = 7;
           },
    # undetermined copyright status
    '5' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
@@ -246,7 +246,7 @@ our $HT_AFFILIATE        = 7;
    # campuses), these moved to 7 (world) so then are equivalent to 7
    # if a volume appears as 6
    '6' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'allow',
            $SSD_USER              => 'allow',
            $SSD_PROXY_USER        => 'allow',
@@ -256,7 +256,7 @@ our $HT_AFFILIATE        = 7;
           },
    # available to everyone in the world
    '7' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'allow',
            $SSD_USER              => 'allow',
            $SSD_PROXY_USER        => 'allow',
@@ -266,7 +266,7 @@ our $HT_AFFILIATE        = 7;
           },
    # available to no one in the world
    '8' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'deny',
            $SSD_PROXY_USER        => 'deny',
@@ -277,7 +277,7 @@ our $HT_AFFILIATE        = 7;
    # available if IP is US or affiliated with a US partner at any
    # IP address
    '9' => {
-           $HT_ACL_USER           => 'allow',
+           $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'allow_by_us_geo_ipaddr', # US IP only
            $SSD_USER              => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
            $SSD_PROXY_USER        => 'allow_us_aff_by_ipaddr',
@@ -288,7 +288,7 @@ our $HT_AFFILIATE        = 7;
    # available if IP is non-US or affiliated with non-US partner at
    # any IP address
    '19' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
             $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
@@ -298,7 +298,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
    '10' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -308,7 +308,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nd/3.0/
    '11' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -318,7 +318,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/3.0/
    '12' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -328,7 +328,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc/3.0/
    '13' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -338,7 +338,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/3.0/
    '14' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -348,7 +348,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-sa/3.0/
    '15' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -358,7 +358,7 @@ our $HT_AFFILIATE        = 7;
            },
    # orphan candidate (implied in-copyright)
    '16' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'deny',
             $SSD_USER              => 'allow_ssd_by_holdings',
             $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
@@ -368,7 +368,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world http://creativecommons.org/publicdomain/zero/1.0/
    '17' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
@@ -378,7 +378,7 @@ our $HT_AFFILIATE        = 7;
            },
    # available to everyone in the world
    '18' => {
-            $HT_ACL_USER           => 'allow',
+            $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow',
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',

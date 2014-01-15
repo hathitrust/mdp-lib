@@ -52,7 +52,7 @@ sub log_incopyright_access  {
             # ... that is in-copyright 
             my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
            
-            if (defined $usertype) {
+            if ($usertype) {
                 my $role = Auth::ACL::a_GetUserAttributes('role');
                 Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attribute;access=$access_type");
             }

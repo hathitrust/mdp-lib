@@ -371,7 +371,7 @@ sub get_POD_access_status {
     elsif ($self->creative_commons($C, $id)) {
         $status = _resolve_access_by_GeoIP($C, 'US');
     }
-    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} ) && DEBUG('super')) {
+    elsif (Auth::ACL::S___superuser_using_DEBUG_super) {
         $status = 'allow';
     }
     else {
@@ -407,14 +407,32 @@ Exceptions: UM Press (ump)(source=3)
 =cut
 
 # ---------------------------------------------------------------------
+sub _pdf_access_cached {
+    my $self = shift;
+    my $id = shift;
+    my ($message, $status) = @_;
+
+    if (defined $message && defined $status) {
+        $self->{$id}{_pdfaccess}{message} = $message;
+        $self->{$id}{_pdfaccess}{status} = $status;
+    }
+
+    return ($self->{$id}{_pdfaccess}{message},$self->{$id}{_pdfaccess}{status});
+}
+
 sub get_full_PDF_access_status {
     my $self = shift;
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
 
-    my $status = 'deny';
-    my $message = q{NOT_AVAILABLE};
+    # Cache
+    if ($self->_pdf_access_cached($id)) {
+        return ($self->_pdf_access_cached($id));
+    }
+
+    my ($message, $status)= ('NOT_AVAILABLE', 'deny');
+    my $auth = $C->get_object('Auth');
 
     my $creative_commons = $self->creative_commons($C, $id);
 
@@ -434,7 +452,6 @@ sub get_full_PDF_access_status {
         if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
             #  Restricted pd sources (google) require affiliation.
             if ($pd) {
-                my $auth = $C->get_object('Auth');
                 my $is_affiliated = (
                                      $auth->affiliation_is_hathitrust($C)
                                      ||
@@ -463,19 +480,27 @@ sub get_full_PDF_access_status {
     }
 
     # Feb 2012 Only developers have unrestricted full PDF download.
-    if (Auth::ACL::a_Authorized( {role => 'superuser'} ) && DEBUG('super')) {
+    if (Auth::ACL::S___superuser_using_DEBUG_super) {
         $status = 'allow';
     }
 
     # Apr 2103 ssdproxy can generate full PDF
-    if (Auth::ACL::a_Authorized( {role => 'ssdproxy'} )) {
+    if ($auth->user_is_print_disabled_proxy($C)) {
         $status = 'allow';
     }
 
     # clear the error message if $status eq 'allow'
     $message = '' if ( $status eq 'allow' );
 
-    DEBUG('pt,auth', qq{<h5>get_full_PDF_access_status: status=$status message=$message</h5>});
+    DEBUG('pt,auth',
+          sub {
+              my $role = Auth::ACL::a_GetUserAttributes('role');
+              my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
+              qq{<h5>get_full_PDF_access_status: role=$role, usertype=$usertype status=$status message=$message</h5>};
+          });
+
+    $self->_pdf_access_cached($id, $message, $status);
+
     return ($message, $status);
 }
 
@@ -715,7 +740,7 @@ sub _determine_rights_values {
         # (pd, dlps)
         ($attr, $source) = (1,2);
     }
-    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+    elsif (Auth::ACL::S___superuser_role) {
         my $config = $C->get_object('MdpConfig', $config);
         if ($config->has('debug_attr_source')) {
             ($attr, $source) = $config->get('debug_attr_source');
@@ -733,7 +758,7 @@ sub _determine_rights_values {
         $self->{source_attribute} = $source;
     }
 
-    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$attr} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
+    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$source} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
 
     return ($attr, $source);
 }
@@ -996,39 +1021,34 @@ sub _determine_access_type {
     my $auth = $C->get_object('Auth');
 
     if (DEBUG('ord', 'ORDINARY user-type access forced')) {
+        # coordinate with Auth::ACL
         $access_type = $RightsGlobals::ORDINARY_USER;
     }
-    elsif (DEBUG('ssd', 'SSD user-type access forced')) {
-        $access_type = $RightsGlobals::SSD_USER;
-    }
     elsif (DEBUG('hathi', 'HathiTrust affiliated user-type access forced')) {
+        # coordinate with Auth::ACL
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
-    elsif
-      (Auth::ACL::a_Authorized( {access => 'total'}) && DEBUG('super')) {
-        $access_type = $RightsGlobals::HT_ACL_USER;
+    elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
+        # access=total user with access enabled via debug=super,
+        # e.g. users with role=crms
+        $access_type = $RightsGlobals::HT_TOTAL_USER;
     }
-    elsif
-      (Auth::ACL::a_Authorized( {role => 'ssdproxy'} )) {
+    elsif ($auth->user_is_print_disabled_proxy($C)) {
         $access_type = $RightsGlobals::SSD_PROXY_USER;
     }
-    elsif
-      ($auth->get_eduPersonEntitlement_print_disabled($C)) {
+    elsif ( $auth->user_is_print_disabled($C) ) {
         $access_type = $RightsGlobals::SSD_USER;
     }
-    elsif
-      ($auth->affiliation_is_umich($C)) {
+    elsif ($auth->affiliation_is_umich($C)) {
         # on or off-campus full PDF of pd + outside of library
         # exclusive brittle access + some DLPS ic works + orphans
         $access_type = $RightsGlobals::UM_AFFILIATE;
     }
-    elsif
-      ($auth->affiliation_is_hathitrust($C)) {
+    elsif ($auth->affiliation_is_hathitrust($C)) {
         # full PDF + exclusive brittle access + orph modulo geo location
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
-    elsif
-      ($auth->is_in_library()) {
+    elsif ($auth->is_in_library()) {
         # brittle book access limited by number held and 24h
         # exclusivity: UM only until Holding Db carries condition
         # data.
@@ -1041,7 +1061,7 @@ sub _determine_access_type {
     DEBUG('pt,auth,all',
           sub {
               my $a = $RightsGlobals::g_access_type_names{$access_type};
-              my $s = qq{<h4>AccessType="$a" SDRINST="$ENV{SDRINST}", SDRLIB="$ENV{SDRLIB}", id="$id"</h4>};
+              my $s = qq{<h4>AccessType=<font color="blue">$a</font> SDRINST="$ENV{SDRINST}", SDRLIB="$ENV{SDRLIB}"</h4>};
               return $s;
           });
 

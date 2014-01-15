@@ -78,7 +78,7 @@ sub setup_debug_environment {
     # To retrieve the debug message buffer
     $g_session = $ses if ($ses);
 
-    return if (! debugging_enabled());
+    return unless (debugging_enabled());
 
     my $cgi = new CGI;
 
@@ -109,8 +109,8 @@ sub setup_debug_environment {
 
 =item set_HathiTrust_debug_environment
 
-Allow debug switches debug=hathi,{ind|pst|...|uc1}, debug=nonhathi by
-setting corresponding IP addrs.
+Allow debug switches debug=hathi,{ind|pst|...|uc1} by setting
+corresponding IP addrs.
 
 =cut
 
@@ -119,6 +119,7 @@ sub set_HathiTrust_debug_environment {
     # Tests in priority order. Later tests can stomp earlier ones.
     if (DEBUG('hathi')){
         # Appear to be from the IP range of a Hathi institution
+        # Must coordinate with Auth::ACL, Access::Rights
         foreach my $inst_code (keys %HathiTrust_IP_hash) {
             if (DEBUG($inst_code)) {
                 $ENV{SDRINST} = $inst_code;
@@ -130,13 +131,9 @@ sub set_HathiTrust_debug_environment {
         }
     }    
 
-    if (DEBUG('ssd')) {
-        $ENV{entitlement} = 'http://www.hathitrust.org/access/enhancedText'
-          if (defined $ENV{REMOTE_USER});
-    }
-
-    if (DEBUG('nonhathi')) {
-        # Superset of 'notlogged'. Equivalent to man-on-the-street
+    if (DEBUG('ord')) {
+        # Equivalent to man-on-the-street
+        # Must coordinate with Auth::ACL, Access::Rights
         delete $ENV{AUTH_TYPE};
         delete $ENV{SDRINST};
         delete $ENV{SDRLIB};
@@ -147,7 +144,7 @@ sub set_HathiTrust_debug_environment {
 
         $ENV{REMOTE_ADDR} = $non_HathiTrust_IP;
     }
-    
+
     if (DEBUG('nonus')) {
         # Not at a US IP address (Madrid)
         $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{'ucm'};
@@ -494,7 +491,7 @@ Limit attr=, src=, debug= functionality for certain classes of users.
 Rules:
 
 (1) Development and Production web: all user classes are limited to IP
-ranges when authenticated. VPN required when outside these ranges.
+ranges when authenticated.
 
 (2) Development command line: allowed globally
 
@@ -502,20 +499,7 @@ ranges when authenticated. VPN required when outside these ranges.
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
-
-    use constant NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1 => 0;
-
-    # Over-ride all authorization checking at the command line or by
-    # flag.
-    my $___no_ACL_debugging_test = $ENV{TERM} || NEVER_GO_INTO_PRODUCTION_WITH_THIS_SET_TO_1;
- 
-    my $authorized = Auth::ACL::a_Authorized( {access => 'total'} );
-    if ($___no_ACL_debugging_test) {
-        return 1;
-    }
-    # POSSIBLY NOTREACHED
-
-    return $authorized;
+    return Auth::ACL::S___total_access;
 }
 
 
