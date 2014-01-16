@@ -235,7 +235,7 @@ sub S___superuser_using_DEBUG_super {
     __load_access_control_list();
 
     my $superuser = 0;
-    my $userid = lc $ENV{REMOTE_USER};
+    my $userid = __get_remote_user();
 
     my $role = $gAccessControlList{$userid}{role} || '';
     if ($role eq 'superuser') {
@@ -263,7 +263,7 @@ sub S___total_access_using_DEBUG_super {
     __load_access_control_list();
 
     my $total = 0;
-    my $userid = lc $ENV{REMOTE_USER};
+    my $userid = __get_remote_user();
 
     my $access = $gAccessControlList{$userid}{access} || '';
     if ($access eq 'total') {
@@ -295,7 +295,8 @@ sub S___superuser_role {
     __load_access_control_list();
 
     my $superuser = 0;
-    my $userid = lc $ENV{REMOTE_USER};
+
+    my $userid = __get_remote_user();
 
     my $role = $gAccessControlList{$userid}{role} || '';
     if ($role eq 'superuser') {
@@ -324,7 +325,8 @@ sub S___total_access {
     __load_access_control_list();
 
     my $total = 0;
-    my $userid = lc $ENV{REMOTE_USER};
+
+    my $userid = __get_remote_user();
 
     my $access = $gAccessControlList{$userid}{access} || '';
     if ($access eq 'total') {
@@ -352,7 +354,7 @@ sub __debug_acl {
     DEBUG('auth,all',
           sub {
               my $ipaddr = $ENV{REMOTE_ADDR} || '';
-              my $userid = lc $ENV{REMOTE_USER} || '';
+              my $userid = __get_remote_user() || '';
               my $usertype = __get_user_attributes('usertype');
               my $role = __get_user_attributes('role');
               my $access = __get_user_attributes('access');
@@ -406,7 +408,7 @@ sub __get_user_attributes {
     my $requested_attribute = shift;
     my $userid = shift;
 
-    my $_userid = (defined $userid) ? $userid : lc $ENV{REMOTE_USER};
+    my $_userid = (defined $userid) ? $userid : __get_remote_user();
     my $attrval = $gAccessControlList{$_userid}{$requested_attribute} || '';
 
     # Superuser debugging over-rides
@@ -443,6 +445,14 @@ Description
 # ---------------------------------------------------------------------
 sub __get_userid_list {
     return keys %gAccessControlList;
+}
+
+sub __get_remote_user {
+    my $remote_user = '';
+    if ( exists($ENV{REMOTE_USER}) ) {
+        $remote_user = lc $ENV{REMOTE_USER};
+    }
+    return $remote_user;
 }
 
 # ---------------------------------------------------------------------
