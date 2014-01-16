@@ -360,7 +360,7 @@ sub __debug_acl {
               my $access = __get_user_attributes('access');
               my $expires = __get_user_attributes('expires');
 
-              my $superuser = S___superuser_role() ? '(<font color="blue">superuser</font>)' : '';
+              my $superuser = S___superuser_role() ? '(<font color="green">superuser</font>)' : '';
               $authorized = $authorized ? '<font color="blue">1</font>' : '0';
 
               #   0         1          2      3            4         5           6          7            8       9         10

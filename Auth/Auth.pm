@@ -117,25 +117,25 @@ sub __debug_auth {
     my $self = shift;
     my ($C, $ses) = @_;
 
-    my $auth_str =
-      q{AUTH: userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
-        . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
-          . q{ authsys=} . __get_auth_sys($ses)
-            . q{ newlogin=} . $self->isa_new_login()
-              . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                  . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
-                    . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
-                      . q{ is_umich=} . $self->affiliation_is_umich($C)
-                        . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                          . q{ env entitlement=} . ($ENV{entitlement} || '')
-                            . q{ computed entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                              . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
-                                . q{ print-disabled=} . $self->user_is_print_disabled($C);
-
-    DEBUG('auth', $auth_str);
-    # print STDERR "Auth str: " . $auth_str . "\n";
-    # print STDERR "REMOTE_USER: " . $ENV{REMOTE_USER} . "\n";
+    DEBUG('auth', 
+          sub {
+              my $auth_str =
+                q{AUTH: userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
+                  . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+                    . q{ authsys=} . __get_auth_sys($ses)
+                      . q{ newlogin=} . $self->isa_new_login()
+                        . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                          . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                            . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
+                              . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
+                                . q{ is_umich=} . $self->affiliation_is_umich($C)
+                                  . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                    . q{ env entitlement=} . ($ENV{entitlement} || '')
+                                      . q{ computed entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                                        . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                          . q{ print-disabled=} . $self->user_is_print_disabled($C);
+              return $auth_str;
+          });
 }
 
 sub _initialize {
@@ -276,7 +276,7 @@ Description
 sub set_auth_sys {
     my $self = shift;
     my $ses = shift;
-    $ses->set_persistent('authenticated_via', lc($ENV{AUTH_TYPE}));
+    $ses->set_persistent('authenticated_via', lc $ENV{AUTH_TYPE});
 }
 
 # ---------------------------------------------------------------------
@@ -360,7 +360,7 @@ sub is_logged_in {
 
     return 0 if (DEBUG('notlogged'));
 
-    return exists($ENV{'REMOTE_USER'});
+    return exists $ENV{REMOTE_USER};
 }
 
 # ---------------------------------------------------------------------
@@ -374,7 +374,7 @@ true if user has authenticated and the cosign realm is "friend"
 # ---------------------------------------------------------------------
 sub login_realm_is_friend {
     my $self = shift;
-    return ($self->is_logged_in() && (lc($ENV{'REMOTE_REALM'}) eq FRIEND));
+    return ($self->is_logged_in() && (lc($ENV{REMOTE_REALM} || '') eq FRIEND));
 }
 
 # ---------------------------------------------------------------------
@@ -392,7 +392,7 @@ Clients of this class should use get_institution_code()
 
 # ---------------------------------------------------------------------
 sub __get_institution_by_ip_address {
-    return $ENV{'SDRINST'};
+    return $ENV{SDRINST} || '';
 }
 
 # ---------------------------------------------------------------------
@@ -655,14 +655,14 @@ sub get_eduPersonPrincipalName {
     my $eduPersonPrincipalName;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $eduPersonPrincipalName = $ENV{'eppn'};
+        $eduPersonPrincipalName = $ENV{eppn} || '';
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if ($self->login_realm_is_friend()) {
-            $eduPersonPrincipalName = $ENV{'REMOTE_USER'};
+            $eduPersonPrincipalName = $ENV{REMOTE_USER} || '';
         }
         else {
-            $eduPersonPrincipalName = $ENV{'REMOTE_USER'} . '@umich.edu';
+            $eduPersonPrincipalName = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} . '@umich.edu' : '');
         }
     }
 
@@ -703,7 +703,8 @@ sub __get_shibboleth_print_disability_entitlement {
         if ($self->auth_sys_is_SHIBBOLETH($C)) {
             my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
             if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
-                my @eduPersonEntitlement_vals = split(/;/, $ENV{entitlement});
+                my $env_entitlement = $ENV{entitlement} || '';
+                my @eduPersonEntitlement_vals = split(/;/, $env_entitlement);
 
                 if ( grep(/$ENTITLEMENT_PRINT_DISABLED_VALUE/, @eduPersonEntitlement_vals) ) {
                     $entitlement = 'ssd';
@@ -845,7 +846,7 @@ OID: 1.3.6.1.4.1.5923.1.1.1.10 values to persistent_id. We parse just one out.
 sub get_eduPersonTargetedID {
     my $self = shift;
 
-    my $targeted_id = $ENV{'persistent_id'} || '';
+    my $targeted_id = $ENV{persistent_id} || '';
     return ( split(/;/, $targeted_id) )[0] || '';
 }
 
@@ -864,7 +865,7 @@ entity references and for numeric character references.
 sub __get_parsed_displayName {
     my $self = shift;
 
-    my $name = $ENV{displayName};
+    my $name = $ENV{displayName} || '';
     # unescape XML and un-shibify semicolons
     $name =~ s,(&)(amp;)?(#?x?[a-zA-Z0-9]+)\\(;),$1$3$4,gi;
     # map to parseable NCRs
@@ -898,7 +899,7 @@ sub __get_displayName {
         $displayName = $self->__get_parsed_displayName();
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
-        $displayName = $ENV{'REMOTE_USER'};
+        $displayName = $ENV{REMOTE_USER} || '';
     }
 
     return $displayName;
@@ -1004,7 +1005,7 @@ sub get_user_display_name {
                 $user_display_name = Auth::ACL::a_GetUserAttributes('displayname');
             }
             elsif ($self->auth_sys_is_COSIGN($C)) {
-                $user_display_name = $ENV{REMOTE_USER};
+                $user_display_name = $ENV{REMOTE_USER} || '';
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name =
@@ -1043,7 +1044,7 @@ sub get_user_name {
     my $user_id;
 
     if ($self->is_logged_in()) {
-        $user_id = $ENV{REMOTE_USER};
+        $user_id = $ENV{REMOTE_USER} || '';
     }
     else {
         if ($C->has_object('Session')) {
