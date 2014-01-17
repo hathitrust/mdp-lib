@@ -44,9 +44,15 @@ sub id_is_held {
     else {
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
-        my $SELECT_clause =
-          qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
-        my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
+        my $sth;
+        my $SELECT_clause = qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        eval {
+            $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
+        };
+        if ($@) {
+            return 0;
+        }
+        
         $held = $sth->fetchrow_array() || 0;
     }
     DEBUG('auth,all,held,notheld', qq{<h4>Holdings for inst=$inst id="$id": held=$held</h4>});
@@ -77,9 +83,15 @@ sub id_is_held_and_BRLM {
     else {
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
-        my $SELECT_clause =
-          qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
-        my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
+        my $sth;
+        my $SELECT_clause = qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        eval { 
+            $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
+        };
+        if ($@) {
+            return 0;
+        }
+        
         $held = $sth->fetchrow_array() || 0;
     }
     DEBUG('auth,all,heldb,notheldb', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
@@ -101,9 +113,16 @@ sub holding_institutions {
     my ($C, $id) = @_;
 
     my $dbh = $C->get_object('Database')->get_DBH($C);
-
+    
+    my $sth;
     my $SELECT_clause = qq{SELECT member_id FROM holdings_htitem_htmember WHERE volume_id=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id);
+    eval {
+        $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id);
+    };
+    if ($@) {
+        return [];
+    }
+    
     my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
 
     my $inst_arr_ref = [];
@@ -129,8 +148,15 @@ sub holding_BRLM_institutions {
 
     my $dbh = $C->get_object('Database')->get_DBH($C);
 
+    my $sth;
     my $SELECT_clause = qq{SELECT member_id FROM holdings_htitem_htmember WHERE volume_id=? AND access_count > 0};
-    my $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id);
+    eval {
+        $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id);
+    };
+    if ($@) {
+        return [];
+    }
+    
     my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
 
     my $inst_arr_ref = [];
