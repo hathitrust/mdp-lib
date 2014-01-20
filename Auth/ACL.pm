@@ -155,8 +155,9 @@ PUBLIC
 This entry point provides access to ACL attributes and centralizes and
 debugging switch overrides.
 
-NOTE: Does not do authorization.  That is, does not test whether
-the user is coming from the correct IP address, for example.
+NOTE: Does not do authorization.  That is, does not test whether the
+user is coming from the correct IP address, for example, but is
+affected by debugging switches.
 
 =cut
 
@@ -167,6 +168,51 @@ sub a_GetUserAttributes {
 
     return '' unless(defined $requested_attribute);
     return __get_user_attributes($requested_attribute);
+}
+
+# ---------------------------------------------------------------------
+
+=item __a_Autorized_core
+
+PRIVATE
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __a_Autorized_core {
+    my $access_ref = shift;
+    my $unmasked = shift;
+    
+    return 0 unless(ref $access_ref eq 'HASH');
+    return 0 unless(scalar keys %$access_ref == 1);
+
+    my $authorized = 0;
+    my $ipaddr = $ENV{REMOTE_ADDR};
+
+    my $usertype = __get_user_attributes('usertype', $unmasked);
+    my $role = __get_user_attributes('role', $unmasked);
+    my $ip_range = __get_user_attributes('iprestrict', $unmasked);
+    my $expiration_date = __get_user_attributes('expires', $unmasked);
+    my $access = __get_user_attributes('access', $unmasked);
+
+    my ($key) = keys %$access_ref;
+
+    # See if user is in ACL
+    if ($usertype) {
+        # Check expiration
+        if (! Utils::Time::expired($expiration_date)) {
+            # Not expired. correct IP?
+            if ($ipaddr =~ m/$ip_range/) {
+                # Limit to certain roles or access
+                my ($key) = keys %$access_ref;
+                if ( $access_ref->{$key} eq __get_user_attributes($key, $unmasked) ) {
+                    $authorized = 1;
+                }
+            }
+        }
+    }
+
+    return $authorized;
 }
 
 # ---------------------------------------------------------------------
@@ -184,41 +230,15 @@ switch overrides.
 sub a_Authorized {
     my $access_ref = shift;
     __load_access_control_list();
-
-    return 0 unless(ref $access_ref eq 'HASH');
-    return 0 unless(scalar keys %$access_ref == 1);
-
-    my $authorized = 0;
-    my $ipaddr = $ENV{REMOTE_ADDR};
-
-    my $usertype = __get_user_attributes('usertype');
-    my $role = __get_user_attributes('role');
-    my $ip_range = __get_user_attributes('iprestrict');
-    my $expiration_date = __get_user_attributes('expires');
-    my $access = __get_user_attributes('access');
-
+    
+    my $authorized = __a_Autorized_core($access_ref);
     my ($key) = keys %$access_ref;
-
-    # See if user is in ACL
-    if ($usertype) {
-        # Check expiration
-        if (! Utils::Time::expired($expiration_date)) {
-            # Not expired. correct IP?
-            if ($ipaddr =~ m/$ip_range/) {
-                # Limit to certain roles or access
-                my ($key) = keys %$access_ref;
-                if ( $access_ref->{$key} eq __get_user_attributes($key) ) {
-                    $authorized = 1;
-                }
-            }
-        }
-    }
-
     my $test_case = '(test: ' . $key . '=>' . $access_ref->{$key} . ' am: ' . __get_user_attributes($key) . ')';
 
     __debug_acl($authorized, $test_case);
     return $authorized;
 }
+
 
 # ---------------------------------------------------------------------
 
@@ -234,16 +254,7 @@ not altering attribute values returned from __get_user_attributes().
 sub S___superuser_using_DEBUG_super {
     __load_access_control_list();
 
-    my $superuser = 0;
-    my $userid = __get_remote_user();
-
-    my $role = $gAccessControlList{$userid}{role} || '';
-    if ($role eq 'superuser') {
-        if (DEBUG('super')) {
-            $superuser = 1;
-        }
-    }
-
+    my $superuser = DEBUG('super') && __a_Autorized_core( {role => 'superuser'}, 'unmasked' );
     return $superuser;
 }
 
@@ -262,16 +273,7 @@ __get_user_attributes(). Typically CRMS users, among others.
 sub S___total_access_using_DEBUG_super {
     __load_access_control_list();
 
-    my $total = 0;
-    my $userid = __get_remote_user();
-
-    my $access = $gAccessControlList{$userid}{access} || '';
-    if ($access eq 'total') {
-        if (DEBUG('super')) {
-            $total = 1;
-        }
-    }
-
+    my $total = DEBUG('super') && __a_Autorized_core( {access => 'total'}, 'unmasked' );
     return $total;
 }
 
@@ -294,15 +296,7 @@ local.conf
 sub S___superuser_role {
     __load_access_control_list();
 
-    my $superuser = 0;
-
-    my $userid = __get_remote_user();
-
-    my $role = $gAccessControlList{$userid}{role} || '';
-    if ($role eq 'superuser') {
-        $superuser = 1;
-    }
-
+    my $superuser = __a_Autorized_core( {role => 'superuser'}, 'unmasked' );
     return $superuser;
 }
 
@@ -324,16 +318,25 @@ even attr=nobody, but who are not permitted to download PDF/EBM.
 sub S___total_access {
     __load_access_control_list();
 
-    my $total = 0;
-
-    my $userid = __get_remote_user();
-
-    my $access = $gAccessControlList{$userid}{access} || '';
-    if ($access eq 'total') {
-        $total = 1;
-    }
-
+    my $total = __a_Autorized_core( {access => 'total'}, 'unmasked' );
     return $total;
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_remote_user
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_remote_user {
+    my $remote_user = '';
+    if ( exists($ENV{REMOTE_USER}) ) {
+        $remote_user = lc $ENV{REMOTE_USER};
+    }
+    return $remote_user;
 }
 
 # ---------------------------------------------------------------------
@@ -351,10 +354,11 @@ sub __debug_acl {
     my $authorized = shift;
     my $test_case = shift;
 
+    # masked data to reflect effect of debugging switches.
     DEBUG('auth,all',
           sub {
               my $ipaddr = $ENV{REMOTE_ADDR} || '';
-              my $userid = __get_remote_user() || '';
+              my $userid = __get_remote_user();
               my $usertype = __get_user_attributes('usertype');
               my $role = __get_user_attributes('role');
               my $access = __get_user_attributes('access');
@@ -369,18 +373,19 @@ sub __debug_acl {
               return $s;
           });
 
+    # unmasked data to dump actual state of table
     DEBUG('acl',
           sub {
               return '' if $__b_debug_printed;
               my $s = '';
-              my @userids = __get_userid_list();
+              my @userids = keys %gAccessControlList;
               foreach my $userid (sort @userids) {
-                  my $usertype = __get_user_attributes('usertype', $userid);
-                  my $role = __get_user_attributes('role', $userid);
-                  my $access = __get_user_attributes('access', $userid);
-                  my $iprestrict = __get_user_attributes('iprestrict', $userid);
-                  my $expires = __get_user_attributes('expires', $userid);
-                  my $name = __get_user_attributes('displayname', $userid);
+                  my $usertype   = $gAccessControlList{$userid}{usertype};
+                  my $role       = $gAccessControlList{$userid}{role};
+                  my $access     = $gAccessControlList{$userid}{access};
+                  my $iprestrict = $gAccessControlList{$userid}{iprestrict};
+                  my $expires    = $gAccessControlList{$userid}{expires};
+                  my $name       = $gAccessControlList{$userid}{displayname};
 
                   $s .= qq{<h3 style="text-align:left">ACL DUMP: userid=$userid name=$name expires=$expires type=$usertype role=$role acess=$access <font color="blue">ip=$iprestrict </font></h3>};
               }
@@ -399,60 +404,41 @@ sub __debug_acl {
 
 =item __get_user_attributes
 
-Debugging coordinates with Access::Rights, Auth::Auth.
+PRIVATE: Debugging coordinates with Access::Rights, Auth::Auth.
 
 =cut
 
 # ---------------------------------------------------------------------
 sub __get_user_attributes {
     my $requested_attribute = shift;
-    my $userid = shift;
+    my $unmasked = shift;
 
-    my $_userid = (defined $userid) ? $userid : __get_remote_user();
-    my $attrval = $gAccessControlList{$_userid}{$requested_attribute} || '';
+    my $userid = __get_remote_user();
+    my $attrval = $gAccessControlList{$userid}{$requested_attribute} || '';
 
     # Superuser debugging over-rides
-    if ( S___superuser_role ) {
-        if (DEBUG('ord')) {
-            $attrval = '';
-        }
-        elsif (DEBUG('hathi')) {
-            $attrval = '';
-        }
-        elsif (DEBUG('ssd')) {
-            $attrval = 'ssd'     if ($requested_attribute eq 'role');
-            $attrval = 'normal'  if ($requested_attribute eq 'access');
-            $attrval = 'student' if ($requested_attribute eq 'usertype');
-        }
-        elsif (DEBUG('ssdproxy')) {
-            $attrval = 'ssdproxy' if ($requested_attribute eq 'role');
-            $attrval = 'normal'   if ($requested_attribute eq 'access');
-            $attrval = 'external' if ($requested_attribute eq 'usertype');
+    unless ($unmasked) {
+        if ( S___superuser_role ) {
+            if (DEBUG('ord')) {
+                $attrval = '';
+            }
+            elsif (DEBUG('hathi')) {
+                $attrval = '';
+            }
+            elsif (DEBUG('ssd')) {
+                $attrval = 'ssd'     if ($requested_attribute eq 'role');
+                $attrval = 'normal'  if ($requested_attribute eq 'access');
+                $attrval = 'student' if ($requested_attribute eq 'usertype');
+            }
+            elsif (DEBUG('ssdproxy')) {
+                $attrval = 'ssdproxy' if ($requested_attribute eq 'role');
+                $attrval = 'normal'   if ($requested_attribute eq 'access');
+                $attrval = 'external' if ($requested_attribute eq 'usertype');
+            }
         }
     }
-
+    
     return $attrval;
-}
-
-# ---------------------------------------------------------------------
-
-=item __get_userid_list
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_userid_list {
-    return keys %gAccessControlList;
-}
-
-sub __get_remote_user {
-    my $remote_user = '';
-    if ( exists($ENV{REMOTE_USER}) ) {
-        $remote_user = lc $ENV{REMOTE_USER};
-    }
-    return $remote_user;
 }
 
 # ---------------------------------------------------------------------

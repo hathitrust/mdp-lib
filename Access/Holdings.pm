@@ -6,7 +6,13 @@ Access::Holdings;
 
 =head1 DESCRIPTION
 
-This package provides an interface to the Holdings Database tables (mdp-holdings.)
+This package provides an interface to the Holdings Database tables
+(mdp-holdings). 
+
+During updates to the PHDB, tables can be inaccessible. We return
+held=0 if there are assertion failures in this case assuming that
+this only affects a diminishingly small number of cases, rather that
+affecting every user with an assertion failure.
 
 =head1 SYNOPSIS
 
@@ -52,7 +58,7 @@ sub id_is_held {
         if ($@) {
             return 0;
         }
-        
+
         $held = $sth->fetchrow_array() || 0;
     }
     DEBUG('auth,all,held,notheld', qq{<h4>Holdings for inst=$inst id="$id": held=$held</h4>});
@@ -85,13 +91,13 @@ sub id_is_held_and_BRLM {
 
         my $sth;
         my $SELECT_clause = qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
-        eval { 
+        eval {
             $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
         };
         if ($@) {
             return 0;
         }
-        
+
         $held = $sth->fetchrow_array() || 0;
     }
     DEBUG('auth,all,heldb,notheldb', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
@@ -113,7 +119,7 @@ sub holding_institutions {
     my ($C, $id) = @_;
 
     my $dbh = $C->get_object('Database')->get_DBH($C);
-    
+
     my $sth;
     my $SELECT_clause = qq{SELECT member_id FROM holdings_htitem_htmember WHERE volume_id=?};
     eval {
@@ -122,7 +128,7 @@ sub holding_institutions {
     if ($@) {
         return [];
     }
-    
+
     my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
 
     my $inst_arr_ref = [];
@@ -156,7 +162,7 @@ sub holding_BRLM_institutions {
     if ($@) {
         return [];
     }
-    
+
     my $ref_to_arr_of_arr_ref = $sth->fetchall_arrayref([0]);
 
     my $inst_arr_ref = [];
