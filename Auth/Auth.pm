@@ -734,7 +734,7 @@ sub get_PrintDisabledProxyUserSignature {
     my $self = shift;
     my $C = shift;
 
-    my $signature = 'undefined';
+    my $signature = '';
 
     if ( $self->user_is_print_disabled_proxy($C) ) {
         $signature = Auth::ACL::a_GetUserAttributes('userid');
