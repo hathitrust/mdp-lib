@@ -34,6 +34,7 @@ use Context;
 use Auth::Auth;
 use Identifier;
 use MarcMetadata;
+use MetsReadingOrder;
 
 use Utils::Cache::Storable;
 
@@ -1344,50 +1345,10 @@ sub SetPageInfo {
 sub ParseReadingOrder {
     my $self = shift;
     my $root = $self->_GetMetsRoot();
-    # set defaults
-    $self->Set('readingOrder', 'left-to-right');
-    $self->Set('scanningOrder', 'left-to-right');
-    my $techMD = ($root->findnodes(q{//METS:mdWrap[@LABEL="reading order"]}))[0];
-    my $found_techMD = 0;
-    if ( ref($techMD) ) {
-        if ( $techMD->getAttribute('OTHERMDTYPE') eq 'Google' ) {
-            $found_techMD = 1;
-            $self->Set('readingOrder', $techMD->findvalue('METS:xmlData/gbs:readingOrder'));
-            $self->Set('scanningOrder', $techMD->findvalue('METS:xmlData/gbs:scanningOrder'));
-        }        
-    }
-
-    if ( ! $found_techMD || $self->Get('readingOrder') eq 'unknown' ) {
-        my $structMap = ($root->findnodes(q{//METS:structMap[@TYPE='physical']/METS:div}))[0];
-        my $check = $structMap->findvalue(q{METS:div[1]/@LABEL});
-        if ( $check && $check =~ m,BACK_COVER, ) {
-            # a terrible hack? correction heuristic in case the title/toc would be
-            # located at the "back" of the book if the div's were reversed
-            my $total = $structMap->findvalue(q{count(METS:div)});
-            my $r = 1;
-            my @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TITLE')]});
-            unless ( scalar @features ) {
-                @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TABLE_OF_CONTENTS')]});
-            }
-            unless ( scalar @features ) {
-                @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'FIRST_CONTENT_CHAPTER_START')]});
-            }
-            if ( scalar @features ) {
-                my $seq = $features[0]->getAttribute('ORDER');
-                $r = ( $seq / $total );
-            }
-
-            if ( $r >= 0.75 ) {
-                # title/toc is located at the "back" of the div's, meaning the front
-                # when we reverse this for right-to-left
-                $self->Set('readingOrder', 'right-to-left');
-                $self->Set('scanningOrder', 'left-to-right');
-            }
-
-        }
-    }
-
-    
+    my ( $readingOrder, $scanningOrder) = MetsReadingOrder::parse($root);
+    $self->Set('readingOrder', $readingOrder);
+    $self->Set('scanningOrder', $scanningOrder);
+    DEBUG('readingOrder, all', qq{<h3>Reading Order ="$readingOrder" / Scanning Order = "$scanningOrder"</h3>});
 }
 
 # ---------------------------------------------------------------------
@@ -1445,6 +1406,7 @@ sub SupressCheckoutSeqs {
     # Don't suppress pages for development viewing using debug=nosup
     # switch
     return if (DEBUG('nosup'));
+    return;
 
     if ( $self->HasPageFeatures() )
     {
