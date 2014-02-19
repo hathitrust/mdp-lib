@@ -36,6 +36,11 @@ END {
 # Handle > 2G zips
 my $UNZIP_PROG = "/l/local/bin/unzip";
 
+# zip return codes
+use constant NO_ERRORS => 0;
+use constant NO_ERRORS_CAUTION_WARNING => 1;
+use constant NO_ERRORS_NO_MATCHING_FILES => 11;
+
 # ---------------------------------------------------------------------
 
 =item __get_df_report
@@ -202,6 +207,78 @@ sub extract_file_to_temp_cache {
 
 # ---------------------------------------------------------------------
 
+=item extract_filelist_to_temp_cache
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub extract_filelist_to_temp_cache {
+    my $id = shift;
+    my $file_sys_location = shift;
+    my $filelist_arr_ref = shift;
+    my $suffix = shift;
+
+    my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
+    my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
+    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
+    my $error_file = Utils::get_tmp_logdir() . '/extract-error';
+
+    my @filenames = map{ "$stripped_pairtree_id/$_" } @$filelist_arr_ref;
+
+    my @yes;
+    my @unzip;
+    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
+    push @yes, "echo", "n";
+    # -j: just filenames, not full paths, -qq: very quiet
+    push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, @filenames;
+
+    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
+
+    my $system_retval = $? >> 8;
+    my $cmd = join(' ', @unzip);
+
+    __extract_report($system_retval, $error_file, $cmd);
+
+    DEBUG('doc', qq{UNZIP: $cmd});
+
+    return $input_cache_dir;
+}
+
+# ---------------------------------------------------------------------
+
+=item __extract_report
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __extract_report {
+    my ($system_retval, $error_file, $cmd) = @_;
+
+    chmod(0666, $error_file) if (-o $error_file);
+
+    my $ok =
+      (
+       $system_retval == NO_ERRORS
+       ||
+       $system_retval == NO_ERRORS_CAUTION_WARNING
+       ||
+       $system_retval == NO_ERRORS_NO_MATCHING_FILES
+      );
+    unless ($ok) {
+        my $t_ref = read_file($error_file, 1);
+        my $msg = qq{UNZIP: code="$system_retval msg=$$t_ref  } . __get_df_report('/ram') . qq{command=$cmd};
+        Utils::Logger::__Log_simple($msg);
+        ASSERT(0, $msg);
+    }
+}
+
+
+# ---------------------------------------------------------------------
+
 =item extract_dir_to_temp_cache
 
 Description
@@ -215,15 +292,10 @@ sub extract_dir_to_temp_cache {
     my $patterns_arr_ref = shift;
     my $exclude_patterns_arr_ref = shift;
 
-    use constant NO_ERRORS => 0;
-    use constant NO_ERRORS_CAUTION_WARNING => 1;
-    use constant NO_ERRORS_NO_MATCHING_FILES => 11;
-
-    my $error_file = Utils::get_tmp_logdir() . '/extract-error';
-    
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
     my $input_cache_dir = __get_tmpdir($stripped_pairtree_id);
+    my $error_file = Utils::get_tmp_logdir() . '/extract-error';
 
     my @yes;
     my @unzip;
@@ -237,24 +309,11 @@ sub extract_dir_to_temp_cache {
     }
 
     IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
-    chmod(0666, $error_file) if (-o $error_file);
-    my $system_retval = $? >> 8;
 
+    my $system_retval = $? >> 8;
     my $cmd = join(' ', @unzip);
-    my $ok = 
-      (
-       $system_retval == NO_ERRORS 
-       || 
-       $system_retval == NO_ERRORS_CAUTION_WARNING 
-       || 
-       $system_retval == NO_ERRORS_NO_MATCHING_FILES
-      );
-    if (! $ok) {
-        my $t_ref = read_file($error_file, 1);
-        my $msg = qq{UNZIP: $cmd failed with code="$system_retval msg=$$t_ref" } . __get_df_report('/ram');
-        Utils::Logger::__Log_simple($msg);
-        ASSERT(0, $msg);
-    }
+
+    __extract_report($system_retval, $error_file, $cmd);
 
     DEBUG('doc', qq{UNZIP: $cmd});
 
@@ -272,7 +331,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2008-10 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2008-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

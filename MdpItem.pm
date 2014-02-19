@@ -1406,7 +1406,6 @@ sub SupressCheckoutSeqs {
     # Don't suppress pages for development viewing using debug=nosup
     # switch
     return if (DEBUG('nosup'));
-    return;
 
     if ( $self->HasPageFeatures() )
     {
