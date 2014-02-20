@@ -91,7 +91,7 @@ sub setup_debug_environment {
 
     $ENV{DEBUG} = $debugging
       if ($debugging);
-    
+
 
     my @requested_switches =  split(',', $debugging);
     set_xml_debugging_enabled(\@requested_switches);
@@ -129,7 +129,7 @@ sub set_HathiTrust_debug_environment {
                 last;
             }
         }
-    }    
+    }
 
     if (DEBUG('ord')) {
         # Equivalent to man-on-the-street
@@ -152,7 +152,7 @@ sub set_HathiTrust_debug_environment {
         $ENV{SDRINST} = 'ucm';
         $ENV{AUTH_TYPE} = 'shibboleth';
         $ENV{affiliation} = 'member@ucm.es';
-    }    
+    }
 
     DEBUG('auth',
           qq{HathiTrust: SDRINST=$ENV{SDRINST} SDRLIB=$ENV{SDRLIB} affiliation=$ENV{affiliation} eppn=$ENV{eppn} entitlement=$ENV{entitlement} displayName=$ENV{displayName} AUTH_TYPE=$ENV{AUTH_TYPE} REMOTE_ADDR=$ENV{REMOTE_ADDR}});
@@ -471,7 +471,7 @@ sub handle_terminal_debug_msg {
 
     # If we are not attached to a terminal only save to message buffer.
     $message = Encode::encode_utf8($message);
-    
+
     if ($ENV{'TERM'}) {
         print qq{$message\n};
         $main::MESSAGE_BUFFER .= qq{$message\n};
@@ -499,6 +499,11 @@ ranges when authenticated.
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
+    use constant NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1 => 0;
+
+    my $development_override = NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1;
+    return 1 if ($development_override);
+
     return Auth::ACL::S___total_access;
 }
 
