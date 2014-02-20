@@ -239,7 +239,7 @@ sub get_WAYF_login_href {
     my $WAYF_url = $C->get_object('MdpConfig')->get('WAYF_url');
 
     my $host = $ENV{HTTP_HOST} || 'localhost';
-    $WAYF_url =~ s,___HOST___,$host},;
+    $WAYF_url =~ s,___HOST___,$host,;
     $WAYF_url .= qq{?target=$return_to_url};
 
     return $WAYF_url;
