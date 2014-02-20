@@ -1345,10 +1345,11 @@ sub SetPageInfo {
 sub ParseReadingOrder {
     my $self = shift;
     my $root = $self->_GetMetsRoot();
-    my ( $readingOrder, $scanningOrder) = MetsReadingOrder::parse($root);
+    my ( $readingOrder, $scanningOrder, $coverTag ) = MetsReadingOrder::parse($root);
     $self->Set('readingOrder', $readingOrder);
     $self->Set('scanningOrder', $scanningOrder);
-    DEBUG('readingOrder, all', qq{<h3>Reading Order ="$readingOrder" / Scanning Order = "$scanningOrder"</h3>});
+    $self->Set('coverTag', $coverTag);
+    DEBUG('readingOrder, all', qq{<h3>Reading Order ="$readingOrder" / Scanning Order = "$scanningOrder" / Cover Tag = "$coverTag"</h3>});
 }
 
 # ---------------------------------------------------------------------

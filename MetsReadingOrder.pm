@@ -26,7 +26,7 @@ my $DEBUG = 0;
 sub parse {
     my ( $root ) = @_;
 
-    my ( $readingOrder, $scanningOrder ) = ( 'left-to-right', 'left-to-right' );
+    my ( $readingOrder, $scanningOrder, $coverTag ) = ( 'left-to-right', 'left-to-right', 'follow-reading-order' );
 
     my $techMD = ($root->findnodes(q{//METS:mdWrap[@LABEL="reading order"]}))[0];
     my $found_techMD = 0;
@@ -35,6 +35,7 @@ sub parse {
             $found_techMD = 1;
             $readingOrder = $techMD->findvalue('METS:xmlData/gbs:readingOrder');
             $scanningOrder = $techMD->findvalue('METS:xmlData/gbs:scanningOrder');
+            $coverTag = $techMD->findvalue('METS:xmlData/gbs:coverTag');
         }        
     }
 
@@ -68,7 +69,7 @@ sub parse {
         }
     }
 
-    return ( $readingOrder, $scanningOrder );
+    return ( $readingOrder, $scanningOrder, $coverTag );
 
 }
 
