@@ -1316,7 +1316,7 @@ sub SetPageInfo {
     my $firstSequence = Utils::min_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetFirstPageSequence($firstSequence);
 
-    $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
+    ### $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
 
     my $lastSequence = Utils::max_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetLastPageSequence($lastSequence);
@@ -1535,6 +1535,8 @@ sub GetFileNameBySequence {
 
     my $pageInfoHashRef = $self->Get( 'pageinfo' );
     my $fileName = $$pageInfoHashRef{ 'sequence' }{ $sequence }{ $which };
+
+    ## $filename = '' if ( $which eq 'ocrfile' && grep(/CHECKOUT_PAGE/, $self->GetPageFeatures($sequence)) );
 
     return $fileName;
 }
