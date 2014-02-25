@@ -1316,6 +1316,7 @@ sub SetPageInfo {
     my $firstSequence = Utils::min_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetFirstPageSequence($firstSequence);
 
+    ### CHECKOUT_PAGE IS NO LONGER SUPRESSED
     ### $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
 
     my $lastSequence = Utils::max_of_list(keys ( %{ $pageInfoHash{sequence} } ));
