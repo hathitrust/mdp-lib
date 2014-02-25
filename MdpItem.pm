@@ -1400,6 +1400,7 @@ sub adjust_feature_seq {
 #                last page suppression will be handled when
 #                CHECKOUT_PAGE page metadata is available for all
 #                books.  This per jwilkin. Mon Aug 16 13:52:26 2010
+#                Deprecated - 2014-02-25.
 # ----------------------------------------------------------------------
 sub SupressCheckoutSeqs {
     my $self = shift;
