@@ -1537,8 +1537,6 @@ sub GetFileNameBySequence {
     my $pageInfoHashRef = $self->Get( 'pageinfo' );
     my $fileName = $$pageInfoHashRef{ 'sequence' }{ $sequence }{ $which };
 
-    ## $filename = '' if ( $which eq 'ocrfile' && grep(/CHECKOUT_PAGE/, $self->GetPageFeatures($sequence)) );
-
     return $fileName;
 }
 
