@@ -146,27 +146,28 @@ sub get_skin_name
 
     my $skin_name;
 
-    my $auth = $C->get_object('Auth');
-    if ($auth->is_logged_in())
-    {
-        if ($auth->login_realm_is_friend())
-        {
+    if ($C->has_object('Auth')) {
+        my $auth = $C->get_object('Auth');
+        if ($auth->is_logged_in()) {
+            if ($auth->login_realm_is_friend()) {
+                $skin_name = $self->__get_skin_by_location($C);
+            }
+            else {
+                $skin_name = MICHIGAN_SKIN;
+            }
+        }
+        else {
             $skin_name = $self->__get_skin_by_location($C);
         }
-        else
-        {
-            $skin_name = MICHIGAN_SKIN;
-        }
     }
-    else
-    {
+    else {
         $skin_name = $self->__get_skin_by_location($C);
     }
 
     # Debugging URL parameter to force a skin
     my $skin_key = $C->get_object('CGI')->param('skin');
     $skin_name = $skin_key ? $skin_key : $skin_name;
-    
+
     ASSERT($skin_name, qq{Skin name algorithm failed});
     return $skin_name;
 }

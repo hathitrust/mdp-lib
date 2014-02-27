@@ -742,7 +742,11 @@ generated after PI handling can make it into the outpurt stream.
 sub handle_DEBUG_MESSAGES_PI {
     my ($C, $data_ref) = @_;
 
-    return unless (Debug::DUtils::debugging_enabled());
+    return unless (
+                   Debug::DUtils::debugging_enabled
+                   &&
+                   $C->has_object('Session')
+                  );
 
     my $ses = $C->get_object('Session');
 
