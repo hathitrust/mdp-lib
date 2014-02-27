@@ -1316,7 +1316,8 @@ sub SetPageInfo {
     my $firstSequence = Utils::min_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetFirstPageSequence($firstSequence);
 
-    $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
+    ### CHECKOUT_PAGE IS NO LONGER SUPRESSED
+    ### $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
 
     my $lastSequence = Utils::max_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetLastPageSequence($lastSequence);
@@ -1399,6 +1400,7 @@ sub adjust_feature_seq {
 #                last page suppression will be handled when
 #                CHECKOUT_PAGE page metadata is available for all
 #                books.  This per jwilkin. Mon Aug 16 13:52:26 2010
+#                Deprecated - 2014-02-25.
 # ----------------------------------------------------------------------
 sub SupressCheckoutSeqs {
     my $self = shift;
