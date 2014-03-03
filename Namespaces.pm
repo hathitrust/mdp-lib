@@ -12,7 +12,6 @@ namespace-specific data.
  CREATE TABLE `ht_namespaces` (
     `namespace`      varchar(8)   NOT     NULL,
     `institution`    varchar(255) DEFAULT NULL,
-    `inst_code`      varchar(8)   DEFAULT NULL,
     `grin_instance`  varchar(32)  DEFAULT NULL,
     `default_source` varchar(32)  DEFAULT NULL,
            PRIMARY KEY (`namespace`)
@@ -52,7 +51,6 @@ sub __load_namespace_hash {
     %Namespace_Hash = map { $_->{namespace},
                               {
                                institution   => $_->{institution},
-                               inst_code     => $_->{inst_code},
                                grin_instance => $_->{grin_instance},
                               }
                           } @$ref_to_arr_of_hashref;
@@ -115,35 +113,31 @@ sub __map_UCAL_GRIN_prefix {
 
     return $grin_prefix
       unless (defined $grin_prefix && $grin_prefix eq 'UCAL');
-
-    my $barcode_len = length($barcode);
+  
+    # From ht_to_grin.rb aelkiss
+    return 'UCSC'
+      if ( $barcode =~ m/^32106\d{9}$/ );
+    return 'UCSD'
+      if ( $barcode =~ m/^31822\d{9}$/ );
+    return 'UCSF'
+      if ( $barcode =~ m/^31378\d{9}$/ );
+    return 'UCD'
+      if ( $barcode =~ m/^31175\d{9}$/ );
     return 'UCLA'
-      if ($barcode_len == 11 && substr($barcode, 0, 1) eq 'l');
-    return 'UCB'
-      if ($barcode_len == 10);
+      if ( $barcode =~ m/^l\d{10}|31158\d{9}$/ );
+    return 'SRLF'
+      if ( $barcode =~ m/^a{1,3}\d{9}/ );
 
-    if ($barcode_len == 14) {
-        my $barcode_chars = substr($barcode, 1, 4);
-        return 'UCSD'
-          if ($barcode_chars eq '1822');
-        return 'UCI'
-          if ($barcode_chars eq '1970');
-        return 'UCSF'
-          if ($barcode_chars eq '1378');
-        return 'UCSC'
-          if ($barcode_chars eq '2106');
-        return 'UCSB'
-          if ($barcode_chars eq '1205');
-        return 'UCD'
-          if ($barcode_chars eq '1175');
-        return 'UCLA'
-          if ($barcode_chars eq '1158');
-        return 'UCR'
-          if ($barcode_chars eq '1210');
-    }
-    else {
-        return 'UCAL';
-    }
+    # Nothing from these campuses?
+    return 'UCI'
+      if ( $barcode =~ m/^.1970\d{9}$/ );
+    return 'UCSB'
+      if ( $barcode =~ m/^.1205\d{9}$/ );
+    return 'UCB'
+      if ( $barcode =~ m/^\d{10}$/ );
+
+    # No matches
+    return 'UCAL';
 }
 
 1;
@@ -156,7 +150,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2012-13 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2012-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
