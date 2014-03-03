@@ -172,6 +172,9 @@ our $HT_AFFILIATE        = 7;
    '14' => 'brooklynmuseum',
    '15' => 'uf',
    '16' => 'tamu',
+   '17' => 'udel',
+   '18' => 'aeu',
+   '19' => 'ucw',
   );
 
 @g_stmt_fields =
