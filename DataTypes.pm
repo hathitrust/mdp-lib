@@ -39,13 +39,13 @@ our %dataTypeMatrix =
 
    q{http://www.hathitrust.org/documents/hathitrust-structured-mets-profile1.0.xml} =>
    [{
-     _xpath   => q{/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language},
+     _xpath   => q{normalize-space(/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language)},
      _value   => q{http://dtd.nlm.nih.gov/publishing/3.0/journalpublishing3.dtd},
      _type    => q{article},
      _subtype => q{JATS},
     },
     {
-     _xpath   => q{/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language},
+     _xpath   => q{normalize-space(/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language)},
      _value   => q{http://www.tei-c.org/release/xml/tei/schema/dtd//tei.dtd},
      _type    => q{volume},
      _subtype => q{TEI},
