@@ -205,6 +205,51 @@ sub get_institution_list {
     return $ref_to_arr_of_hashref;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_idp_list
+
+Description
+
+Used by ping.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_idp_list {
+    my $C = shift;
+    my $list_ref = get_institution_list($C);
+    my $results = [];
+
+    my $inst = $C->get_object('Auth')->get_institution_code($C) || 'notaninstitution';
+
+    foreach my $hash ( sort { $$a{name} cmp $$b{name} } @$list_ref ) {
+        my $development = 0;
+
+        if ( ! $$hash{enabled} ) {
+            $development = 1;
+            next unless ( $ENV{HT_DEV} );
+        }
+
+        my $idp_url = $$hash{template};
+        my $host = $ENV{'HTTP_HOST'} || 'localhost';
+        $idp_url =~ s,___HOST___,$host,;
+        ## $idp_url =~ s,___TARGET___,$L_target,;
+
+        push @$results, { 
+            enabled => $$hash{enabled},
+            sdrinst => $$hash{sdrinst},
+            idp_url => $idp_url,
+            authtype => $$hash{authtype},
+            name => $$hash{name},
+            selected => ( $inst eq $$hash{sdrinst} ),
+        };
+
+    }
+
+    return $results;
+
+}
 
 1;
 
