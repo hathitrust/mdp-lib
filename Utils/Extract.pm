@@ -86,8 +86,8 @@ sub cleanup {
     my $tmp_root = __get_root();
     if (opendir(DIR, $tmp_root)) {
         my @targets = grep(! /(^\.$|^\.\.$)/, readdir(DIR));
-        my $pattern = qr{^1_${pid}_2_\d+_.*};
-        if ( $suffix ) { $pattern = qr{^1_${pid}_2_\d+_${suffix}} }
+        my $pattern = qr{.*?-_-1-_-${pid}-_-2-_-.*};
+        if ( $suffix ) { $pattern = qr{.*?-_-1-_-${pid}-_-2-_-[0-9]+-_-${suffix}} }
         my @rm_pid_targets = grep(/$pattern/, @targets);
         # remove the temp files created by this pid
         foreach my $sd (@rm_pid_targets) {
@@ -97,7 +97,7 @@ sub cleanup {
         # remove expired temp files not cleaned up by failed pids
         my $now = time();
         foreach my $sd (@targets) {
-            my ($created) = ($sd =~ m,^1_\d+_2_(\d+),);
+            my ($created) = ($sd =~ m,.*?-_-2-_-(\d+),);
             next unless ( $created );
             if (($now - $created) > $expired) {
                 system("rm", "-rf", "$tmp_root/$sd");
@@ -118,11 +118,7 @@ of this module. As such, there will never be a non-unique combination
 of pid and time.  The perl TMPDIR function with CLEANUP =>1 was
 inexplicably leaving directories behind hence this code.
 
-template has been re-arranged to move what was the "prefix" to the
-end of the directory name, avoiding any conflicts with prefix formats
-(see: mdl.reflections.shm009490_2). Semantics will need to be adjusted.
-
-template: 1_PID_2_TIME_suffix_prefix
+templtae: prefix-_-1-_-PID-_-2-_-TIME-_-suffix
 
 =cut
 
@@ -131,10 +127,10 @@ sub get_formatted_path {
     my ($prefix, $suffix, $delta) = @_;
 
     $delta = 0 || $delta;
-    $suffix = qq{_$suffix} if ( $suffix );
+    $suffix = qq{-_-$suffix} if ( $suffix );
 
-    ASSERT(($prefix !~ m,_[12]_,), qq{ERROR: prefix contains '_[12]_' characters } . __get_df_report('/ram'));
-    my $path = qq{1_$$} . q{_2_} . (time() + $delta) . $suffix . qq{_$prefix};
+    ASSERT(($prefix !~ m,-_-[12]-_-,), qq{ERROR: prefix contains '-_-[12]-_-' characters } . __get_df_report('/ram'));
+    my $path = $prefix . qq{-_-1-_-$$} . q{-_-2-_-} . (time() + $delta) . $suffix;
     return $path;
 }
 
@@ -155,7 +151,7 @@ sub __get_tmpdir {
     my $delta = shift || 0;
 
     my $tmp_root = __get_root();
-    my $input_cache_dir = $tmp_root . q{/} . get_formatted_path($pairtree_form_id, $suffix, $delta);
+    my $input_cache_dir = get_formatted_path("$tmp_root/$pairtree_form_id", $suffix, $delta);
     if (! -e $input_cache_dir) {
         my $rc = mkdir($input_cache_dir);
         ASSERT($rc, qq{Failed to create dir=$input_cache_dir rc=$rc errno=$! } . __get_df_report('/ram'));
