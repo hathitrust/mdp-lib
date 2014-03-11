@@ -118,7 +118,7 @@ of this module. As such, there will never be a non-unique combination
 of pid and time.  The perl TMPDIR function with CLEANUP =>1 was
 inexplicably leaving directories behind hence this code.
 
-templtae: prefix-_-1-_-PID-_-2-_-TIME-_-suffix
+template: prefix-_-1-_-PID-_-2-_-TIME-_-suffix
 
 =cut
 
