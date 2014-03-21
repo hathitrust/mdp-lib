@@ -92,6 +92,11 @@ sub getDataSubType {
     return __getMatrixValue($METS_root, '_subtype');
 }
 
+sub getMarkupLanguage {
+    my $METS_root = shift;
+    return __getMatrixValue($METS_root, '_value');
+}
+
 # ---------------------------------------------------------------------
 
 =item __getMatrixValue
