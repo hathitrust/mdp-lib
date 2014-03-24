@@ -20,6 +20,9 @@ package RightsGlobals;
  14        brooklynmuseum Brooklyn Museum
  15        uf             University of Florida
  16        tamu           Texas A&M
+ 17        udel           University of Delaware
+ 18        private        Private Donor
+ 19        umich          University of Michigan (Other)
 
  ATTRIBUTES
  id        name        type      dscr
@@ -34,6 +37,7 @@ package RightsGlobals;
  9         pdus        copyright public domain only when viewed in the US
  18        und-world   access    undetermined copyright status and permitted as world viewable
  19        icus        copyright in copyright in the US
+ 20        xxx         xxx
 
  (Creative Commons)
 
@@ -173,8 +177,8 @@ our $HT_AFFILIATE        = 7;
    '15' => 'uf',
    '16' => 'tamu',
    '17' => 'udel',
-   '18' => 'aeu',
-   '19' => 'ucw',
+   '18' => 'private',
+   '19' => 'umich',
   );
 
 @g_stmt_fields =
@@ -423,6 +427,8 @@ $g_orphan_candidate_attribute_value = 16;
                                            14, # brooklynmuseum
                                            15, # uf
                                            16, # tamu
+                                           18, # private
+                                           19, # umich
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
