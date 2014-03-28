@@ -23,6 +23,7 @@ package RightsGlobals;
  17        udel           University of Delaware
  18        private        Private Donor
  19        umich          University of Michigan (Other)
+ 20        clark          Clark Art Institute
 
  ATTRIBUTES
  id        name        type      dscr
@@ -179,6 +180,7 @@ our $HT_AFFILIATE        = 7;
    '17' => 'udel',
    '18' => 'private',
    '19' => 'umich',
+   '20' => 'clark',
   );
 
 @g_stmt_fields =
@@ -429,6 +431,7 @@ $g_orphan_candidate_attribute_value = 16;
                                            16, # tamu
                                            18, # private
                                            19, # umich
+                                           20, # clark
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
