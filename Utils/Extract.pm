@@ -82,6 +82,13 @@ sub cleanup {
     my $suffix = shift;
     my $expired = 300; # seconds
 
+    # quiet the logs
+    local (*OUT, *ERR);
+    open OUT, ">&STDOUT";
+    open ERR, ">&STDERR";
+    close STDOUT;
+    close STDERR;
+
     # regexp must match template in get_formatted_path()
     my $tmp_root = __get_root();
     if (opendir(DIR, $tmp_root)) {
@@ -105,6 +112,9 @@ sub cleanup {
         }
     }
     closedir(DIR);
+
+    open STDOUT, ">&OUT";
+    open STDERR, ">&ERR";
 }
 
 # ---------------------------------------------------------------------
