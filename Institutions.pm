@@ -27,6 +27,22 @@ institution-specific data.
            PRIMARY KEY (`sdrinst`)
    );
 
+ CREATE TABLE `ht_institutions` (
+   `sdrinst`       varchar(32)  NOT NULL DEFAULT ' ',
+   `name`          varchar(256) NOT NULL DEFAULT ' ',
+   `template`      varchar(256) NOT NULL DEFAULT ' ',
+   `authtype`      varchar(32)  NOT NULL DEFAULT 'shibboleth',
+   `domain`        varchar(32)  NOT NULL DEFAULT ' ',
+   `us`            tinyint(1)   NOT NULL DEFAULT '0',
+   `mapto_domain`  varchar(32)           DEFAULT NULL,
+   `mapto_sdrinst` varchar(32)           DEFAULT NULL,
+   `mapto_name`    varchar(256)          DEFAULT NULL,
+   `enabled`       tinyint(1)   NOT NULL DEFAULT '0',
+   `orph_agree`    tinyint(1)   NOT NULL DEFAULT '0',
+   `entityID`      varchar(256)          DEFAULT NULL,
+              PRIMARY KEY (`sdrinst`)
+ );
+
 =head1 SYNOPSIS
 
 Coding example

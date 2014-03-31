@@ -124,16 +124,17 @@ sub __debug_auth {
                   . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
                     . q{ authsys=} . __get_auth_sys($ses)
                       . q{ newlogin=} . $self->isa_new_login()
-                        . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                          . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                            . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
-                              . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
-                                . q{ is_umich=} . $self->affiliation_is_umich($C)
-                                  . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                    . q{ env entitlement=} . ($ENV{entitlement} || '')
-                                      . q{ computed entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                                        . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
-                                          . q{ print-disabled=} . $self->user_is_print_disabled($C);
+                        . q{ entityID=} . $self->get_shibboleth_entityID()
+                          . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
+                            . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                              . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
+                                . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
+                                  . q{ is_umich=} . $self->affiliation_is_umich($C)
+                                    . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                      . q{ env entitlement=} . ($ENV{entitlement} || '')
+                                        . q{ computed entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                                          . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                            . q{ print-disabled=} . $self->user_is_print_disabled($C);
               return $auth_str;
           });
 }
@@ -818,6 +819,53 @@ sub get_eduPersonEntitlement_print_disabled {
     return $self->user_is_print_disabled($C) || $self->user_is_print_disabled_proxy($C);
 }
 
+
+# ---------------------------------------------------------------------
+
+=item get_eduPersonTargetedID
+
+This is the eduPersonTargetedID, a persistent, non-reassigned,
+privacy-preserving identifier for a principal shared between a pair of
+coordinating entities, denoted by the SAML 2 architectural overview
+[1] as identity provider and service provider (or a group of service
+providers).
+
+http://middleware.internet2.edu/eduperson/docs/internet2-mace-dir-eduperson-200806.html#eduPersonTargetedID
+
+We have seen the umich IdP assign the semi-colon separated
+concatenation of the old:
+
+urn:mace:dir:attribute-def:eduPersonTargetedID
+
+and the new:
+
+OID: 1.3.6.1.4.1.5923.1.1.1.10 values to persistent_id. We parse just one out.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_eduPersonTargetedID {
+    my $self = shift;
+
+    my $targeted_id = $ENV{persistent_id} || '';
+    return ( split(/;/, $targeted_id) )[0] || '';
+}
+
+# ---------------------------------------------------------------------
+
+=item get_shibboleth_entityID
+
+The entityID allows us to determine, independent of multiple
+eduPersonScopedAffiliation values, with which institution the
+authenticated user is affiliated.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_shibboleth_entityID {
+    my $self = shift;
+    return $ENV{Shib_Identity_Provider};
+}
 
 # ---------------------------------------------------------------------
 
