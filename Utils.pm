@@ -519,27 +519,26 @@ sub xml_escape_url_separators {
 
 # ---------------------------------------------------------------------
 
-=item remove_nonprinting_chars
+=item remove_invalid_xml_chars
 
-Description
+This assumes the input is UTF-8 encoded and has been through
+Encode::decode_utf8.
+
+Delete characters that are invalid in XML data. Valid XML characters and
+ranges are:
+
+  (c == 0x9) || (c == 0xA) || (c == 0xD)
+             || ((c >= 0x20) && (c <= 0xD7FF))
+             || ((c >= 0xE000) && (c <= 0xFFFD))
+             || ((c >= 0x10000) && (c <= 0x10FFFF))
+
 
 =cut
 
 # ---------------------------------------------------------------------
-sub remove_nonprinting_chars
-{
+sub remove_invalid_xml_chars {
     my $s_ref = shift;
-    $$s_ref =~ s,[\n\r\t\f\e], ,g;
-
-    # Kill characters that are invalid in XML data. Valid XML
-    # characters and ranges are:
-
-    #  (c == 0x9) || (c == 0xA) || (c == 0xD)
-    #             || ((c >= 0x20) && (c <= 0xD7FF))
-    #             || ((c >= 0xE000) && (c <= 0xFFFD))
-    #             || ((c >= 0x10000) && (c <= 0x10FFFF))
-
-    $$s_ref =~ s,[\000-\010\013-\014\016-\037]+, ,gs;
+    return $$s_ref =~ s/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]//go;
 }
 
 # ---------------------------------------------------------------------
@@ -565,7 +564,7 @@ sub clean_cgi_params
             if (defined($v) && ($v !~ m,^\s*$,))
             {
                 $v = Encode::decode_utf8($v);
-                remove_nonprinting_chars(\$v);
+                remove_invalid_xml_chars(\$v);
                 remove_truncated_cers(\$v);
                 map_chars_to_cers(\$v, [qq{"}, qq{'}]);
                 trim_spaces(\$v);

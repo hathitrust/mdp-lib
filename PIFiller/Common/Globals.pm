@@ -359,12 +359,13 @@ sub handle_ENV_VAR_PI
 
     my $environment_variable = $$piParamHashRef{'variable'};
     my $v = $ENV{$environment_variable};
+    $v = Encode::decode_utf8($v);
+
     # occassionally environment variable has chars in need of
     # mapping. e.g., AT&T
     Utils::map_chars_to_cers(\$v);
     # occassionally environment variable contains invalid XML cahrs
-    $v = Encode::decode_utf8($v);
-    Utils::remove_nonprinting_chars(\$v);
+    my $removed = Utils::remove_invalid_xml_chars(\$v);
 
     return $v;
 }
