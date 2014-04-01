@@ -60,7 +60,7 @@ sub __Load_Institution_Hash {
 
 # ---------------------------------------------------------------------
 
-=item _load_institution_sdrinst_hash, _load_institution_entityID_hash
+=item _load_institution_sdrinst_hash, _load_institution_entityID_hash, _load_institution_domain_hash
 
 We do lookups based on entityID if the user is authenticated or, when
 not, by sdrinst, obtained from Apache SDRINST environment variable
@@ -85,6 +85,15 @@ sub _load_institution_entityID_hash {
     return if (defined $Institution_Hash->{entityIDs}{$entityID});
 
     __Load_Institution_Hash($C, 'entityIDs', 'entityID', $entityID);
+}
+
+sub _load_institution_domain_hash {
+    my $C = shift;
+    my $domain = shift;
+
+    return if (defined $Institution_Hash->{domains}{$domain});
+
+    __Load_Institution_Hash($C, 'domains', 'domain', $domain);
 }
 
 
@@ -164,6 +173,47 @@ sub get_institution_sdrinst_field_val {
         }
         else {
             $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};
+        }
+    }
+
+    return $val;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_domain_field_val
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_domain_field_val {
+    my $C = shift;
+    my ($domain, $field, $mapped) = @_;
+
+    _load_institution_domain_hash($C, $domain);
+
+    my $val;
+
+    if (! $mapped) {
+        $val = $Institution_Hash->{domains}{$domain}{$field};
+    }
+    else {
+        if ($field eq 'name' && $Institution_Hash->{domains}{$domain}{mapto_name}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_name};
+        }
+        elsif ($field eq 'domain' && $Institution_Hash->{domains}{$domain}{mapto_domain}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_domain};
+        }
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{domains}{$domain}{mapto_sdrinst}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{domains}{$domain}{mapto_entityID}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_entityID};
+        }
+        else {
+            $val = $Institution_Hash->{domains}{$domain}{$field};
         }
     }
 

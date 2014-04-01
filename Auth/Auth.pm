@@ -179,6 +179,20 @@ sub _initialize {
 
 # ---------------------------------------------------------------------
 
+=item get_umich_entity_id
+
+PUBLIC:  CLASS METHOD
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_umich_IdP_entity_id {
+    return $UMICH_ENTITY_ID;
+}
+
+
+# ---------------------------------------------------------------------
+
 =item handle_possible_redirect
 
 Redirect the request over SSL and possible alter path from /cgi/ to
