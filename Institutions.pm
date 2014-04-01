@@ -10,22 +10,22 @@ Institutions;
 This package provides the interface and access logic to
 institution-specific data.
 
- CREATE TABLE `ht_institutions`
-   (
-    `sdrinst`        varchar(32)  NOT NULL DEFAULT ' ',
-    `name`           varchar(256) NOT NULL DEFAULT ' ',
-    `template`       varchar(256) NOT NULL DEFAULT ' ',
-    `authtype`       varchar(32)  NOT NULL DEFAULT 'shibboleth',
-    `domain`         varchar(32)  NOT NULL DEFAULT ' ',
-    `alias_domain`   varchar(32)  NULL,
-    `us`             tinyint(1)   NOT NULL DEFAULT '0',
-    `mapto_domain`   varchar(32)  NULL,
-    `mapto_sdrinst`  varchar(32)  NULL,
-    `mapto_name`     varchar(256) NULL,
-    `enabled`        tinyint(1)   NOT NULL DEFAULT '0',
-    `orph_agree`     tinyint(1)   NOT NULL DEFAULT '0',
-           PRIMARY KEY (`sdrinst`)
-   );
+ CREATE TABLE `ht_institutions` (
+   `sdrinst`          varchar(32)  NOT NULL DEFAULT ' ',
+   `name`             varchar(256) NOT NULL DEFAULT ' ',
+   `template`         varchar(256) NOT NULL DEFAULT ' ',
+   `authtype`         varchar(32)  NOT NULL DEFAULT 'shibboleth',
+   `domain`           varchar(32)  NOT NULL DEFAULT ' ',
+   `us`               tinyint(1)   NOT NULL DEFAULT '0',
+   `mapto_domain`     varchar(32)           DEFAULT NULL,
+   `mapto_sdrinst`    varchar(32)           DEFAULT NULL,
+   `mapto_name`       varchar(256)          DEFAULT NULL,
+   `map_to_entityID`  varchar(256)          DEFAULT NULL,
+   `enabled`          tinyint(1)   NOT NULL DEFAULT '0',
+   `orph_agree`       tinyint(1)   NOT NULL DEFAULT '0',
+   `entityID`         varchar(256)          DEFAULT NULL,
+              PRIMARY KEY (`sdrinst`)
+ );
 
 =head1 SYNOPSIS
 
@@ -43,35 +43,8 @@ use DbUtils;
 
 my $Institution_Hash;
 
-# ---------------------------------------------------------------------
 
-=item __get_domains
-
-return domain and alias_domain for $domain passed in as 'domain' or
-'alias_domain'
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_domains {
-    my $C = shift;
-    my $candidate_domain = shift;
-
-    return unless (defined $candidate_domain);
-
-    my $dbh = $C->get_object('Database')->get_DBH;
-
-    my $statement = qq{SELECT domain, alias_domain FROM ht_institutions WHERE (domain=? OR alias_domain=?)};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $candidate_domain, $candidate_domain);
-    my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    my $domain = $ref_to_arr_of_hashref->[0]->{domain};
-    my $alias_domain = $ref_to_arr_of_hashref->[0]->{alias_domain};
-
-    return ($domain, $alias_domain);
-}
-
-sub __load_institution_hash {
+sub __Load_Institution_Hash {
     my $C = shift;
     my ($selector, $key, $value) = @_;
 
@@ -84,62 +57,72 @@ sub __load_institution_hash {
     $Institution_Hash->{$selector}{$value} = $ref_to_arr_of_hashref->[0];
 }
 
-sub _load_institution_domain_hash {
-    my $C = shift;
-    my $candidate_domain = shift;
 
-    return if (defined $Institution_Hash->{domains}{$candidate_domain});
+# ---------------------------------------------------------------------
 
-    my ($domain, $alias_domain) = __get_domains($C, $candidate_domain);
+=item _load_institution_sdrinst_hash, _load_institution_entityID_hash
 
-    __load_institution_hash($C, 'domains', 'domain', $domain)
-      if (defined $domain);
-    __load_institution_hash($C, 'domains', 'alias_domain', $alias_domain) 
-      if (defined $alias_domain);
-}
+We do lookups based on entityID if the user is authenticated or, when
+not, by sdrinst, obtained from Apache SDRINST environment variable
+which is set based on institutional IP address ranges.
 
+=cut
+
+# ---------------------------------------------------------------------
 sub _load_institution_sdrinst_hash {
     my $C = shift;
     my $sdrinst = shift;
 
     return if (defined $Institution_Hash->{sdrinsts}{$sdrinst});
 
-    __load_institution_hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
+    __Load_Institution_Hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
+}
+
+sub _load_institution_entityID_hash {
+    my $C = shift;
+    my $entityID = shift;
+
+    return if (defined $Institution_Hash->{entityIDs}{$entityID});
+
+    __Load_Institution_Hash($C, 'entityIDs', 'entityID', $entityID);
 }
 
 
 # ---------------------------------------------------------------------
 
-=item get_institution_domain_field_val
+=item get_institution_entityID_field_val
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_institution_domain_field_val {
+sub get_institution_entityID_field_val {
     my $C = shift;
-    my ($domain, $field, $mapped) = @_;
+    my ($entityID, $field, $mapped) = @_;
 
-    _load_institution_domain_hash($C, $domain);
+    _load_institution_entityID_hash($C, $entityID);
 
     my $val;
 
     if (! $mapped) {
-        $val = $Institution_Hash->{domains}{$domain}{$field};
+        $val = $Institution_Hash->{entityIDs}{$entityID}{$field};
     }
     else {
-        if ($field eq 'name' && $Institution_Hash->{domains}{$domain}{mapto_name}) {
-            $val = $Institution_Hash->{domains}{$domain}{mapto_name};
+        if ($field eq 'name' && $Institution_Hash->{entityIDs}{$entityID}{mapto_name}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_name};
         }
-        elsif ($field eq 'domain' && $Institution_Hash->{domains}{$domain}{mapto_domain}) {
-            $val = $Institution_Hash->{domains}{$domain}{mapto_domain};
+        elsif ($field eq 'domain' && $Institution_Hash->{entityIDs}{$entityID}{mapto_domain}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{domains}{$domain}{mapto_sdrinst}) {
-            $val = $Institution_Hash->{domains}{$domain}{mapto_sdrinst};
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{entityIDs}{$entityID}{mapto_entityID}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst};
         }
         else {
-            $val = $Institution_Hash->{domains}{$domain}{$field};
+            $val = $Institution_Hash->{entityIDs}{$entityID}{$field};
         }
     }
 
@@ -175,6 +158,9 @@ sub get_institution_sdrinst_field_val {
         }
         elsif ($field eq 'sdrinst' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_sdrinst}) {
             $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_entityID}) {
+            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_entityID};
         }
         else {
             $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};

@@ -84,6 +84,9 @@ use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
+# University of Michigan entity ID (until we are %100 shibboleth
+my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
+
 # eduPersonEntitlement attribute values that qualify as print disabled
 my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
 my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
@@ -117,23 +120,25 @@ sub __debug_auth {
     my $self = shift;
     my ($C, $ses) = @_;
 
-    DEBUG('auth', 
+    DEBUG('auth',
           sub {
               my $auth_str =
                 q{AUTH: userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
-                  . q{ loggedin=} . $self->is_logged_in() . q{ in_library=} . $self->is_in_library()
+                  . q{ loggedin=} . $self->is_logged_in() . q{ in-library=} . $self->is_in_library()
                     . q{ authsys=} . __get_auth_sys($ses)
                       . q{ newlogin=} . $self->isa_new_login()
-                        . q{ parsed_persistent_id=} . $self->get_eduPersonTargetedID()
-                          . q{ prioritized_scoped_affiliation=} . $self->get_eduPersonScopedAffiliation($C)
-                            . q{ institution code=} . $self->get_institution_code($C) . q{ institution code (mapped)=} . $self->get_institution_code($C, 1)
-                              . q{ institution name=} . $self->get_institution_name($C) . q{ institution name (mapped)=} . $self->get_institution_name($C, 1)
-                                . q{ is_umich=} . $self->affiliation_is_umich($C)
-                                  . q{ is_hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                    . q{ env entitlement=} . ($ENV{entitlement} || '')
-                                      . q{ computed entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                                        . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
-                                          . q{ print-disabled=} . $self->user_is_print_disabled($C);
+                        . q{ entityID=} . $self->get_shibboleth_entityID($C)
+                          . q{ parsed-persistent_id=} . $self->get_eduPersonTargetedID()
+                            . q{ eppn=} . $self->get_eduPersonPrincipalName($C)
+                              . q{ prioritized-scoped-affiliation=} . $self->get_eduPersonScopedAffiliation($C)
+                                . q{ institution code=} . $self->get_institution_code($C) . q{ institution-code (mapped)=} . $self->get_institution_code($C, 1)
+                                  . q{ institution name=} . $self->get_institution_name($C) . q{ institution-name (mapped)=} . $self->get_institution_name($C, 1)
+                                    . q{ is-umich=} . $self->affiliation_is_umich($C)
+                                      . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
+                                        . q{ environment-entitlement=} . ($ENV{entitlement} || '')
+                                          . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                                            . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                              . q{ print-disabled=} . $self->user_is_print_disabled($C);
               return $auth_str;
           });
 }
@@ -379,7 +384,7 @@ sub login_realm_is_friend {
 
 # ---------------------------------------------------------------------
 
-=item __get_institution_by_ip_address
+=item __get_institution_code_by_ip_address
 
 *** PRIVATE CLASS METHOD ***
 
@@ -391,32 +396,17 @@ Clients of this class should use get_institution_code()
 =cut
 
 # ---------------------------------------------------------------------
-sub __get_institution_by_ip_address {
+sub __get_institution_code_by_ip_address {
     return $ENV{SDRINST} || '';
 }
 
-# ---------------------------------------------------------------------
-
-=item __get_domain_from_affiliation
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_domain_from_affiliation {
-    my $aff = shift;
-    my ($domain) = ($aff =~ m,^.*?@(.*?)$,);
-
-    return $domain;
-}
 
 # ---------------------------------------------------------------------
 
 =item get_institution_code
 
-Note this maps users eduPersonScopedAffiliation to the (possibly
-mapped) institution code.
+Note this maps user's IdP entity ID to the (possibly mapped)
+institution code.
 
 =cut
 
@@ -428,14 +418,13 @@ sub get_institution_code {
 
     my $inst_code;
 
-    my $aff = $self->get_eduPersonScopedAffiliation($C);
-    if ($aff) {
-        my $domain = __get_domain_from_affiliation($aff);
-        $inst_code = Institutions::get_institution_domain_field_val($C, $domain, 'sdrinst', $mapped);
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'sdrinst', $mapped);
     }
     else {
-        my $inst = __get_institution_by_ip_address();
-        $inst_code = Institutions::get_institution_sdrinst_field_val($C, $inst, 'sdrinst', $mapped);
+        my $sdrinst = __get_institution_code_by_ip_address();
+        $inst_code = Institutions::get_institution_sdrinst_field_val($C, $sdrinst, 'sdrinst', $mapped);
     }
 
     return $inst_code;
@@ -456,12 +445,10 @@ sub get_institution_us_status {
 
     my $status = 'notaff';
 
-    my $aff = $self->get_eduPersonScopedAffiliation($C);
-    if ($aff) {
-        my $domain = __get_domain_from_affiliation($aff);
-        my $is_us = Institutions::get_institution_domain_field_val($C, $domain, 'us');
-        # Trap mismatch between value in ht_institutions.domain and scoping affiliation
-        $status = (defined($is_us) ? ($is_us ? 'affus' : 'affnonus') : 'notaff');
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        my $is_us = Institutions::get_institution_entityID_field_val($C, $entity_id, 'us');
+        $status = ($is_us ? 'affus' : 'affnonus');
     }
 
     return $status;
@@ -484,14 +471,13 @@ sub get_institution_name {
 
     my $inst_name;
 
-    my $aff = $self->get_eduPersonScopedAffiliation($C);
-    if ($aff) {
-        my $domain = __get_domain_from_affiliation($aff);
-        $inst_name = Institutions::get_institution_domain_field_val($C, $domain, 'name', $mapped);
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        $inst_name = Institutions::get_institution_entityID_field_val($C, $entity_id, 'name', $mapped);
     }
     else {
-        my $inst = __get_institution_by_ip_address();
-        $inst_name = Institutions::get_institution_sdrinst_field_val($C, $inst, 'name', $mapped);
+        my $sdrinst = __get_institution_code_by_ip_address();
+        $inst_name = Institutions::get_institution_sdrinst_field_val($C, $sdrinst, 'name', $mapped);
     }
 
     return $inst_name;
@@ -526,7 +512,7 @@ sub is_in_library {
     return 0 if (DEBUG('nonlib'));
     return 1 if (DEBUG('inlib'));
 
-    my $institution = __get_institution_by_ip_address();
+    my $institution = __get_institution_code_by_ip_address();
     return ($institution && $ENV{SDRLIB});
 }
 
@@ -540,7 +526,11 @@ Currently we support, at most, just
 "member@foo.edu;staff@foo.edu;affiliate@foo.edu".  Return one of
 these, in this priority order.
 
-Return undef if one of these affiliations is not present.
+Return empty string if one of these affiliations is not present.
+
+Some affiliates may have multiple affiliations. Use the FIRST one that
+appears in the environment constrained to the hard-coded priority
+list.
 
 =cut
 
@@ -548,36 +538,38 @@ Return undef if one of these affiliations is not present.
 sub __get_prioritized_scoped_affiliation {
     my $self = shift;
 
-    my @aff_prios = qw(member faculty staff student alum affiliate);
-    my $affiliation = $ENV{affiliation} || '';
-    my @affs = split(/\s*;\s*/, $affiliation);
-    @affs = map {lc($_)} @affs;
+    my $eduPerson_scoped_affiliation = '';
 
-    my %aff_hash = map { ($_) =~ (m,(.*?)@.*$,) => $_ } @affs;
+    # prefer affiliations in this order. Not all of these may be
+    # passed through to us via the Shib layer.
+    my @affiliation_priorities = qw(member faculty staff student alum affiliate);
 
-    foreach my $aff (@aff_prios) {
-        return $aff_hash{$aff} if ($aff_hash{$aff});
+    my $environment = $ENV{affiliation} || '';
+    my @scoped_affiliations = split(/\s*;\s*/, $environment);
+    @scoped_affiliations = map {lc($_)} @scoped_affiliations;
+
+    my %aff_hash = ();
+    foreach my $scoped_affiliation (@scoped_affiliations) {
+        my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+
+        if ($affiliation && $security_domain) {
+            $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+
+            my $scoped_affiliations_ref = $aff_hash{$affiliation};
+            push( @$scoped_affiliations_ref, $scoped_affiliation );
+            $aff_hash{$affiliation} = $scoped_affiliations_ref;
+        }
     }
 
-    return '';
-}
+    foreach my $affiliation (@affiliation_priorities) {
+        my $scoped_affiliations_ref = $aff_hash{$affiliation};
+        if (scalar @$scoped_affiliations_ref) {
+            $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
+            last;
+        }
+    }
 
-# ---------------------------------------------------------------------
-
-=item __get_prioritized_unscoped_affiliation
-
-Parse $ENV{affiliation} into its components and strips the @foo.edu part.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_prioritized_unscoped_affiliation {
-    my $self = shift;
-
-    my $scoped_aff = $self->__get_prioritized_scoped_affiliation();
-    my ($unscoped_aff) = ($scoped_aff =~ m,^(.*?)@.*$,) || '';
-
-    return $unscoped_aff;
+    return $eduPerson_scoped_affiliation;
 }
 
 # ---------------------------------------------------------------------
@@ -598,7 +590,7 @@ sub get_eduPersonScopedAffiliation {
     my $eduPersonScopedAffiliation = '';
 
     if ($self->auth_sys_is_COSIGN($C)) {
-        if (! $self->login_realm_is_friend()) {
+        if (! $self->login_realm_is_friend) {
             $eduPersonScopedAffiliation = 'member@umich.edu';
         }
     }
@@ -613,8 +605,8 @@ sub get_eduPersonScopedAffiliation {
 
 =item get_eduPersonUnScopedAffiliation
 
-This is the full eduPersonScopedAffiliation, e.g. member@umich.edu
-with stripped of the acope.
+This is the affiliation part of eduPersonScopedAffiliation,
+e.g. member, stripped of the security_domain, e.g. umich.edu
 
 =cut
 
@@ -623,16 +615,11 @@ sub get_eduPersonUnScopedAffiliation {
     my $self = shift;
     my $C = shift;
 
-    my $eduPersonUnScopedAffiliation = '';
+    my $eduPersonScopedAffiliation = $self->get_eduPersonScopedAffiliation($C);
 
-    if ($self->auth_sys_is_COSIGN($C)) {
-        if (! $self->login_realm_is_friend()) {
-            $eduPersonUnScopedAffiliation = 'member';
-        }
-    }
-    elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $eduPersonUnScopedAffiliation = $self->__get_prioritized_unscoped_affiliation();
-    }
+    my ($eduPersonUnScopedAffiliation) = ( $eduPersonScopedAffiliation =~ m,^(.*?)@.*$, );
+
+    $eduPersonUnScopedAffiliation = '' unless ($eduPersonUnScopedAffiliation);
 
     return $eduPersonUnScopedAffiliation;
 }
@@ -658,7 +645,7 @@ sub get_eduPersonPrincipalName {
         $eduPersonPrincipalName = $ENV{eppn} || '';
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
-        if ($self->login_realm_is_friend()) {
+        if ($self->login_realm_is_friend) {
             $eduPersonPrincipalName = $ENV{REMOTE_USER} || '';
         }
         else {
@@ -667,6 +654,32 @@ sub get_eduPersonPrincipalName {
     }
 
     return $eduPersonPrincipalName;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_unscoped_eduPersonPrincipalName
+
+This is the eduPersonPrincipalName stripped of security_domain,
+e.g. janedoe from janedoe@umich.edu
+
+http://www.incommon.org/federation/attributesummary.html#eduPersonPrincipal
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_unscoped_eduPersonPrincipalName {
+    my $self = shift;
+    my $C = shift;
+
+    my $eduPersonPrincipalName = $self->get_eduPersonPrincipalName($C);
+
+    my ($eduPersonUnScopedPrincipalName) = ( $eduPersonPrincipalName =~ m,^(.*?)@.*$, );
+
+    $eduPersonUnScopedPrincipalName = '' unless ($eduPersonUnScopedPrincipalName);
+
+
+    return $eduPersonUnScopedPrincipalName;
 }
 
 # ---------------------------------------------------------------------
@@ -701,7 +714,7 @@ sub __get_shibboleth_print_disability_entitlement {
 
     unless ($entitlement) {
         if ($self->auth_sys_is_SHIBBOLETH($C)) {
-            my $unscoped_aff = $self->__get_prioritized_unscoped_affiliation();
+            my $unscoped_aff = $self->get_eduPersonUnScopedAffiliation($C);
             if ($unscoped_aff =~ m/$ENTITLEMENT_VALID_AFFILIATIONS_REGEXP/) {
                 my $env_entitlement = $ENV{entitlement} || '';
                 my @eduPersonEntitlement_vals = split(/;/, $env_entitlement);
@@ -818,6 +831,34 @@ sub get_eduPersonEntitlement_print_disabled {
     return $self->user_is_print_disabled($C) || $self->user_is_print_disabled_proxy($C);
 }
 
+# ---------------------------------------------------------------------
+
+=item get_shibboleth_entityID
+
+The entityID allows us to determine, independent of multiple
+eduPersonScopedAffiliation values, with which institution the
+authenticated user is affiliated.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_shibboleth_entityID {
+    my $self = shift;
+    my $C = shift;
+
+    my $entity_id = '';
+
+    if ($self->auth_sys_is_COSIGN($C)) {
+        if (! $self->login_realm_is_friend) {
+            $entity_id = $UMICH_ENTITY_ID;
+        }
+    }
+    elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
+        $entity_id = $ENV{Shib_Identity_Provider};
+    }
+
+    return $entity_id;
+}
 
 # ---------------------------------------------------------------------
 
@@ -965,7 +1006,7 @@ sub affiliation_is_hathitrust {
         $is_hathitrust = $aff;
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
-        if (! $self->login_realm_is_friend()) {
+        if (! $self->login_realm_is_friend) {
             $is_hathitrust = 1;
         }
         else {
@@ -1008,12 +1049,19 @@ sub get_user_display_name {
                 $user_display_name = $ENV{REMOTE_USER} || '';
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-                $user_display_name =
-                  $self->__get_displayName($C)
-                    || ( $unscoped
-                         ? $self->get_eduPersonUnScopedAffiliation($C)
-                         : $self->get_eduPersonScopedAffiliation($C)
-                       );
+                $user_display_name = $self->__get_displayName($C);
+                unless ($user_display_name) {
+                    $user_display_name =
+                      ( $unscoped
+                        ? $self->get_unscoped_eduPersonPrincipalName($C)
+                        : $self->get_eduPersonPrincipalName($C) );
+                }
+                unless ($user_display_name) {
+                    $user_display_name =
+                      ( $unscoped
+                        ? $self->get_eduPersonUnScopedAffiliation($C)
+                        : $self->get_eduPersonScopedAffiliation($C) );
+                }
             }
         }
         else {
