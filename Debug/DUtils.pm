@@ -499,7 +499,7 @@ ranges when authenticated.
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
-    use constant NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1 => 0;
+    use constant NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1 => 1;
 
     my $development_override = NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1;
     return 1 if ($development_override);
