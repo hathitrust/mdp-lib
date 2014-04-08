@@ -563,23 +563,25 @@ sub __get_prioritized_scoped_affiliation {
     @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
     my %aff_hash = ();
-    foreach my $scoped_affiliation (@scoped_affiliations) {
-        my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+    if (scalar @scoped_affiliations) {
+        foreach my $scoped_affiliation (@scoped_affiliations) {
+            my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
 
-        if ($affiliation && $security_domain) {
-            $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+            if ($affiliation && $security_domain) {
+                $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
 
-            my $scoped_affiliations_ref = $aff_hash{$affiliation};
-            push( @$scoped_affiliations_ref, $scoped_affiliation );
-            $aff_hash{$affiliation} = $scoped_affiliations_ref;
+                my $scoped_affiliations_ref = $aff_hash{$affiliation};
+                push( @$scoped_affiliations_ref, $scoped_affiliation );
+                $aff_hash{$affiliation} = $scoped_affiliations_ref;
+            }
         }
-    }
 
-    foreach my $affiliation (@affiliation_priorities) {
-        my $scoped_affiliations_ref = $aff_hash{$affiliation};
-        if (scalar @$scoped_affiliations_ref) {
-            $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
-            last;
+        foreach my $affiliation (@affiliation_priorities) {
+            my $scoped_affiliations_ref = $aff_hash{$affiliation} || [];
+            if (scalar @$scoped_affiliations_ref) {
+                $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
+                last;
+            }
         }
     }
 
