@@ -35,12 +35,42 @@ use Database;
 use DbUtils;
 use Identifier;
 
-my %Namespace_Hash;
+# ---------------------------------------------------------------------
 
+=item ___get_N_ref, ___set_N_ref
+
+Needed for persistent clients, e.g. imgsrv.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___get_N_ref {
+    my $C = shift;
+
+    my $Namespace_Hash_ref = ( $C->has_object('Namespaces') ? $C->get_object('Namespaces') : {} );
+    return $Namespace_Hash_ref;
+}
+sub ___set_N_ref {
+    my ($C, $n_ref) = @_;
+
+    bless $n_ref, 'Namespaces';
+    $C->set_object('Namespaces', $n_ref);
+}
+
+# ---------------------------------------------------------------------
+
+=item __load_namespace_hash
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
 sub __load_namespace_hash {
     my $C = shift;
 
-    return if (scalar keys %Namespace_Hash);
+    my $Namespace_Hash_ref = ___get_N_ref($C);
+    return if (scalar keys %$Namespace_Hash_ref);
 
     my $dbh = $C->get_object('Database')->get_DBH;
 
@@ -48,12 +78,14 @@ sub __load_namespace_hash {
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
-    %Namespace_Hash = map { $_->{namespace},
-                              {
-                               institution   => $_->{institution},
-                               grin_instance => $_->{grin_instance},
-                              }
-                          } @$ref_to_arr_of_hashref;
+    my %Namespace_Hash = map { $_->{namespace},
+                                 {
+                                  institution   => $_->{institution},
+                                  grin_instance => $_->{grin_instance},
+                                 }
+                             } @$ref_to_arr_of_hashref;
+
+    ___set_N_ref($C, \%Namespace_Hash);
 }
 
 
@@ -72,7 +104,8 @@ sub get_institution_by_namespace {
     __load_namespace_hash($C);
     my ($namespace, $barcode) = Identifier::split_id($id);
 
-    return $Namespace_Hash{$namespace}->{institution};
+    my $Namespace_Hash_ref = ___get_N_ref($C);
+    return $Namespace_Hash_ref->{$namespace}->{institution};
 }
 
 # ---------------------------------------------------------------------
@@ -90,9 +123,10 @@ sub get_google_id_by_namespace {
     __load_namespace_hash($C);
     my ($namespace, $barcode) = Identifier::split_id($id);
 
+    my $Namespace_Hash_ref = ___get_N_ref($C);
     my $grin_prefix =
       __map_UCAL_GRIN_prefix(
-                             $Namespace_Hash{$namespace}{grin_instance},
+                             $Namespace_Hash_ref->{$namespace}{grin_instance},
                              $barcode
                             );
 

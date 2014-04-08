@@ -41,12 +41,34 @@ use Context;
 use Database;
 use DbUtils;
 
-my $Institution_Hash;
+# ---------------------------------------------------------------------
+
+=item ___get_I_ref, ___set_I_ref
+
+Needed for persistent clients, e.g. imgsrv.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___get_I_ref {
+    my $C = shift;
+
+    my $Institution_Hash_ref = ( $C->has_object('Institutions') ? $C->get_object('Institutions') : {} );
+    return $Institution_Hash_ref;
+}
+sub ___set_I_ref {
+    my ($C, $i_ref) = @_;
+
+    bless $i_ref, 'Institutions';
+    $C->set_object('Institutions', $i_ref);
+}
 
 
 sub __Load_Institution_Hash {
     my $C = shift;
     my ($selector, $key, $value) = @_;
+
+    my $Institution_Hash = ___get_I_ref($C);
 
     my $dbh = $C->get_object('Database')->get_DBH;
 
@@ -55,6 +77,10 @@ sub __Load_Institution_Hash {
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     $Institution_Hash->{$selector}{$value} = $ref_to_arr_of_hashref->[0];
+
+    ___set_I_ref($C, $Institution_Hash);
+
+    return $Institution_Hash;
 }
 
 
@@ -73,27 +99,33 @@ sub _load_institution_sdrinst_hash {
     my $C = shift;
     my $sdrinst = shift;
 
-    return if (defined $Institution_Hash->{sdrinsts}{$sdrinst});
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{sdrinsts}{$sdrinst});
 
-    __Load_Institution_Hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
+    $Institution_Hash = __Load_Institution_Hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
+    return $Institution_Hash;
 }
 
 sub _load_institution_entityID_hash {
     my $C = shift;
     my $entityID = shift;
 
-    return if (defined $Institution_Hash->{entityIDs}{$entityID});
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{entityIDs}{$entityID});
 
-    __Load_Institution_Hash($C, 'entityIDs', 'entityID', $entityID);
+    $Institution_Hash = __Load_Institution_Hash($C, 'entityIDs', 'entityID', $entityID);
+    return $Institution_Hash;
 }
 
 sub _load_institution_domain_hash {
     my $C = shift;
     my $domain = shift;
 
-    return if (defined $Institution_Hash->{domains}{$domain});
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{domains}{$domain});
 
-    __Load_Institution_Hash($C, 'domains', 'domain', $domain);
+    $Institution_Hash = __Load_Institution_Hash($C, 'domains', 'domain', $domain);
+    return $Institution_Hash;
 }
 
 
@@ -110,7 +142,7 @@ sub get_institution_entityID_field_val {
     my $C = shift;
     my ($entityID, $field, $mapped) = @_;
 
-    _load_institution_entityID_hash($C, $entityID);
+    my $Institution_Hash = _load_institution_entityID_hash($C, $entityID);
 
     my $val;
 
@@ -151,7 +183,7 @@ sub get_institution_sdrinst_field_val {
     my $C = shift;
     my ($sdrinst, $field, $mapped) = @_;
 
-    _load_institution_sdrinst_hash($C, $sdrinst);
+    my $Institution_Hash = _load_institution_sdrinst_hash($C, $sdrinst);
 
     my $val;
 
@@ -192,7 +224,7 @@ sub get_institution_domain_field_val {
     my $C = shift;
     my ($domain, $field, $mapped) = @_;
 
-    _load_institution_domain_hash($C, $domain);
+    my $Institution_Hash = _load_institution_domain_hash($C, $domain);
 
     my $val;
 
@@ -272,7 +304,7 @@ sub get_idp_list {
         $idp_url =~ s,___HOST___,$host,;
         ## $idp_url =~ s,___TARGET___,$L_target,;
 
-        push @$results, { 
+        push @$results, {
             enabled => $$hash{enabled},
             sdrinst => $$hash{sdrinst},
             idp_url => $idp_url,
@@ -284,7 +316,6 @@ sub get_idp_list {
     }
 
     return $results;
-
 }
 
 1;

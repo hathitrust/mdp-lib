@@ -123,7 +123,7 @@ sub __debug_auth {
     DEBUG('auth',
           sub {
               my $auth_str =
-                q{AUTH: userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
+                q{<h1>AUTH:</h1> userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
                   . q{ loggedin=} . $self->is_logged_in() . q{ in-library=} . $self->is_in_library()
                     . q{ authsys=} . __get_auth_sys($ses)
                       . q{ newlogin=} . $self->isa_new_login()

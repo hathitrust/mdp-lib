@@ -91,11 +91,6 @@ use Utils::Time;
 use Database;
 use DbUtils;
 
-#
-# The ACL
-#
-my %gAccessControlList = ();
-
 my $library_vpn_range = q{^(141\.211\.84\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
 
 # blocked
@@ -107,6 +102,30 @@ my $iprestrict_none = '.*';
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
+
+
+# ---------------------------------------------------------------------
+
+=item ___get_ACL, ___set_ACL
+
+Needed for persistent clients, e.g. imgsrv.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___get_ACL {
+    my $C = new Context;
+    my $Access_Control_List_ref = ( $C->has_object('Auth::ACL') ? $C->get_object('Auth::ACL') : {} );
+    return $Access_Control_List_ref;
+}
+sub ___set_ACL {
+    my $acl_ref = shift;
+
+    my $C = new Context;
+    bless $acl_ref, 'Auth::ACL';
+
+    $C->set_object('Auth::ACL', $acl_ref);
+}
 
 # ---------------------------------------------------------------------
 
@@ -144,7 +163,7 @@ PRIVATE
 sub __a_Autorized_core {
     my $access_ref = shift;
     my $unmasked = shift;
-    
+
     return 0 unless(ref $access_ref eq 'HASH');
     return 0 unless(scalar keys %$access_ref == 1);
 
@@ -192,7 +211,7 @@ switch overrides.
 sub a_Authorized {
     my $access_ref = shift;
     __load_access_control_list();
-    
+
     my $authorized = __a_Autorized_core($access_ref);
     my ($key) = keys %$access_ref;
     my $test_case = '(test: ' . $key . '=>' . $access_ref->{$key} . ' am: ' . __get_user_attributes($key) . ')';
@@ -316,6 +335,8 @@ sub __debug_acl {
     my $authorized = shift;
     my $test_case = shift;
 
+    my $Access_Control_List_ref = ___get_ACL;
+
     # masked data to reflect effect of debugging switches.
     DEBUG('auth,all',
           sub {
@@ -340,15 +361,15 @@ sub __debug_acl {
           sub {
               return '' if $__b_debug_printed;
               my $s = '';
-              my @userids = keys %gAccessControlList;
+              my @userids = keys %$Access_Control_List_ref;
               foreach my $userid (sort @userids) {
-                  my $usertype   = $gAccessControlList{$userid}{usertype};
-                  my $role       = $gAccessControlList{$userid}{role};
-                  my $access     = $gAccessControlList{$userid}{access};
-                  my $iprestrict = $gAccessControlList{$userid}{iprestrict};
-                  my $vpn        = $gAccessControlList{$userid}{vpn};
-                  my $expires    = $gAccessControlList{$userid}{expires};
-                  my $name       = $gAccessControlList{$userid}{displayname};
+                  my $usertype   = $Access_Control_List_ref->{$userid}{usertype};
+                  my $role       = $Access_Control_List_ref->{$userid}{role};
+                  my $access     = $Access_Control_List_ref->{$userid}{access};
+                  my $iprestrict = $Access_Control_List_ref->{$userid}{iprestrict};
+                  my $vpn        = $Access_Control_List_ref->{$userid}{vpn};
+                  my $expires    = $Access_Control_List_ref->{$userid}{expires};
+                  my $name       = $Access_Control_List_ref->{$userid}{displayname};
 
                   $s .= qq{<h3 style="text-align:left">ACL DUMP: userid=$userid name=$name expires=$expires type=$usertype role=$role access=$access vpn=<font color="red">$vpn</font> <font color="blue">ip=$iprestrict </font></h3>};
               }
@@ -376,8 +397,10 @@ sub __get_user_attributes {
     my $requested_attribute = shift;
     my $unmasked = shift;
 
+    my $Access_Control_List_ref = ___get_ACL;
+
     my $userid = __get_remote_user();
-    my $attrval = $gAccessControlList{$userid}{$requested_attribute} || '';
+    my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
 
     # Superuser debugging over-rides
     unless ($unmasked) {
@@ -400,7 +423,7 @@ sub __get_user_attributes {
             }
         }
     }
-    
+
     return $attrval;
 }
 
@@ -417,7 +440,8 @@ WARNING: keys to this hash must be lower-case
 # ---------------------------------------------------------------------
 sub __load_access_control_list {
 
-    return if (scalar keys %gAccessControlList);
+    my $Access_Control_List_ref = ___get_ACL;
+    return if ( scalar keys %$Access_Control_List_ref );
 
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH;
@@ -425,19 +449,19 @@ sub __load_access_control_list {
     my $statement = qq{SELECT * FROM ht_users};
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-    
+
     foreach my $hashref (@$ref_to_arr_of_hashref) {
 
         my $userid = $hashref->{userid};
 
-        $gAccessControlList{$userid}{userid} = $hashref->{userid};
-        $gAccessControlList{$userid}{displayname} = $hashref->{displayname};
-        $gAccessControlList{$userid}{usertype} = $hashref->{usertype};
-        $gAccessControlList{$userid}{role} = $hashref->{role};
-        $gAccessControlList{$userid}{access} = $hashref->{access};
+        $Access_Control_List_ref->{$userid}{userid} = $hashref->{userid};
+        $Access_Control_List_ref->{$userid}{displayname} = $hashref->{displayname};
+        $Access_Control_List_ref->{$userid}{usertype} = $hashref->{usertype};
+        $Access_Control_List_ref->{$userid}{role} = $hashref->{role};
+        $Access_Control_List_ref->{$userid}{access} = $hashref->{access};
 
-        $gAccessControlList{$userid}{iprestrict} = $hashref->{iprestrict}; 
-        $gAccessControlList{$userid}{vpn} = $hashref->{vpn};
+        $Access_Control_List_ref->{$userid}{iprestrict} = $hashref->{iprestrict};
+        $Access_Control_List_ref->{$userid}{vpn} = $hashref->{vpn};
 
         # Use database IP address(es), if defined. If not defined, use
         # the "no access" IP address or some other value in special
@@ -447,29 +471,31 @@ sub __load_access_control_list {
         my $iprestrict = $hashref->{iprestrict};
 
         if (defined $iprestrict) {
-            $gAccessControlList{$userid}{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
+            $Access_Control_List_ref->{$userid}{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
         }
         else {
-            $gAccessControlList{$userid}{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
+            $Access_Control_List_ref->{$userid}{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
         }
-        
+
         my $expires = $hashref->{expires};
         $expires = ( ($expires eq $ZERO_TIMESTAMP) ? undef : $expires );
         if (defined $expires) {
-            $gAccessControlList{$userid}{expires} = $expires;
+            $Access_Control_List_ref->{$userid}{expires} = $expires;
         }
         else {
-            $gAccessControlList{$userid}{expires} = $GLOBAL_EXPIRE_DATE;
+            $Access_Control_List_ref->{$userid}{expires} = $GLOBAL_EXPIRE_DATE;
         }
-        
+
         # Special cases
         #
-        if ($gAccessControlList{$userid}{usertype} eq 'student') {
-            if ($gAccessControlList{$userid}{role} eq 'ssd') {
-                $gAccessControlList{$userid}{iprestrict} = $iprestrict_none;
+        if ($Access_Control_List_ref->{$userid}{usertype} eq 'student') {
+            if ($Access_Control_List_ref->{$userid}{role} eq 'ssd') {
+                $Access_Control_List_ref->{$userid}{iprestrict} = $iprestrict_none;
             }
         }
     }
+
+    ___set_ACL($Access_Control_List_ref);
 }
 
 
