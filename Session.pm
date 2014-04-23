@@ -76,6 +76,7 @@ in a maximum of 2:59:59.
 sub start_session
 {
     my $C = shift;
+    my $commit = shift;
 
     my $cgi = $C->get_object('CGI');
     my $cookie_name = $C->get_object('MdpConfig')->get('cookie_name');
@@ -102,7 +103,7 @@ sub start_session
     my $ses;
     eval
     {
-	$ses = new Session($C, $sid, 0);
+	$ses = new Session($C, $sid, 0, $commit);
     };
     ASSERT(!$@, qq{Error creating session: $@});
 
@@ -188,7 +189,7 @@ generate a new one.
 # ---------------------------------------------------------------------
 sub _initialize
 {
-    my ($self, $C, $sid, $empty) = @_;
+    my ($self, $C, $sid, $empty, $commit) = @_;
 
     if ($empty)
     {
@@ -203,17 +204,17 @@ sub _initialize
         if (! $sid ||
              $sid !~ m,[0-9a-zA-Z]{16},)
         {
-            _make_persistent($C, undef, \%session_hash);
+            _make_persistent($C, undef, \%session_hash, $commit);
         }
         else
         {
             # putatively valid sid provided
-            _make_persistent($C, $sid, \%session_hash);
+            _make_persistent($C, $sid, \%session_hash, $commit);
         }
 
         if (! $session_hash{_session_id})
         {
-            _make_persistent($C, undef, \%session_hash);
+            _make_persistent($C, undef, \%session_hash, $commit);
         }
 
         # Set the session id for future use
@@ -238,7 +239,9 @@ Serialize and store the session hash in the database.
 # ---------------------------------------------------------------------
 sub _make_persistent
 {
-    my ($C, $sid, $session_hash_ref) = @_;
+    my ($C, $sid, $session_hash_ref, $commit) = @_;
+
+    unless ( defined $commit ) { $commit = 1; }
 
     my $config = $C->get_object('MdpConfig');
     my $db = $C->get_object('Database');
@@ -256,7 +259,7 @@ sub _make_persistent
         $Apache::Session::Store::DBI::TableName = 'ht_sessions';
         $session_store_attrsref = {
                                      Handle     => $dbh,
-                                     Commit     => 1       # for InnoDB transactions
+                                     Commit     => $commit       # for InnoDB transactions
                                   };
     }
 
