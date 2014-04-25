@@ -174,6 +174,10 @@ sub iso_Time {
         $isoTime = sprintf("%4d-%02d-%02d_%02d:%02d:%02d", $yea, $mon, $day, $hou, $min, $sec);
         $isoTime .= "_$zon" if ($include_zone);
     }
+    elsif  ($what eq 'filename') {
+        $isoTime = sprintf("%4d-%02d-%02d_%02d-%02d-%02d", $yea, $mon, $day, $hou, $min, $sec);
+        $isoTime .= "_$zon" if ($include_zone);
+    }
 
     return $isoTime;
 }
@@ -215,6 +219,8 @@ sub days_Until {
     $today[1]++;
 
     my $daysUntil = Date::Calc::Delta_Days(@today, @untilDate);
+
+    return $daysUntil;
 }
 
 # ---------------------------------------------------------------------
