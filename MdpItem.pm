@@ -1065,8 +1065,6 @@ sub BuildFileGrpHash {
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
-                next if ($fileGrpHashRef->{$id}{filetype} eq 'jp2');
-                
                 $fileGrpHashRef->{$id}{filename} = $filename;
                 $fileGrpHashRef->{$id}{filetype} = $filetype;
                 $fileGrpHashRef->{$id}{mimetype} = $filemimetype;
@@ -1141,6 +1139,9 @@ sub ParseStructMap {
             my $filename = $fileGrpHashRef->{$fileid}{'filename'};
             my $filetype = $fileGrpHashRef->{$fileid}{'filetype'};
             my $filesize = $fileGrpHashRef->{$fileid}{'filesize'};
+
+            # if a JP2 image has already been referenced, skip further images
+            next if ( $filegrp eq 'imagefile' && $pageInfoHashRef->{sequence}{$order}{filetype} eq 'jp2' );
 
             $pageInfoHashRef->{sequence}{$order}{$filegrp} = $filename;
             $pageInfoHashRef->{sequence}{$order}{filetype} = $filetype if ($filegrp eq 'imagefile');
