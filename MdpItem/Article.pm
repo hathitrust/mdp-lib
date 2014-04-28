@@ -69,6 +69,27 @@ sub SetPageInfo {
     DEBUG('time', qq{<h3>MdpItem::SetPageInfo(END)</h3>} . Utils::display_stats());
 }
 
+sub _visitDiv {
+    my $self = shift;
+    my ( $parent, $type, $fileGrpHash, $contentsInfoHashRef ) = @_;
+    foreach my $node ( $parent->findnodes(q{*}) ) {
+        if ( $node->localName eq 'div' ) {
+            my $subtype = $type;
+            if ( my $tmp = $node->getAttribute('TYPE') ) {
+                $subtype .= ".$tmp";
+            }
+            $self->_visitDiv($node, $subtype, $fileGrpHash, $contentsInfoHashRef);
+        } elsif ( $node->localName eq 'fptr' ) {
+            my $fileid = $node->getAttribute('FILEID');
+            unless ( ref($$contentsInfoHashRef{$type}) ) {
+                $$contentsInfoHashRef{$type} = [];
+            }
+            push @{ $$contentsInfoHashRef{$type} }, $fileid;
+
+        }
+    }
+}
+
 sub ParseStructMap {
 	my $self = shift;
     my ($root, $fileGrpHashRef, $contentsInfoHashRef) = @_;
@@ -89,20 +110,21 @@ sub ParseStructMap {
 
     my $idx = 0;
     foreach my $metsDiv ($structMap->get_nodelist) {
-    	$idx += 1;
+        $self->_visitDiv($metsDiv, $metsDiv->getAttribute('TYPE'), $fileGrpHashRef, $contentsInfoHashRef);
+    	# $idx += 1;
 
-        my @metsFptrChildren = $metsDiv->getChildrenByTagName('METS:fptr');
-        foreach my $child (@metsFptrChildren) {
-            my $fileid = $child->getAttribute('FILEID');
-            my $filegrp  = $fileGrpHashRef->{$fileid}{'filegrp'};
+     #    my @metsFptrChildren = $metsDiv->getChildrenByTagName('METS:fptr');
+     #    foreach my $child (@metsFptrChildren) {
+     #        my $fileid = $child->getAttribute('FILEID');
+     #        my $filegrp  = $fileGrpHashRef->{$fileid}{'filegrp'};
 
-            # since we don't do any of the pageInfo structure, we can get
-            # away with some indirection
-            $$contentsInfoHashRef{$idx}{$filegrp} = $fileid;
-            # $$contentsInfoHashRef{$idx}{fileid} = $fileid;
-            # $$contentsInfoHashRef{$idx}{filetype} = $filetype if ($filegrp eq 'articlefile');
-            # $$contentsInfoHashRef{$idx}{$filegrp . 'size'} = $filesize;
-        }
+     #        # since we don't do any of the pageInfo structure, we can get
+     #        # away with some indirection
+     #        $$contentsInfoHashRef{$idx}{$filegrp} = $fileid;
+     #        # $$contentsInfoHashRef{$idx}{fileid} = $fileid;
+     #        # $$contentsInfoHashRef{$idx}{filetype} = $filetype if ($filegrp eq 'articlefile');
+     #        # $$contentsInfoHashRef{$idx}{$filegrp . 'size'} = $filesize;
+     #    }
 
     }
 
@@ -110,6 +132,16 @@ sub ParseStructMap {
     # $self->SetHasPageFeatures($hasPFs);
 
     # $self->Set('featuretable', \%featureTable);
+}
+
+sub GetContent {
+    my $self = shift;
+    my $type = shift;
+    my $contentsInfoHashRef = $self->Get('contentinfo');
+    if ( exists $$contentsInfoHashRef{$type} ) {
+        return @{ $$contentsInfoHashRef{$type} };
+    }
+    return ();
 }
 
 sub GetFileIdByIndex {

@@ -35,7 +35,7 @@ sub connection {
         $self->{dbh} = $session->{args}->{Handle};
         $self->{commit} = $session->{args}->{Commit};
         
-        if ( $self->{dbh}->{AutoCommit} == 1 ) {
+        if ( $self->{dbh}->{AutoCommit} == 1 && $self->{commit} ) {
             $self->{dbh}->begin_work;
             # $self->{dbh}->{AutoCommit} = 0;
         }
@@ -70,7 +70,7 @@ sub materialize {
     my $session = shift;
 
     $self->connection($session);
-    
+
     local $self->{dbh}->{RaiseError} = 1;
 
     if (!defined $self->{materialize_sth}) {

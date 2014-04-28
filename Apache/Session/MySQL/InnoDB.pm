@@ -34,6 +34,13 @@ sub populate {
     return $self;
 }
 
+sub save {
+    my $self = shift;
+    # don't bother updating the database at all
+    return unless ( $self->{args}->{Commit} );
+    $self->SUPER::save();
+}
+
 1;
 
 

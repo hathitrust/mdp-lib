@@ -73,6 +73,9 @@ sub dispose
             $object->dispose();
         }
     }
+
+    my $db = $self->get_object("Database", 1);
+    if ( ref($db) ) { $db->dispose(); }
     
     $oneTrueSelf = undef;
 }

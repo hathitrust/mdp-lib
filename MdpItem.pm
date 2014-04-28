@@ -35,6 +35,7 @@ use Auth::Auth;
 use Identifier;
 use MarcMetadata;
 use MetsReadingOrder;
+use DataTypes;
 
 use Utils::Cache::Storable;
 
@@ -301,6 +302,7 @@ sub _initialize {
     }
 
     $self->SetItemType();
+    $self->SetMarkupLanguage();
     $self->SetPageInfo();
 }
 
@@ -340,14 +342,7 @@ sub SetItemType {
 
     my $root = $self->_GetMetsRoot();
 
-    my $item_type;
-    foreach my $path_expr ( qw( //METS:structMap[@TYPE='logical']/METS:div/@TYPE  //METS:structMap[@TYPE='logical']/METS:div/@TYPE ) ) {
-        $item_type = $root->findvalue($path_expr);
-        last if ( $item_type );
-    }
-
-    # set default item type
-    unless ( $item_type ) { $item_type = 'volume'; }
+    my $item_type = DataTypes::getDataType($root);
 
     $self->Set('item_type', $item_type);
 
@@ -359,6 +354,13 @@ sub SetItemType {
     }
 }
 
+sub SetMarkupLanguage {
+    my $self = shift;
+    my $root = $self->_GetMetsRoot();
+    my $markup_language = DataTypes::getMarkupLanguage($root);
+    $self->Set('markup_language', $markup_language);
+}
+
 sub GetFullMetsRef {
     my $self = shift;
     return $self->Get('metsxml');
@@ -367,6 +369,11 @@ sub GetFullMetsRef {
 sub GetItemType {
     my $self = shift;
     return $self->Get('item_type');
+}
+
+sub GetMarkupLanguage {
+    my $self = shift;
+    return $self->Get('markup_language');
 }
 
 sub ItemIsZipped {
@@ -1058,8 +1065,6 @@ sub BuildFileGrpHash {
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
-                next if ($fileGrpHashRef->{$id}{filetype} eq 'jp2');
-                
                 $fileGrpHashRef->{$id}{filename} = $filename;
                 $fileGrpHashRef->{$id}{filetype} = $filetype;
                 $fileGrpHashRef->{$id}{mimetype} = $filemimetype;
@@ -1134,6 +1139,9 @@ sub ParseStructMap {
             my $filename = $fileGrpHashRef->{$fileid}{'filename'};
             my $filetype = $fileGrpHashRef->{$fileid}{'filetype'};
             my $filesize = $fileGrpHashRef->{$fileid}{'filesize'};
+
+            # if a JP2 image has already been referenced, skip further images
+            next if ( $filegrp eq 'imagefile' && $pageInfoHashRef->{sequence}{$order}{filetype} eq 'jp2' );
 
             $pageInfoHashRef->{sequence}{$order}{$filegrp} = $filename;
             $pageInfoHashRef->{sequence}{$order}{filetype} = $filetype if ($filegrp eq 'imagefile');

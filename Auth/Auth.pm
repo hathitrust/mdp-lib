@@ -295,7 +295,7 @@ Description
 sub set_auth_sys {
     my $self = shift;
     my $ses = shift;
-    $ses->set_persistent('authenticated_via', lc $ENV{AUTH_TYPE});
+    $ses->set_persistent('authenticated_via', lc($ENV{AUTH_TYPE} || ''));
 }
 
 # ---------------------------------------------------------------------
