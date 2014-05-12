@@ -504,6 +504,17 @@ sub HasCoordOCR {
     return $self->{ 'hascoordocr' };
 }
 
+sub SetHasBookCoverFeature {
+    my $self = shift;
+    my $seq = shift;
+    $self->{ 'hasbookcoverfeature' } = $seq;
+}
+
+sub HasBookCoverFeature {
+    my $self = shift;
+    return $self->{ 'hasbookcoverfeature' };
+}
+
 sub SetHasFirstContentFeature {
     my $self = shift;
     my $has = shift;
@@ -994,6 +1005,9 @@ Description
 sub handle_feature_record {
     my ($pgftr, $order, $featureRecordRef) = @_;
 
+    $featureRecordRef->{hasPF_BOOKCOVER} = $order
+      if (! $featureRecordRef->{hasPF_BOOKCOVER} && 
+        ( ($pgftr =~ m,BOOK_COVER,o) || (($pgftr =~ m,COVER,o) && ($pgftr =~ m,RIGHT,o)) ));
     $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
       if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
     $featureRecordRef->{hasPF_TITLE} = $order
@@ -1331,6 +1345,7 @@ sub SetPageInfo {
     $self->SetLastPageSequence($lastSequence);
 
     # Note: MUST FOLLOW SUPPRESSION CALL ABOVE.
+    $self->SetHasBookCoverFeature($featureRecord{hasPF_BOOKCOVER});
     $self->SetHasTOCFeature($featureRecord{hasPF_TOC});
     $self->SetHasTitleFeature($featureRecord{hasPF_TITLE});
     $self->SetHasFirstContentFeature($featureRecord{hasPF_FIRST_CONTENT});
