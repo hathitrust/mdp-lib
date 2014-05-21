@@ -38,18 +38,25 @@ package RightsGlobals;
  9         pdus        copyright public domain only when viewed in the US
  18        und-world   access    undetermined copyright status and permitted as world viewable
  19        icus        copyright in copyright in the US
- 20        xxx         xxx
 
  (Creative Commons)
 
- id        name        type       dscr
- 10        cc-by       copyright  attribute work in manner specified by author
- 11        cc-by-nd    copyright  cc-by + no derivatives upon distribution
- 12        cc-by-nc-nd copyright  cc-by-nd + non-commercial use only
- 13        cc-by-nc    copyright  cc-by +  non-commercial use only
- 14        cc-by-nc-sa copyright  cc-by-nc + ccby-sa
- 15        cc-by-sa    copyright  cc-by + same license upon redistribution
- 17        cc-zero     copyright  cc0 license implies pd
+ id     name            type            dscr
+ 17     cc-zero         copyright       cc0 license implies pd
+
+ 10	cc-by-3.0	copyright	Creative Commons Attribution license, 3.0 Unported
+ 11	cc-by-nd-3.0	copyright	Creative Commons Attribution-NoDerivatives license, 3.0 Unported
+ 12	cc-by-nc-nd-3.0	copyright	Creative Commons Attribution-NonCommercial-NoDerivatives license, 3.0 Unported
+ 13	cc-by-nc-3.0	copyright	Creative Commons Attribution-NonCommercial license, 3.0 Unported
+ 14	cc-by-nc-sa-3.0	copyright	Creative Commons Attribution-NonCommercial-ShareAlike license, 3.0 Unported
+ 15	cc-by-sa-3.0	copyright	Creative Commons Attribution-ShareAlike license, 3.0 Unported
+
+ 20	cc-by-4.0	copyright	Creative Commons Attribution 4.0 International license
+ 21	cc-by-nd-4.0	copyright	Creative Commons Attribution-NoDerivatives 4.0 International license
+ 22	cc-by-nc-nd-4.0	copyright	Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International license
+ 23	cc-by-nc-4.0	copyright	Creative Commons Attribution-NonCommercial 4.0 International license
+ 24	cc-by-nc-sa-4.0	copyright	Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license
+ 25	cc-by-sa-4.0	copyright	Creative Commons Attribution-ShareAlike 4.0 International license
 
  (Orphan works project)
 
@@ -60,13 +67,23 @@ package RightsGlobals;
 
  by-permission
  candidates
- cc-by
- cc-by-nc
- cc-by-nc-nd
- cc-by-nc-sa
- cc-by-nd
- cc-by-sa
+
+ cc-by-3.0
+ cc-by-nc-3.0
+ cc-by-nc-nd-3.0
+ cc-by-nc-sa-3.0
+ cc-by-nd-3.0
+ cc-by-sa-3.0
+
+ cc-by-4.0
+ cc-by-nc-4.0
+ cc-by-nc-nd-4.0
+ cc-by-nc-sa-4.0
+ cc-by-nd-4.0
+ cc-by-sa-4.0
+
  cc-zero
+
  ic
  ic-access
  ic-us
@@ -134,6 +151,12 @@ our $HT_AFFILIATE        = 7;
    '17' => 'cc0 no rights reserved license implies pd',
    '18' => 'available to everyone',
    '19' => 'in copyright in the US',
+   '20' => 'Creative Commons Attribution 4.0 International license',
+   '21' => 'Creative Commons Attribution-NoDerivatives 4.0 International license',
+   '22' => 'Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International license',
+   '23' => 'Creative Commons Attribution-NonCommercial 4.0 International license',
+   '24' => 'Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license',
+   '25' => 'Creative Commons Attribution-ShareAlike 4.0 International license',
   );
 
 %g_attribute_keys =
@@ -147,16 +170,22 @@ our $HT_AFFILIATE        = 7;
    7  => 'ic-world',
    8  => 'nobody',
    9  => 'pdus',
-   10 => 'cc-by',
-   11 => 'cc-by-nd',
-   12 => 'cc-by-nc-nd',
-   13 => 'cc-by-nc',
-   14 => 'cc-by-nc-sa',
-   15 => 'cc-by-sa',
+   10 => 'cc-by-3.0',
+   11 => 'cc-by-nd-3.0',
+   12 => 'cc-by-nc-nd-3.0',
+   13 => 'cc-by-nc-3.0',
+   14 => 'cc-by-nc-sa-3.0',
+   15 => 'cc-by-sa-3.0',
    16 => 'orphcand',
    17 => 'cc-zero',
    18 => 'und-world',
    19 => 'icus',
+   20 => 'cc-by-4.0',
+   21 => 'cc-by-nd-4.0',
+   22 => 'cc-by-nc-nd-4.0',
+   23 => 'cc-by-nc-4.0',
+   24 => 'cc-by-nc-sa-4.0',
+   25 => 'cc-by-sa-4.0',
   );
 
 %g_source_names =
@@ -181,6 +210,8 @@ our $HT_AFFILIATE        = 7;
    '18' => 'private',
    '19' => 'umich',
    '20' => 'clark',
+   '21' => 'ku',
+   '22' => 'mcgill',
   );
 
 @g_stmt_fields =
@@ -294,17 +325,6 @@ our $HT_AFFILIATE        = 7;
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
            $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
           },
-   # available if IP is non-US or affiliated with non-US partner at
-   # any IP address
-   '19' => {
-            $HT_TOTAL_USER         => 'allow',
-            $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
-            $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
-            $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
-            $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
-            $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
-            $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
-           },
    # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
    '10' => {
             $HT_TOTAL_USER         => 'allow',
@@ -395,13 +415,84 @@ our $HT_AFFILIATE        = 7;
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
            },
+   # available if IP is non-US or affiliated with non-US partner at
+   # any IP address
+   '19' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
+            $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
+            $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
+            $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
+            $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
+            $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by/4.0/
+   '20' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nd/4.0/
+   '21' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/4.0/
+   '22' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nc/4.0/
+   '23' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/4.0/
+   '24' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
+   # available to everyone in the world http://creativecommons.org/licenses/by-sa/4.0/
+   '25' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'allow',
+            $SSD_USER              => 'allow',
+            $SSD_PROXY_USER        => 'allow',
+            $LIBRARY_IPADDR_USER   => 'allow',
+            $UM_AFFILIATE          => 'allow',
+            $HT_AFFILIATE          => 'allow',
+           },
   );
 
 # ---------------------------------------------------------------------
 # Attribute sets
 # ---------------------------------------------------------------------
 #
-@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17); # All users
+@g_creative_commons_attribute_values = (10, 11, 12, 13, 14, 15, 17, 20, 21, 22, 23, 24, 25); # All users
 @g_public_domain_world_attribute_values = (1, 7, 9, 18, 19); # All users
 @g_access_requires_holdings_attribute_values = (2, 3, 4, 5, 6, 16); # SSD only, if institution holds
 
@@ -461,7 +552,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-13 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
