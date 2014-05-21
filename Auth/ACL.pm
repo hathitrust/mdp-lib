@@ -39,6 +39,8 @@ from within the Auth::ACL package.
 
 'role' is a subclass of 'usertype'
 
+See description of 'ht_counts.accesscount' in a_Increment_accesscount below.
+
  SELECT DISTINCT usertype, role FROM ht_users;
 
  +----------+--------------+---------+
@@ -153,14 +155,31 @@ sub a_GetUserAttributes {
 
 # ---------------------------------------------------------------------
 
-=item __a_Autorized_core
+=item a_Increment_accesscount
+
+ Increment accesscount for a user present in the table upon the user's
+request for access to a restricted item. 'accesscount' is reset to 0
+when 'expires' is updated (programmatically, NOT from the command
+line) and is not incremented if access expires.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub a_Increment_accesscount {
+    __load_access_control_list();
+    __update_accesscount();
+}
+
+# ---------------------------------------------------------------------
+
+=item __a_Authorized_core
 
 PRIVATE
 
 =cut
 
 # ---------------------------------------------------------------------
-sub __a_Autorized_core {
+sub __a_Authorized_core {
     my $access_ref = shift;
     my $unmasked = shift;
 
@@ -168,7 +187,7 @@ sub __a_Autorized_core {
     return 0 unless(scalar keys %$access_ref == 1);
 
     my $authorized = 0;
-    my $ipaddr = $ENV{REMOTE_ADDR};
+    my $ipaddr = $ENV{REMOTE_ADDR} || '';
 
     my $usertype = __get_user_attributes('usertype', $unmasked);
     my $role = __get_user_attributes('role', $unmasked);
@@ -212,7 +231,7 @@ sub a_Authorized {
     my $access_ref = shift;
     __load_access_control_list();
 
-    my $authorized = __a_Autorized_core($access_ref);
+    my $authorized = __a_Authorized_core($access_ref);
     my ($key) = keys %$access_ref;
     my $test_case = '(test: ' . $key . '=>' . $access_ref->{$key} . ' am: ' . __get_user_attributes($key) . ')';
 
@@ -235,7 +254,7 @@ not altering attribute values returned from __get_user_attributes().
 sub S___superuser_using_DEBUG_super {
     __load_access_control_list();
 
-    my $superuser = DEBUG('super') && __a_Autorized_core( {role => 'superuser'}, 'unmasked' );
+    my $superuser = DEBUG('super') && __a_Authorized_core( {role => 'superuser'}, 'unmasked' );
     return $superuser;
 }
 
@@ -254,7 +273,7 @@ __get_user_attributes(). Typically CRMS users, among others.
 sub S___total_access_using_DEBUG_super {
     __load_access_control_list();
 
-    my $total = DEBUG('super') && __a_Autorized_core( {access => 'total'}, 'unmasked' );
+    my $total = DEBUG('super') && __a_Authorized_core( {access => 'total'}, 'unmasked' );
     return $total;
 }
 
@@ -277,7 +296,7 @@ local.conf
 sub S___superuser_role {
     __load_access_control_list();
 
-    my $superuser = __a_Autorized_core( {role => 'superuser'}, 'unmasked' );
+    my $superuser = __a_Authorized_core( {role => 'superuser'}, 'unmasked' );
     return $superuser;
 }
 
@@ -299,7 +318,7 @@ even attr=nobody, but who are not permitted to download PDF/EBM.
 sub S___total_access {
     __load_access_control_list();
 
-    my $total = __a_Autorized_core( {access => 'total'}, 'unmasked' );
+    my $total = __a_Authorized_core( {access => 'total'}, 'unmasked' );
     return $total;
 }
 
@@ -329,6 +348,7 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+my $__a_debug_printed = 0;
 my $__b_debug_printed = 0;
 
 sub __debug_acl {
@@ -340,6 +360,7 @@ sub __debug_acl {
     # masked data to reflect effect of debugging switches.
     DEBUG('auth,all',
           sub {
+              return '' if $__a_debug_printed;
               my $ipaddr = $ENV{REMOTE_ADDR} || '';
               my $userid = __get_remote_user();
               my $usertype = __get_user_attributes('usertype');
@@ -353,6 +374,7 @@ sub __debug_acl {
               #   0         1          2      3            4         5           6          7            8       9         10
               my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller(6);
               my $s = qq{<h3 style="text-align:left">ACL AUTH[$subroutine]$superuser: authorized=$authorized $test_case, IP=$ipaddr, userid=$userid usertype=$usertype role=$role access=$access expires=$expires</h3>};
+              $__a_debug_printed = 1;
               return $s;
           });
 
@@ -363,15 +385,17 @@ sub __debug_acl {
               my $s = '';
               my @userids = keys %$Access_Control_List_ref;
               foreach my $userid (sort @userids) {
-                  my $usertype   = $Access_Control_List_ref->{$userid}{usertype};
-                  my $role       = $Access_Control_List_ref->{$userid}{role};
-                  my $access     = $Access_Control_List_ref->{$userid}{access};
-                  my $iprestrict = $Access_Control_List_ref->{$userid}{iprestrict};
-                  my $vpn        = $Access_Control_List_ref->{$userid}{vpn};
-                  my $expires    = $Access_Control_List_ref->{$userid}{expires};
-                  my $name       = $Access_Control_List_ref->{$userid}{displayname};
+                  my $usertype    = $Access_Control_List_ref->{$userid}{usertype};
+                  my $role        = $Access_Control_List_ref->{$userid}{role};
+                  my $access      = $Access_Control_List_ref->{$userid}{access};
+                  my $iprestrict  = $Access_Control_List_ref->{$userid}{iprestrict};
+                  my $vpn         = $Access_Control_List_ref->{$userid}{vpn};
+                  my $expires     = $Access_Control_List_ref->{$userid}{expires};
+                  my $name        = $Access_Control_List_ref->{$userid}{displayname};
+                  my $accesscount = $Access_Control_List_ref->{$userid}{accesscount};
+                  my $last_access = $Access_Control_List_ref->{$userid}{last_access};
 
-                  $s .= qq{<h3 style="text-align:left">ACL DUMP: userid=$userid name=$name expires=$expires type=$usertype role=$role access=$access vpn=<font color="red">$vpn</font> <font color="blue">ip=$iprestrict </font></h3>};
+                  $s .= qq{<h3 style="text-align:left">ACL DUMP: userid=$userid name=$name accesscount=$accesscount last_access=$last_access expires=$expires type=$usertype role=$role access=$access vpn=<font color="red">$vpn</font> <font color="blue">ip=$iprestrict </font></h3>};
               }
               $__b_debug_printed = 1;
               return $s;
@@ -427,6 +451,106 @@ sub __get_user_attributes {
     return $attrval;
 }
 
+
+# ---------------------------------------------------------------------
+
+=item __update_accesscount
+
+PRIVATE
+
+Counts are not deleted from this table.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __update_accesscount {
+
+    my $usertype = __get_user_attributes('usertype', 'unmasked');
+
+    # ... user in ACL?
+    if ($usertype) {
+        # ... and can still be active?
+        my $expiration_date = __get_user_attributes('expires', 'unmasked');
+        return if ( Utils::Time::expired($expiration_date) );
+    }
+    # POSSIBLY NOTREACHED
+
+    my $C = new Context;
+    my $dbh = $C->get_object('Database')->get_DBH;
+
+    my $userid = __get_remote_user();
+    my $accesscount = 0;
+
+    my ($sth, $statement);
+    eval {
+        $statement = qq{LOCK TABLES ht_counts WRITE};
+        DEBUG('acl', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+
+        $statement = qq{INSERT INTO ht_counts SET userid=?, accesscount=1, last_access=NOW() ON DUPLICATE KEY UPDATE accesscount=accesscount+1, last_access=NOW()};
+        DEBUG('auth', qq{DEBUG: $statement :: $userid});
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $userid);
+
+        $statement = qq{UNLOCK TABLES};
+        DEBUG('auth', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+    };
+    if ($@) {
+        print STDERR "Auth::ACL__update_accesscount error: $@";
+        $statement = qq{UNLOCK TABLES};
+        DEBUG('auth', qq{DEBUG: $statement});
+        $sth = DbUtils::prep_n_execute($dbh, $statement);
+    }
+}
+
+# ---------------------------------------------------------------------
+
+=item ___attribute_mapping
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___attribute_mapping {
+    my $hashref = shift;
+
+    # Map these
+    my $role = $hashref->{role};
+    my $vpn = $hashref->{vpn};
+    my $iprestrict = $hashref->{iprestrict};
+    my $usertype = $hashref->{usertype};
+    my $expires = $hashref->{expires};
+
+    # Mapping from UI value to internal superuser
+    if ( grep(/^$role$/, (qw/staffdeveloper staffsysadmin/)) ) {
+        $role = $hashref->{role} = 'superuser';
+    }
+
+    unless( defined $expires ) {
+        $expires = $hashref->{expires} = $ZERO_TIMESTAMP;
+    }
+
+    # Use database IP address(es), if defined, else use the
+    # "no access" IP address or some other value in special cases
+    # (SSD) below. Add the VPN range if vpn=1
+    #
+    if (defined $iprestrict) {
+        $iprestrict = $hashref->{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
+    }
+    else {
+        $iprestrict = $hashref->{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
+    }
+
+    # Special cases
+    #
+    if ($usertype eq 'student') {
+        if ($role eq 'ssd') {
+            $iprestrict = $hashref->{iprestrict} = $iprestrict_none;
+        }
+    }
+}
+
 # ---------------------------------------------------------------------
 
 =item __load_access_control_list
@@ -446,52 +570,29 @@ sub __load_access_control_list {
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH;
 
-    my $statement = qq{SELECT * FROM ht_users};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement);
-    my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+    my ($statement, $sth, $ref_to_arr_of_hashref);
+
+    $statement = qq{SELECT * FROM ht_users};
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
+
+    foreach my $hashref (@$ref_to_arr_of_hashref) {
+
+        ___attribute_mapping($hashref);
+
+        my $userid = $hashref->{userid};
+        map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
+    }
+
+    $statement = qq{SELECT * FROM ht_counts};
+    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     foreach my $hashref (@$ref_to_arr_of_hashref) {
 
         my $userid = $hashref->{userid};
-
-        $Access_Control_List_ref->{$userid}{userid} = $hashref->{userid};
-        $Access_Control_List_ref->{$userid}{displayname} = $hashref->{displayname};
-        $Access_Control_List_ref->{$userid}{usertype} = $hashref->{usertype};
-        $Access_Control_List_ref->{$userid}{role} = $hashref->{role};
-        $Access_Control_List_ref->{$userid}{access} = $hashref->{access};
-
-        $Access_Control_List_ref->{$userid}{iprestrict} = $hashref->{iprestrict};
-        $Access_Control_List_ref->{$userid}{vpn} = $hashref->{vpn};
-
-        # Use database IP address(es), if defined. If not defined, use
-        # the "no access" IP address or some other value in special
-        # cases (SSD) below. Add the VPN range if vpn=1
-        #
-        my $vpn = $hashref->{vpn};
-        my $iprestrict = $hashref->{iprestrict};
-
-        if (defined $iprestrict) {
-            $Access_Control_List_ref->{$userid}{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
-        }
-        else {
-            $Access_Control_List_ref->{$userid}{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
-        }
-
-        my $expires = $hashref->{expires};
-        $expires = ( ($expires eq $ZERO_TIMESTAMP) ? undef : $expires );
-        if (defined $expires) {
-            $Access_Control_List_ref->{$userid}{expires} = $expires;
-        }
-        else {
-            $Access_Control_List_ref->{$userid}{expires} = $GLOBAL_EXPIRE_DATE;
-        }
-
-        # Special cases
-        #
-        if ($Access_Control_List_ref->{$userid}{usertype} eq 'student') {
-            if ($Access_Control_List_ref->{$userid}{role} eq 'ssd') {
-                $Access_Control_List_ref->{$userid}{iprestrict} = $iprestrict_none;
-            }
+        if ( defined $Access_Control_List_ref->{$userid} ) {
+            map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
         }
     }
 

@@ -122,6 +122,8 @@ sub __debug_auth {
 
     DEBUG('auth',
           sub {
+              return '' if ($self->{__debug_auth_printed});
+
               my $auth_str =
                 q{<h1>AUTH:</h1> userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
                   . q{ loggedin=} . $self->is_logged_in() . q{ in-library=} . $self->is_in_library()
@@ -139,6 +141,7 @@ sub __debug_auth {
                                           . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
                                             . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
                                               . q{ print-disabled=} . $self->user_is_print_disabled($C);
+              $self->{__debug_auth_printed} = 1;
               return $auth_str;
           });
 }

@@ -114,15 +114,17 @@ sub __getMatrixValue {
     
     my $discriminators = $dataTypeMatrix{$profile};
     
-    foreach my $d_hashref (@$discriminators) {
-        my $xpath = $d_hashref->{_xpath};
-        if ($xpath) {
-            if ($METS_root->findvalue($xpath) eq $d_hashref->{_value}) {
+    if ($discriminators) {
+        foreach my $d_hashref (@$discriminators) {
+            my $xpath = $d_hashref->{_xpath};
+            if ($xpath) {
+                if ($METS_root->findvalue($xpath) eq $d_hashref->{_value}) {
+                    return $d_hashref->{$level};
+                }
+            }
+            else {
                 return $d_hashref->{$level};
             }
-        }
-        else {
-            return $d_hashref->{$level};
         }
     }
     

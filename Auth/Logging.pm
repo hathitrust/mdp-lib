@@ -39,8 +39,10 @@ Various hueristics determine the app making the request.
 sub log_incopyright_access  {
     my ($C, $id) = @_;
 
+    my $logged = 0;
+
     my $Header_Key = 'X-HathiTrust-InCopyright';
-    
+
     my $ar = $C->get_object('Access::Rights');
     if ( $ar->check_final_access_status($C, $id) eq 'allow' ) {
         # ... serving something
@@ -49,9 +51,9 @@ sub log_incopyright_access  {
         my $access_type = $ar->get_access_type($C, 'as_string');
 
         if ($in_copyright) {
-            # ... that is in-copyright 
+            # ... that is in-copyright
             my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
-           
+
             if ($usertype) {
                 my $role = Auth::ACL::a_GetUserAttributes('role');
                 Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attribute;access=$access_type");
@@ -60,8 +62,11 @@ sub log_incopyright_access  {
                 # Users entitled to view OP @OPB brittle, lost, missing held by their institution
                 Utils::add_header($C, $Header_Key, "user=other,none;attr=$attribute;access=$access_type");
             }
+            $logged = 1;
         }
     }
+
+    return $logged;
 }
 
 1;

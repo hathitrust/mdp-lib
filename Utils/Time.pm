@@ -23,7 +23,7 @@ use Date::Calc;
 use Time::HiRes;
 
 use base qw(Exporter);
-our @EXPORT = qw( unix_Time iso_UTC_Time iso_Time friendly_iso_Time );
+our @EXPORT = qw( unix_Time iso_UTC_Time iso_Time friendly_iso_Time days_Until );
 
 my %MONTHS =
 (0=>'Jan',1=>'Feb',2=>'Mar',3=>'Apr',4=>'May',5=>'Jun',6=>'Jul',7=>'Aug',8=>'Sep',9=>'Oct',10=>'Nov',11=>'Dec');
