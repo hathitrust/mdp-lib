@@ -21,7 +21,6 @@ here and override the ACL.
       `userid`      varchar(256)  NOT NULL DEFAULT '',
       `displayname` varchar(128)           DEFAULT NULL,
       `email`       varchar(128)           DEFAULT NULL,
-      `supemail`    varchar(128)           DEFAULT NULL,
       `approver`    varchar(128)           DEFAULT NULL,
       `authorizer`  varchar(128)           DEFAULT NULL,
       `usertype`    varchar(32)            DEFAULT NULL,
@@ -39,29 +38,45 @@ from within the Auth::ACL package.
 
 'role' is a subclass of 'usertype'
 
-See description of 'ht_counts.accesscount' in a_Increment_accesscount below.
+
 
  SELECT DISTINCT usertype, role FROM ht_users;
-
- +----------+--------------+---------+
- | usertype | role         | access  |
- +----------+--------------+---------+
- | staff    | generalhathi | total   | UM staff
- | staff    | cataloging   | total   | UM staff
- | external | crms         | total   | non-UM engaged in CRMS and CRMS World activities
- | staff    | crms         | total   | UM staff engaged in CRMS and CRMS World activities
- | staff    | superuser    | total   | UM staff (developers)
- | staff    | orphan       | total   | UM staff engaged in the Orphan Works project
- | staff    | quality      | total   | UM staff engaged in the Qual project
- | external | quality      | total   | non-UM engaged in the Qual project
- | staff    | digitization | total   | UM staff at DCU
- |----------+--------------+---------+
- | student  | ssd          | normal  | UM student on SSD list *not locked to any IP address*
- | external | ssdproxy     | normal  | non-UM Human Proxy for print-disabled user
- | external | ssdnfb       | normal  | non-UM National Federation of the Blind Proxy for print-disabled user
- +----------+--------------+---------+
+ +----------+---------------+---------+
+ | usertype | role          | access  |
+ +----------+---------------+---------+
+ | staff    | generalhathi  | total   | UM staff
+ | staff    | cataloging    | total   | UM staff
+ | external | crms          | total   | non-UM engaged in CRMS and CRMS World activities
+ | staff    | crms          | total   | UM staff engaged in CRMS and CRMS World activities
+ | staff    | superuser     | total   | UM staff (developers)
+ | staff    | orphan        | total   | UM staff engaged in the Orphan Works project
+ | staff    | quality       | total   | UM staff engaged in the Qual project
+ | external | quality       | total   | non-UM engaged in the Qual project
+ | staff    | replacement   | total   | UM staff at DCU
+ | staff    | inprintstatus | total   | Copyright determination UM staff
+ | staff    | corrections   | total   | Hathitrust support UM staff
+ |----------+---------------+---------+
+ | student  | ssd           | normal  | UM student on SSD list *not locked to any IP address*
+ | external | ssdproxy      | normal  | non-UM Human Proxy for print-disabled user
+ | external | ssdnfb        | normal  | non-UM National Federation of the Blind Proxy for print-disabled user
+ +----------+---------------+---------+
 
 'normal' access excludes attr=8 (nobody)
+
+Counting user in-copyright access activity 
+
+ DESCRIBE ht_counts;
+ +----------------+--------------+------+-----+---------------------+-------+
+ | Field          | Type         | Null | Key | Default             | Extra |
+ +----------------+--------------+------+-----+---------------------+-------+
+ | userid         | varchar(256) | NO   |     |                     |       |
+ | accesscount    | int(11)      | NO   |     | 0                   |       |
+ | last_access    | timestamp    | NO   |     | 0000-00-00 00:00:00 |       |
+ | warned         | tinyint(1)   | NO   |     | 0                   |       |
+ | auth_requested | tinyint(1)   | NO   |     | 0                   |       |
+ +----------------+--------------+------+-----+---------------------+-------+
+
+Activity is update on each in-copyright access. warned=1 is set when the HathiTrust admininstrator is warned that htere are activities where user access is about to expire.  auth_requested=1 is set when HathiTrust admininstrator generated request to Core Services to renew access.  When access is renewed or users are re-added, warn and auth_requested are reset.
 
 =head1 SYNOPSIS
 
