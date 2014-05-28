@@ -165,4 +165,10 @@ sub GetStoredFileGroup {
 	return '';
 }
 
+sub GetItemCover {
+  my $self = shift;
+  # no cover
+  return undef;
+}
+
 1;

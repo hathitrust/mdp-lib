@@ -1376,6 +1376,14 @@ sub ParseReadingOrder {
     DEBUG('readingOrder, all', qq{<h3>Reading Order ="$readingOrder" / Scanning Order = "$scanningOrder" / Cover Tag = "$coverTag"</h3>});
 }
 
+# would be overridden in type specific files
+sub GetItemCover {
+    my $self = shift;
+    my $seq;
+    $seq = $self->HasBookCoverFeature() || $self->HasTitleFeature() || $self->HasTOCFeature() || $self->HasFirstContentFeature() || 1;
+    return $seq;
+}
+
 # ---------------------------------------------------------------------
 
 =item adjust_feature_seq
