@@ -24,6 +24,9 @@ package RightsGlobals;
  18        private        Private Donor
  19        umich          University of Michigan (Other)
  20        clark          Clark Art Institute
+ 21        ku             Knowledge Unlatched                                                                       |              1 |
+ 22        mcgill         McGill University                                                                         |              1 |
+ 23        bc             Boston College
 
  ATTRIBUTES
  id        name        type      dscr
@@ -190,28 +193,29 @@ our $HT_AFFILIATE        = 7;
 
 %g_source_names =
   (
-   '1'  => 'google',
-   '2'  => 'lit-dlps-dc',
-   '3'  => 'ump',
-   '4'  => 'ia',
-   '5'  => 'yale',
-   '6'  => 'mdl',
-   '7'  => 'mhs',
-   '8'  => 'usup',
-   '9'  => 'ucm',
-   '10' => 'purd',
-   '11' => 'getty',
-   '12' => 'um-dc-mp',
-   '13' => 'uiuc',
-   '14' => 'brooklynmuseum',
-   '15' => 'uf',
-   '16' => 'tamu',
-   '17' => 'udel',
-   '18' => 'private',
-   '19' => 'umich',
-   '20' => 'clark',
-   '21' => 'ku',
-   '22' => 'mcgill',
+   1  => 'google',
+   2  => 'lit-dlps-dc',
+   3  => 'ump',
+   4  => 'ia',
+   5  => 'yale',
+   6  => 'mdl',
+   7  => 'mhs',
+   8  => 'usup',
+   9  => 'ucm',
+   10 => 'purd',
+   11 => 'getty',
+   12 => 'um-dc-mp',
+   13 => 'uiuc',
+   14 => 'brooklynmuseum',
+   15 => 'uf',
+   16 => 'tamu',
+   17 => 'udel',
+   18 => 'private',
+   19 => 'umich',
+   20 => 'clark',
+   21 => 'ku',
+   22 => 'mcgill',
+   23 => 'bc',
   );
 
 @g_stmt_fields =
@@ -523,6 +527,9 @@ $g_orphan_candidate_attribute_value = 16;
                                            18, # private
                                            19, # umich
                                            20, # clark
+                                           21, # ku
+                                           22, # mcgill
+                                           23, # bc
                                           );
 @g_full_PDF_download_closed_source_values = (
                                              1, # google
