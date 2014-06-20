@@ -498,23 +498,12 @@ sub __update_accesscount {
 
     my ($sth, $statement);
     eval {
-        $statement = qq{LOCK TABLES ht_counts WRITE};
-        DEBUG('acl', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
-
         $statement = qq{INSERT INTO ht_counts SET userid=?, accesscount=1, last_access=NOW() ON DUPLICATE KEY UPDATE accesscount=accesscount+1, last_access=NOW()};
         DEBUG('auth', qq{DEBUG: $statement :: $userid});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $userid);
-
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('auth', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
     };
     if ($@) {
-        print STDERR "Auth::ACL__update_accesscount error: $@";
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('auth', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        print STDERR "Auth::ACL::__update_accesscount error: $@";
     }
 }
 
