@@ -42,7 +42,7 @@ sub __check_fault {
     
     if ( defined $res->fault() ) {
         my $s = "ERROR: \n" . $service->createIssueResponse . "\n" . $res->faultstring() . "\n";
-        __log_event($s);
+        __ul_log_event($s);
         die $s;
     }
 
@@ -68,7 +68,7 @@ sub __get_JIRA_user_passwd {
 
     unless (-e $JIRA_Conf_File) {
         my $s = "Config file=$JIRA_Conf_File missing";
-        __log_event($s);
+        __ul_log_event($s);
         die $s;
     }
 
