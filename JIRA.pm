@@ -126,6 +126,27 @@ sub comment_JIRA_ticket {
 
 # ---------------------------------------------------------------------
 
+=item get_JIRA_ticket_info
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_JIRA_ticket_info {
+    my ($config, $ticket) = @_;
+
+    my ($service, $token) = __get_JIRA_connection($config);
+    # POSSIBLY NOTREACHED
+
+    __check_fault( $service->getIssue($token, $ticket), $service );
+    # POSSIBLY NOTREACHED
+
+   $service->logout;
+}
+
+# ---------------------------------------------------------------------
+
 =item create_JIRA_ticket
 
 Description
