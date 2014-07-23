@@ -69,7 +69,6 @@ sub _initialize {
     my $name = shift;
 
     $self->{'application_name'} = $name;
-    test_availability();
 }
 
 
@@ -105,31 +104,6 @@ sub get_app_name {
     return $self->{'application_name'};
 }
 
-
-# ---------------------------------------------------------------------
-
-=item test_availability
-
-Determine whether this app is allowed to run by testing the
-UNAVAILABLE environment variable.
-
-UNAVAILABLE can be set in the virtual host for maintenance or
-programatically for a variety of reasons.
-
-When set and followed by any assertion failure, it triggers the
-display of a friendly page explaining the outage.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub test_availability {
-
-    # Set by the virtual host for maintenance
-    ASSERT(0)
-        if (defined($ENV{'UNAVAILABLE'}));
-}
-
-
 1;
 
 __END__
@@ -140,7 +114,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
