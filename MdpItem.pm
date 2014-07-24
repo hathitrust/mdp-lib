@@ -194,7 +194,7 @@ sub GetMdpItem {
 
     $itemFileSystemLocation = Identifier::get_item_location($id) unless ($itemFileSystemLocation);
 
-    my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) = 
+    my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) =
       __handle_mdpitem_cache_setup($C, $id);
 
     # if we already have instantiated and saved in the cache the full
@@ -1006,7 +1006,7 @@ sub handle_feature_record {
     my ($pgftr, $order, $featureRecordRef) = @_;
 
     $featureRecordRef->{hasPF_BOOKCOVER} = $order
-      if (! $featureRecordRef->{hasPF_BOOKCOVER} && 
+      if (! $featureRecordRef->{hasPF_BOOKCOVER} &&
         ( ($pgftr =~ m,BOOK_COVER,o) || (($pgftr =~ m,COVER,o) && ($pgftr =~ m,RIGHT,o)) ));
     $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
       if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
@@ -1380,7 +1380,8 @@ sub ParseReadingOrder {
 sub GetItemCover {
     my $self = shift;
     my $seq;
-    $seq = $self->HasBookCoverFeature() || $self->HasTitleFeature() || $self->HasTOCFeature() || $self->HasFirstContentFeature() || 1;
+    # $self->HasTOCFeature() ||
+    $seq = $self->HasTitleFeature() || $self->HasFirstContentFeature() || $self->HasBookCoverFeature() || 1;
     return $seq;
 }
 
