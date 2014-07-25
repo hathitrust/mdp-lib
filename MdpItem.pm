@@ -1380,8 +1380,7 @@ sub ParseReadingOrder {
 sub GetItemCover {
     my $self = shift;
     my $seq;
-    # $self->HasTOCFeature() ||
-    $seq = $self->HasTitleFeature() || $self->HasFirstContentFeature() || $self->HasBookCoverFeature() || 1;
+    $seq = $self->HasTitleFeature() || $self->HasTOCFeature() || $self->HasFirstContentFeature() || $self->HasBookCoverFeature() || 1;
     return $seq;
 }
 
