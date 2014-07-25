@@ -608,7 +608,7 @@ sub list_items {
     }
 
     # NOTE: this odd construct is for efficiency
-    my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS T1 $LIMIT};
+    my $statement = qq{$SELECT $WHERE $LIMIT};
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
