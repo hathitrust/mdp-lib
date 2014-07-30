@@ -134,7 +134,7 @@ sub _initialize {
 
     $self->{'config'} = $config;
     my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
-    
+
     if ($use_test_tables) {
         $self->{'coll_table_name'} = $config->get('test_coll_table_name');
         $self->{'coll_item_table_name'} = $config->get('test_coll_item_table_name');
@@ -619,6 +619,7 @@ sub list_items {
     return $array_ref;
 }
 
+
 # ---------------------------------------------------------------------
 
 =item arr_ref2SQL_in_string
@@ -632,17 +633,8 @@ sub arr_ref2SQL_in_string {
     my $self = shift;
     my $id_arr_ref = shift;
 
-    my $dbh = $self->get_dbh();
-    my $id_string = "";
-
-    foreach my $id (@$id_arr_ref) {
-        $id_string .= '?, ';
-    }
-
-    $id_string =~ s,\,\s*$,,;
-    $id_string = '( ' . $id_string . ' ) ';
-
-    return $id_string;
+    my $s = '(' . join(',', map {'?'} @$id_arr_ref) . ')';
+    return $s;
 }
 
 
@@ -725,7 +717,7 @@ Description
 sub get_description {
     my $self = shift;
     my $coll_id = shift;
-    
+
     return $self->get_coll_record($coll_id)->{description};
 }
 
@@ -773,7 +765,7 @@ sub _edit_metadata {
     my $field = shift;
     my $value = shift;
     my $max_length = shift;
-    
+
     my $user_id = $self->get_user_id;
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
@@ -790,7 +782,7 @@ sub _edit_metadata {
 
     my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
-    
+
     # clear the cache
     delete $self->{_collection_collid_record}->{$coll_id};
 }
@@ -1017,7 +1009,7 @@ sub get_collnames_for_item_and_user {
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
     # my $q_id = $dbh->quote($id);
-    
+
     my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
 
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
@@ -1043,7 +1035,7 @@ sub get_coll_id_for_collname_and_user {
 
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->get_dbh;
-    
+
     my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner_name=? AND collname=?};
 
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $collname);
@@ -1165,14 +1157,14 @@ sub count_all_items_for_coll {
 
     my $coll_table = $self->get_coll_table_name;
     my $statement = qq{SELECT num_items from $coll_table WHERE MColl_ID=?};
-    
+
     DEBUG('dbcoll', qq{count_all_items_for_coll sql=$statement});
-    
+
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0] || 0;
-    
+
     return $count;
 }
 
@@ -1353,7 +1345,7 @@ sub update_item_count {
     $statement = qq{UPDATE $coll_table SET num_items=? WHERE MColl_ID=?};
     DEBUG('dbcoll', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_item_count, $coll_id);
-    
+
     my $collection_table_count = $self->count_all_items_for_coll($coll_id);
 
     $statement = qq{UNLOCK TABLES};
