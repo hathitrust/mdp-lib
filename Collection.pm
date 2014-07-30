@@ -608,15 +608,15 @@ sub list_items {
     }
 
     # NOTE: this odd construct is for efficiency
-    my $statement = qq{$SELECT $WHERE $LIMIT};
+    my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS t0 $LIMIT};
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_arr_ref, @$rights_ref);
-    my $array_ref = $sth->fetchall_arrayref({});
+    my $arr_ref = $sth->fetchall_arrayref({});
 
-    return $array_ref;
+    return $arr_ref;
 }
 
 
