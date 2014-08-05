@@ -1100,24 +1100,28 @@ sub count_full_text {
         $WHERE .= qq{ AND $item_table.extern_item_id IN $id_string  };
     }
 
-    my $AND = qq{ AND } . '( ';
+    my $RIGHTS_clause = '(' . join(' ', map{ "$item_table.rights=?" } @$rights_ref) . ')';
+    $RIGHTS_clause =~ s,[ ], OR ,g;
 
-    foreach my $rights (@$rights_ref) {
-        $AND .= qq{$item_table.rights = ? OR };
-    }
-    # remove last "OR" and insert closing paren
-    $AND =~ s,OR\s*$, \) ,;
-
-    # append to WHERE
-    $WHERE .= $AND;
+    $WHERE .= qq{ AND $RIGHTS_clause };
 
     my $statement = join (' ',  qq{$SELECT $FROM $WHERE});
-    DEBUG('dbcoll', qq{count_full_text sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_array_ref, @$rights_ref);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
+
+    if (0) {
+        my $d = '';
+        require Data::Dumper;
+        $d = Data::Dumper::Dumper($id_array_ref);
+        print STDERR $d;
+        $d =  Data::Dumper::Dumper($rights_ref);
+        print STDERR $d;
+    }
+
+    DEBUG('dbcoll', qq{count_full_text sql=$statement count="$count"});
 
     return $count || 0;
 }
@@ -1134,11 +1138,42 @@ Description
 sub collection_is_large {
     my $self = shift;
     my $coll_id = shift;
+    my $num_items_in_coll = shift;
 
     my $small_collection_max_items = $self->get_config()->get('filter_query_max_item_ids');
-    my $coll_num_items = $self->count_all_items_for_coll($coll_id);
+    unless (defined $num_items_in_coll) {
+        $num_items_in_coll  = $self->count_all_items_for_coll($coll_id);
+    }
 
-    return ($coll_num_items > $small_collection_max_items);
+    return ($num_items_in_coll > $small_collection_max_items);
+}
+
+# ---------------------------------------------------------------------
+
+=item count_rights_for_coll
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub count_rights_for_coll {
+    my $self = shift;
+    my $coll_id = shift;
+    my $rights_attr = shift;
+
+    my $coll_item_table = $self->get_coll_item_table_name;
+    my $item_table = $self->get_item_table_name;
+    my $statement = qq{SELECT COUNT($item_table.rights) FROM $item_table, $coll_item_table WHERE $coll_item_table.MColl_ID=? AND $item_table.rights=? AND $item_table.extern_item_id=$coll_item_table.extern_item_id};
+
+    my $dbh = $self->get_dbh();
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, $rights_attr);
+    my $countref = $sth->fetchall_arrayref([0]);
+    my $count = $countref->[0]->[0] || 0;
+
+    DEBUG('dbcoll', qq{count_rights_for_coll sql=$statement count="$count"});
+
+    return $count;
 }
 
 # ---------------------------------------------------------------------
@@ -1154,16 +1189,15 @@ sub count_all_items_for_coll {
     my $self = shift;
     my $coll_id = shift;
 
-
     my $coll_table = $self->get_coll_table_name;
     my $statement = qq{SELECT num_items from $coll_table WHERE MColl_ID=?};
-
-    DEBUG('dbcoll', qq{count_all_items_for_coll sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0] || 0;
+
+    DEBUG('dbcoll', qq{count_all_items_for_coll sql=$statement count="$count"});
 
     return $count;
 }
@@ -1302,12 +1336,13 @@ sub count_all_items_for_coll_from_coll_items {
     my $WHERE = qq{WHERE MColl_ID=?};
 
     my $statement = join (' ', qq{$SELECT $FROM $WHERE});
-    DEBUG('dbcoll', qq{count_all_items_for_coll_from_coll_items sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
+
+    DEBUG('dbcoll', qq{count_all_items_for_coll_from_coll_items sql=$statement count="$count"});
 
     return $count || 0;
 }
@@ -1343,10 +1378,10 @@ sub update_item_count {
     my $coll_item_count = $self->count_all_items_for_coll_from_coll_items($coll_id);
 
     $statement = qq{UPDATE $coll_table SET num_items=? WHERE MColl_ID=?};
-    DEBUG('dbcoll', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_item_count, $coll_id);
 
     my $collection_table_count = $self->count_all_items_for_coll($coll_id);
+    DEBUG('dbcoll', qq{DEBUG: update_item_count statement=$statement count="$collection_table_count"});
 
     $statement = qq{UNLOCK TABLES};
     DEBUG('dbcoll', qq{DEBUG: $statement});
