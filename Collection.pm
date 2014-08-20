@@ -835,12 +835,9 @@ $desc is less than 150 characters.
 sub edit_description {
     my $self = shift;
     my $coll_id = shift;
-    my $value = shift;
+    my $description = shift;
 
-    my $dbh = $self->get_dbh;
-
-    # specific processing
-    $self-> _edit_metadata($coll_id, 'description', $value, 255);
+    $self-> _edit_metadata($coll_id, 'description', $description, 255);
 }
 
 
@@ -853,7 +850,6 @@ $co->edit_coll_name($coll_id, $name)
 Replaces existing coll_name with $name client is responsible for
 making sure coll_name is unique for this user
 
-
 =cut
 
 #----------------------------------------------------------------------
@@ -862,19 +858,7 @@ sub edit_coll_name {
     my $coll_id = shift;
     my $coll_name = shift;
 
-    my $value = $coll_name;
-    my $owner = $self->get_user_id;
-    my $dbh = $self->get_dbh;
-    my $config = $self->get_config;
-
-    my $CS = CollectionSet->new($dbh,$self->{config}, $owner);
-
-    ASSERT(! $CS->exists_coll_name_for_owner($coll_name, $owner),
-           qq{Can't change collection name because a collection owned by $owner already exists with that name $coll_name});
-
-    # specific processing: check proposed changed name isn't already
-    # in use need to use CollectionSet->exists_coll_name_for_owner()
-    $self->_edit_metadata($coll_id, 'collname', $value, 100);
+    $self->_edit_metadata($coll_id, 'collname', $coll_name, 100);
 }
 
 
