@@ -301,6 +301,7 @@ sub _initialize {
         $self->Set('zipfile', $zipfile);
     }
 
+    $self->SetSources();
     $self->SetItemType();
     $self->SetMarkupLanguage();
     $self->SetPageInfo();
@@ -335,6 +336,15 @@ sub _GetMetsRoot {
         $$self{_METS} = $root;
     }
     return $$self{_METS};
+}
+
+sub SetSources {
+    my $self = shift;
+    my $root = $self->_GetMetsRoot();
+    my $collection_source = $root->findvalue(q{//HT:contentProvider[@display='yes']});
+    my $digitization_source = $root->findvalue(q{//PREMIS:event[PREMIS:eventType="capture"][last()]/PREMIS:linkingAgentIdentifier[PREMIS:linkingAgentRole="Executor"]/PREMIS:linkingAgentIdentifierValue});
+    $self->Set('collection_source', $collection_source);
+    $self->Set('digitization_source', $digitization_source);
 }
 
 sub SetItemType {
