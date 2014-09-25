@@ -37,6 +37,9 @@ Coding example
 
 =cut
 
+use strict;
+use warnings;
+
 use Context;
 use Database;
 use DbUtils;
@@ -291,26 +294,31 @@ sub get_idp_list {
 
     my $inst = $C->get_object('Auth')->get_institution_code($C) || 'notaninstitution';
 
-    foreach my $hash ( sort { $$a{name} cmp $$b{name} } @$list_ref ) {
-        my $development = 0;
+    foreach my $hash_ref ( sort { $a->{name} cmp $b->{name} } @$list_ref ) {
+        my $add_to_list = 0;
 
-        if ( ! $$hash{enabled} ) {
-            $development = 1;
-            next unless ( $ENV{HT_DEV} );
+        if ( $hash_ref->{enabled} == 0 ) {
+            $add_to_list = 1 if ( defined $ENV{HT_DEV} );
         }
+        elsif ( $hash_ref->{enabled} == 1 ) {
+            $add_to_list = 1;
+        }
+        elsif ( $hash_ref->{enabled} == 2 ) {
+            $add_to_list = 0;
+        }
+        next unless ($add_to_list);
 
-        my $idp_url = $$hash{template};
+        my $idp_url = $hash_ref->{template};
         my $host = $ENV{'HTTP_HOST'} || 'localhost';
         $idp_url =~ s,___HOST___,$host,;
-        ## $idp_url =~ s,___TARGET___,$L_target,;
 
         push @$results, {
-            enabled => $$hash{enabled},
-            sdrinst => $$hash{sdrinst},
+            enabled => $hash_ref->{enabled},
+            sdrinst => $hash_ref->{sdrinst},
             idp_url => $idp_url,
-            authtype => $$hash{authtype},
-            name => $$hash{name},
-            selected => ( $inst eq $$hash{sdrinst} ),
+            authtype => $hash_ref->{authtype},
+            name => $hash_ref->{name},
+            selected => ( $inst eq $hash_ref->{sdrinst} ),
         };
 
     }
