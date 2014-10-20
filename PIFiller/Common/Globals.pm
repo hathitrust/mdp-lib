@@ -139,10 +139,10 @@ sub handle_ACCESS_USE_PI
 
     my $ar = $C->get_object('Access::Rights');
     my $attr = $ar->get_rights_attribute($C, $id);
-    my $source = $ar->get_source_attribute($C, $id);
+    my $access_profile = $ar->get_access_profile_attribute($C, $id);
 
     my $ref_to_arr_of_hashref =
-      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $source,
+      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $access_profile,
                                                   {
                                                    stmt_url      => 1,
                                                    stmt_url_aux  => 1,
