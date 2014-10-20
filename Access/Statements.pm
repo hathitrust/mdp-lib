@@ -9,20 +9,20 @@ Access::Statements;
 This package provides an interface to the Access and Use statements
 database. 
 
-PROGRAMMING NOTE: This module is shared between HT apps (like pt) and
-the Data API.
+PROGRAMMING NOTE: This module is shared between HT apps (like pt, imgsrv) and
+the Data API and the access stmts[_api] services.
 
 =head1 SYNOPSIS
 
 Do NOT call any of the PRIVATE: methods directly.
 
 Accept a pair of values (mdp.rights_current.attr,
-mdp.rights_current.source) and return the statement field data as
+mdp.rights_current.access_profile) and return the statement field data as
 requested in the request hash to which the pair maps. 
 
 Only one of $C or $dbh is required.
 
-my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $dbh, $attr, $source,
+my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $dbh, $attr, $access_profile,
                                  {
                                    stmt_key      => 1,
                                    stmt_url      => 1,
@@ -35,7 +35,7 @@ my $stmt_hashref = Access::Statements::get_stmt_by_rights_values($C, $dbh, $attr
 
 Return the basic statements by their keys.
 
-my $stmt_ref = Access::Statements::get_stmt_by_key($C, $dbh, $key          
+my $stmt_ref = Access::Statements::get_stmt_by_key($C, $dbh, $key
                                  {
                                    stmt_key      => 1,
                                    stmt_url      => 1,
@@ -47,7 +47,7 @@ my $stmt_ref = Access::Statements::get_stmt_by_key($C, $dbh, $key
                                  });
 
 
-Refer to mdp-lib/RightsGlobals.pm for definitions of attributes, sources, statement-keys etc.
+Refer to mdp-lib/RightsGlobals.pm for definitions of attribute, access_profile, statement-key, etc.
 
 =head1 METHODS
 
@@ -81,22 +81,22 @@ Description
 
 # ---------------------------------------------------------------------
 sub get_stmt_by_rights_values {
-    my ($C, $dbh, $attr, $source, $req_ref) = @_;
+    my ($C, $dbh, $attr, $access_profile, $req_ref) = @_;
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
     my $sth;
     
-    my ($attr_key, $source_key) = 
+    my ($attr_key, $access_profile_key) = 
       (
        $RightsGlobals::g_attribute_keys{$attr},
-       $RightsGlobals::g_source_names{$source}
+       $RightsGlobals::g_access_profile_names{$access_profile},
       );
 
-    $attr_key = 'nobody' if (! $attr_key);
-    $source_key = 'google' if (! $source_key);
+    $attr_key = 'nobody' unless ($attr_key);
+    $access_profile_key = 'google' unless ($access_profile_key);
     
-    my $key_SELECT_clause = qq{(SELECT stmt_key FROM access_stmts_map WHERE a_attr=? AND a_source=?)};
-    $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause, $attr_key, $source_key);
+    my $key_SELECT_clause = qq{(SELECT stmt_key FROM test_access_stmts_map WHERE a_attr=? AND a_access_profile=?)};
+    $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause, $attr_key, $access_profile_key);
     my $key = $sth->fetchrow_array();
     $req_ref->{stmt_key} = $key;
 
@@ -105,7 +105,7 @@ sub get_stmt_by_rights_values {
     
     my $WHERE_clause = qq{WHERE access_stmts.stmt_key=$key_SELECT_clause};
     my $statement = qq{SELECT $database_fields FROM access_stmts } . $WHERE_clause;
-    $sth = DbUtils::prep_n_execute($_dbh, $statement, $attr_key, $source_key);
+    $sth = DbUtils::prep_n_execute($_dbh, $statement, $attr_key, $access_profile_key);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_arr_of_hashref;
@@ -174,7 +174,7 @@ sub get_all_mappings {
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
-    my $statement = qq{SELECT * FROM access_stmts_map };
+    my $statement = qq{SELECT * FROM test_access_stmts_map };
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 

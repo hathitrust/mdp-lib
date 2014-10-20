@@ -2,32 +2,6 @@ package RightsGlobals;
 
 =head1 SYNOPSIS
 
- SOURCES
- id        name           dscr
- 1         google         Google
- 2         lit-dlps-dc    LIT, DLPS, Digital Conversion
- 3         ump            University of Michigan Press
- 4         ia             Internet Archive
- 5         yale           Yale University
- 6         umn            University of Minnesota
- 7         mhs            Minnesota Historical Society
- 8         usup           Utah State University Press
- 9         ucm            Universidad Complutense de Madrid
- 10        purd           Purdue University
- 11        getty          Getty Research Institute
- 12        um-dc-mp       University of Michigan, Duderstadt Center, Millennium Project
- 13        uiuc           University of Illinois at Urbana-Champaign
- 14        brooklynmuseum Brooklyn Museum
- 15        uf             University of Florida
- 16        tamu           Texas A&M
- 17        udel           University of Delaware
- 18        private        Private Donor
- 19        umich          University of Michigan (Other)
- 20        clark          Clark Art Institute
- 21        ku             Knowledge Unlatched                                                                       |              1 |
- 22        mcgill         McGill University                                                                         |              1 |
- 23        bc             Boston College
-
  ATTRIBUTES
  id        name        type      dscr
  1         pd          copyright public domain
@@ -101,7 +75,7 @@ package RightsGlobals;
 
 =cut
 
-# Bad rights_current.{attr,source} value
+# Bad rights_current.{attr,access_profile} value
 our $NOOP_ATTRIBUTE = 0;
 
 # ---------------------------------------------------------------------
@@ -162,6 +136,33 @@ our $HT_AFFILIATE        = 7;
    '25' => 'Creative Commons Attribution-ShareAlike 4.0 International license',
   );
 
+%g_source_names =
+  (
+   1  => 'google',
+   2  => 'lit-dlps-dc',
+   3  => 'ump',
+   4  => 'ia',
+   5  => 'yale',
+   6  => 'mdl',
+   7  => 'mhs',
+   8  => 'usup',
+   9  => 'ucm',
+   10 => 'purd',
+   11 => 'getty',
+   12 => 'um-dc-mp',
+   13 => 'uiuc',
+   14 => 'brooklynmuseum',
+   15 => 'uf',
+   16 => 'tamu',
+   17 => 'udel',
+   18 => 'private',
+   19 => 'umich',
+   20 => 'clark',
+   21 => 'ku',
+   22 => 'mcgill',
+   23 => 'bc',
+  );
+
 %g_attribute_keys =
   (
    1  => 'pd',
@@ -191,31 +192,12 @@ our $HT_AFFILIATE        = 7;
    25 => 'cc-by-sa-4.0',
   );
 
-%g_source_names =
+%g_access_profile_names =
   (
-   1  => 'google',
-   2  => 'lit-dlps-dc',
-   3  => 'ump',
-   4  => 'ia',
-   5  => 'yale',
-   6  => 'mdl',
-   7  => 'mhs',
-   8  => 'usup',
-   9  => 'ucm',
-   10 => 'purd',
-   11 => 'getty',
-   12 => 'um-dc-mp',
-   13 => 'uiuc',
-   14 => 'brooklynmuseum',
-   15 => 'uf',
-   16 => 'tamu',
-   17 => 'udel',
-   18 => 'private',
-   19 => 'umich',
-   20 => 'clark',
-   21 => 'ku',
-   22 => 'mcgill',
-   23 => 'bc',
+   1  => 'open',
+   2  => 'google',
+   3  => 'page',
+   4  => 'page+lowres',
   );
 
 @g_stmt_fields =
@@ -507,36 +489,19 @@ $g_public_domain_non_US_attribute_value = 19;
 $g_orphan_attribute_value = 4;
 $g_orphan_candidate_attribute_value = 16;
 
-# ---------------------------------------------------------------------
-# Source values authorized for full book PDF download.
-# ---------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# rights_current.access_profile values that allow full book PDF download.
+# ------------------------------------------------------------------------
 #
-@g_full_PDF_download_open_source_values = (
-                                           2,  # lit-dlps-dc
-                                           4,  # ia
-                                           5,  # yale
-                                           8,  # usup
-                                           9,  # ucm
-                                           10, # purd
-                                           11, # getty
-                                           12, # um-dc-mp
-                                           13, # uiuc
-                                           14, # brooklynmuseum
-                                           15, # uf
-                                           16, # tamu
-                                           18, # private
-                                           19, # umich
-                                           20, # clark
-                                           21, # ku
-                                           22, # mcgill
-                                           23, # bc
-                                          );
-@g_full_PDF_download_closed_source_values = (
-                                             1, # google
-                                            );
+@g_full_PDF_download_open_access_profile_values    = (
+                                                      1,  # open
+                                                     );
+@g_full_PDF_download_limited_access_profile_values = (
+                                                      2, # google
+                                                     );
 
-@g_source_values = keys %g_source_names;
 @g_rights_attribute_values = keys %g_rights_matrix;
+@g_rights_access_profile_values = keys %g_access_profile_names;
 
 # ---------------------------------------------------------------------
 # Geographic IP Information
