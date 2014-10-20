@@ -160,7 +160,7 @@ sub get_access_profile_attribute {
     $self->_validate_id($id);
     my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
 
-    return $source_attribute;
+    return $access_profile_attribute;
 }
 
 
