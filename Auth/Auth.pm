@@ -210,7 +210,7 @@ sub handle_possible_redirect {
 
     my $cgi = $C->get_object('CGI');
 
-    if ($was_logged_in_via eq COSIGN) {
+    if ($was_logged_in_via eq COSIGN && $ENV{SERVER_PORT} ne '443') {
         my $redirect_to = $self->get_COSIGN_login_href($cgi);
         print $cgi->redirect($redirect_to);
         exit;
