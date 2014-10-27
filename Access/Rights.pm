@@ -466,9 +466,9 @@ sub get_full_PDF_access_status {
 
         my $pd = $self->public_domain_world($C, $id);
 
-        if (grep(/^$access_profile$/, @RightsGlobals::g_full_PDF_download_limited_access_profile_values)) {
-            #  Limited pd sources (google) require affiliation.
-            if ($pd) {
+        if ($pd) {
+            if (grep(/^$access_profile$/, @RightsGlobals::g_full_PDF_download_limited_access_profile_values)) {
+                #  Limited pd sources (google) require affiliation.
                 my $is_affiliated = (
                                      $auth->affiliation_is_hathitrust($C)
                                      ||
@@ -481,15 +481,11 @@ sub get_full_PDF_access_status {
                     $message = q{NOT_AFFILIATED};
                 }
             }
-        }
-        elsif (grep(/^$access_profile$/, @RightsGlobals::g_full_PDF_download_open_access_profile_values)) {
-            if ($pd) {
+            elsif (grep(/^$access_profile$/, @RightsGlobals::g_full_PDF_download_open_access_profile_values)) {
                 $status = 'allow';
             }
-        }
-        else {
-            if ($pd) {
-                # There's some sort of source restriction on whole book
+            else {
+                # There is an access profile restriction on whole book
                 # download like that which applies to UM Press
                 $message = q{RESTRICTED_SOURCE};
             }
@@ -1064,20 +1060,19 @@ sub _determine_access_type {
     elsif ( $auth->user_is_print_disabled($C) ) {
         $access_type = $RightsGlobals::SSD_USER;
     }
+    elsif ($auth->is_in_library()) {
+        # full pd PDF + brittle book access limited by number held and
+        # 24h exclusivity. UM only (by IP) until Shibboleth library-walk-in
+        # entitlement is implemented.
+        $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
+    }
     elsif ($auth->affiliation_is_umich($C)) {
-        # on or off-campus full PDF of pd + outside of library
-        # exclusive brittle access + some DLPS ic works + orphans
+        # full pd PDF on or off-campus + some DLPS ic works
         $access_type = $RightsGlobals::UM_AFFILIATE;
     }
     elsif ($auth->affiliation_is_hathitrust($C)) {
-        # full PDF + exclusive brittle access + orph modulo geo location
+        # full pd PDF
         $access_type = $RightsGlobals::HT_AFFILIATE;
-    }
-    elsif ($auth->is_in_library()) {
-        # brittle book access limited by number held and 24h
-        # exclusivity: UM only until Holding Db carries condition
-        # data.
-        $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
     }
     else {
         $access_type = $RightsGlobals::ORDINARY_USER;

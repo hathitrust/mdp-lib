@@ -493,8 +493,7 @@ sub __update_accesscount {
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH;
 
-    my $userid = __get_remote_user();
-    my $accesscount = 0;
+    my $userid = $C->get_object('Auth')->get_user_name($C);
 
     my ($sth, $statement);
     eval {

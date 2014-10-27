@@ -239,14 +239,17 @@ our $HT_AFFILIATE        = 7;
    # As of Wed Nov 28 12:52:40 2012 we have HOLDINGS so access
    # exclusivity is granted if on US Soil and held and:
    # ((OP AND BRLM) AND (LIBRARY_IPADDR_USER OR *_AFFILIATE)) OR (OP AND SSD_USER)
+   # ... the saga continues ...
+   # As of Mon Oct 27 14:20:30 2014 exclusive access is granted if held and:
+   # ((OP AND BRLM) AND LIBRARY_IPADDR_USER OR (OP AND SSD_USER))
    '3' => {
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings', # US implied
            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
            $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
-           $UM_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
-           $HT_AFFILIATE          => 'allow_by_held_BRLM', # US + exclusivity implied
+           $UM_AFFILIATE          => 'deny',
+           $HT_AFFILIATE          => 'deny',
           },
    # copyright-orphaned (implies in-copyright)
    '4' => {
