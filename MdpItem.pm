@@ -34,6 +34,8 @@ use Context;
 use Auth::Auth;
 use Identifier;
 use MarcMetadata;
+use MetsReadingOrder;
+use DataTypes;
 
 use Utils::Cache::Storable;
 
@@ -192,7 +194,7 @@ sub GetMdpItem {
 
     $itemFileSystemLocation = Identifier::get_item_location($id) unless ($itemFileSystemLocation);
 
-    my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) = 
+    my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) =
       __handle_mdpitem_cache_setup($C, $id);
 
     # if we already have instantiated and saved in the cache the full
@@ -299,7 +301,9 @@ sub _initialize {
         $self->Set('zipfile', $zipfile);
     }
 
+    $self->SetSources();
     $self->SetItemType();
+    $self->SetMarkupLanguage();
     $self->SetPageInfo();
 }
 
@@ -334,19 +338,21 @@ sub _GetMetsRoot {
     return $$self{_METS};
 }
 
+sub SetSources {
+    my $self = shift;
+    my $root = $self->_GetMetsRoot();
+    my $collection_source = $root->findvalue(q{//HT:contentProvider[@display='yes']});
+    my $digitization_source = $root->findvalue(q{//PREMIS:event[PREMIS:eventType="capture"][last()]/PREMIS:linkingAgentIdentifier[PREMIS:linkingAgentRole="Executor"]/PREMIS:linkingAgentIdentifierValue});
+    $self->Set('collection_source', $collection_source);
+    $self->Set('digitization_source', $digitization_source);
+}
+
 sub SetItemType {
     my $self = shift;
 
     my $root = $self->_GetMetsRoot();
 
-    my $item_type;
-    foreach my $path_expr ( qw( //METS:structMap[@TYPE='logical']/METS:div/@TYPE  //METS:structMap[@TYPE='logical']/METS:div/@TYPE ) ) {
-        $item_type = $root->findvalue($path_expr);
-        last if ( $item_type );
-    }
-
-    # set default item type
-    unless ( $item_type ) { $item_type = 'volume'; }
+    my $item_type = DataTypes::getDataType($root);
 
     $self->Set('item_type', $item_type);
 
@@ -358,6 +364,13 @@ sub SetItemType {
     }
 }
 
+sub SetMarkupLanguage {
+    my $self = shift;
+    my $root = $self->_GetMetsRoot();
+    my $markup_language = DataTypes::getMarkupLanguage($root);
+    $self->Set('markup_language', $markup_language);
+}
+
 sub GetFullMetsRef {
     my $self = shift;
     return $self->Get('metsxml');
@@ -366,6 +379,11 @@ sub GetFullMetsRef {
 sub GetItemType {
     my $self = shift;
     return $self->Get('item_type');
+}
+
+sub GetMarkupLanguage {
+    my $self = shift;
+    return $self->Get('markup_language');
 }
 
 sub ItemIsZipped {
@@ -494,6 +512,17 @@ sub SetHasCoordOCR {
 sub HasCoordOCR {
     my $self = shift;
     return $self->{ 'hascoordocr' };
+}
+
+sub SetHasBookCoverFeature {
+    my $self = shift;
+    my $seq = shift;
+    $self->{ 'hasbookcoverfeature' } = $seq;
+}
+
+sub HasBookCoverFeature {
+    my $self = shift;
+    return $self->{ 'hasbookcoverfeature' };
 }
 
 sub SetHasFirstContentFeature {
@@ -986,6 +1015,9 @@ Description
 sub handle_feature_record {
     my ($pgftr, $order, $featureRecordRef) = @_;
 
+    $featureRecordRef->{hasPF_BOOKCOVER} = $order
+      if (! $featureRecordRef->{hasPF_BOOKCOVER} &&
+        ( ($pgftr =~ m,BOOK_COVER,o) || (($pgftr =~ m,COVER,o) && ($pgftr =~ m,RIGHT,o)) ));
     $featureRecordRef->{hasPF_FIRST_CONTENT} = $order
       if (! $featureRecordRef->{hasPF_FIRST_CONTENT} && ($pgftr =~ m,FIRST_CONTENT_CHAPTER_START,o));
     $featureRecordRef->{hasPF_TITLE} = $order
@@ -1057,8 +1089,6 @@ sub BuildFileGrpHash {
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
-                next if ($fileGrpHashRef->{$id}{filetype} eq 'jp2');
-                
                 $fileGrpHashRef->{$id}{filename} = $filename;
                 $fileGrpHashRef->{$id}{filetype} = $filetype;
                 $fileGrpHashRef->{$id}{mimetype} = $filemimetype;
@@ -1133,6 +1163,9 @@ sub ParseStructMap {
             my $filename = $fileGrpHashRef->{$fileid}{'filename'};
             my $filetype = $fileGrpHashRef->{$fileid}{'filetype'};
             my $filesize = $fileGrpHashRef->{$fileid}{'filesize'};
+
+            # if a JP2 image has already been referenced, skip further images
+            next if ( $filegrp eq 'imagefile' && $pageInfoHashRef->{sequence}{$order}{filetype} eq 'jp2' );
 
             $pageInfoHashRef->{sequence}{$order}{$filegrp} = $filename;
             $pageInfoHashRef->{sequence}{$order}{filetype} = $filetype if ($filegrp eq 'imagefile');
@@ -1315,12 +1348,14 @@ sub SetPageInfo {
     my $firstSequence = Utils::min_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetFirstPageSequence($firstSequence);
 
-    $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
+    ### CHECKOUT_PAGE IS NO LONGER SUPRESSED
+    ### $self->SupressCheckoutSeqs(\%pageInfoHash, \%seq2PageNumberHash, \%featureRecord);
 
     my $lastSequence = Utils::max_of_list(keys ( %{ $pageInfoHash{sequence} } ));
     $self->SetLastPageSequence($lastSequence);
 
     # Note: MUST FOLLOW SUPPRESSION CALL ABOVE.
+    $self->SetHasBookCoverFeature($featureRecord{hasPF_BOOKCOVER});
     $self->SetHasTOCFeature($featureRecord{hasPF_TOC});
     $self->SetHasTitleFeature($featureRecord{hasPF_TITLE});
     $self->SetHasFirstContentFeature($featureRecord{hasPF_FIRST_CONTENT});
@@ -1344,50 +1379,19 @@ sub SetPageInfo {
 sub ParseReadingOrder {
     my $self = shift;
     my $root = $self->_GetMetsRoot();
-    # set defaults
-    $self->Set('readingOrder', 'left-to-right');
-    $self->Set('scanningOrder', 'left-to-right');
-    my $techMD = ($root->findnodes(q{//METS:mdWrap[@LABEL="reading order"]}))[0];
-    my $found_techMD = 0;
-    if ( ref($techMD) ) {
-        if ( $techMD->getAttribute('OTHERMDTYPE') eq 'Google' ) {
-            $found_techMD = 1;
-            $self->Set('readingOrder', $techMD->findvalue('METS:xmlData/gbs:readingOrder'));
-            $self->Set('scanningOrder', $techMD->findvalue('METS:xmlData/gbs:scanningOrder'));
-        }        
-    }
+    my ( $readingOrder, $scanningOrder, $coverTag ) = MetsReadingOrder::parse($root);
+    $self->Set('readingOrder', $readingOrder);
+    $self->Set('scanningOrder', $scanningOrder);
+    $self->Set('coverTag', $coverTag);
+    DEBUG('readingOrder, all', qq{<h3>Reading Order ="$readingOrder" / Scanning Order = "$scanningOrder" / Cover Tag = "$coverTag"</h3>});
+}
 
-    if ( ! $found_techMD || $self->Get('readingOrder') eq 'unknown' ) {
-        my $structMap = ($root->findnodes(q{//METS:structMap[@TYPE='physical']/METS:div}))[0];
-        my $check = $structMap->findvalue(q{METS:div[1]/@LABEL});
-        if ( $check && $check =~ m,BACK_COVER, ) {
-            # a terrible hack? correction heuristic in case the title/toc would be
-            # located at the "back" of the book if the div's were reversed
-            my $total = $structMap->findvalue(q{count(METS:div)});
-            my $r = 1;
-            my @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TITLE')]});
-            unless ( scalar @features ) {
-                @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'TABLE_OF_CONTENTS')]});
-            }
-            unless ( scalar @features ) {
-                @features = $structMap->findnodes(q{METS:div[contains(@LABEL, 'FIRST_CONTENT_CHAPTER_START')]});
-            }
-            if ( scalar @features ) {
-                my $seq = $features[0]->getAttribute('ORDER');
-                $r = ( $seq / $total );
-            }
-
-            if ( $r >= 0.75 ) {
-                # title/toc is located at the "back" of the div's, meaning the front
-                # when we reverse this for right-to-left
-                $self->Set('readingOrder', 'right-to-left');
-                $self->Set('scanningOrder', 'left-to-right');
-            }
-
-        }
-    }
-
-    
+# would be overridden in type specific files
+sub GetItemCover {
+    my $self = shift;
+    my $seq;
+    $seq = $self->HasTitleFeature() || $self->HasTOCFeature() || $self->HasFirstContentFeature() || $self->HasBookCoverFeature() || 1;
+    return $seq;
 }
 
 # ---------------------------------------------------------------------
@@ -1437,6 +1441,7 @@ sub adjust_feature_seq {
 #                last page suppression will be handled when
 #                CHECKOUT_PAGE page metadata is available for all
 #                books.  This per jwilkin. Mon Aug 16 13:52:26 2010
+#                Deprecated - 2014-02-25.
 # ----------------------------------------------------------------------
 sub SupressCheckoutSeqs {
     my $self = shift;

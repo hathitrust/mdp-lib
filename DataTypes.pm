@@ -39,13 +39,13 @@ our %dataTypeMatrix =
 
    q{http://www.hathitrust.org/documents/hathitrust-structured-mets-profile1.0.xml} =>
    [{
-     _xpath   => q{/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language},
+     _xpath   => q{normalize-space(/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language)},
      _value   => q{http://dtd.nlm.nih.gov/publishing/3.0/journalpublishing3.dtd},
      _type    => q{article},
      _subtype => q{JATS},
     },
     {
-     _xpath   => q{/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language},
+     _xpath   => q{normalize-space(/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language)},
      _value   => q{http://www.tei-c.org/release/xml/tei/schema/dtd//tei.dtd},
      _type    => q{volume},
      _subtype => q{TEI},
@@ -92,6 +92,11 @@ sub getDataSubType {
     return __getMatrixValue($METS_root, '_subtype');
 }
 
+sub getMarkupLanguage {
+    my $METS_root = shift;
+    return __getMatrixValue($METS_root, '_value');
+}
+
 # ---------------------------------------------------------------------
 
 =item __getMatrixValue
@@ -109,15 +114,17 @@ sub __getMatrixValue {
     
     my $discriminators = $dataTypeMatrix{$profile};
     
-    foreach my $d_hashref (@$discriminators) {
-        my $xpath = $d_hashref->{_xpath};
-        if ($xpath) {
-            if ($METS_root->findvalue($xpath) eq $d_hashref->{_value}) {
+    if ($discriminators) {
+        foreach my $d_hashref (@$discriminators) {
+            my $xpath = $d_hashref->{_xpath};
+            if ($xpath) {
+                if ($METS_root->findvalue($xpath) eq $d_hashref->{_value}) {
+                    return $d_hashref->{$level};
+                }
+            }
+            else {
                 return $d_hashref->{$level};
             }
-        }
-        else {
-            return $d_hashref->{$level};
         }
     }
     

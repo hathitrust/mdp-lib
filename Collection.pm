@@ -134,7 +134,7 @@ sub _initialize {
 
     $self->{'config'} = $config;
     my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
-    
+
     if ($use_test_tables) {
         $self->{'coll_table_name'} = $config->get('test_coll_table_name');
         $self->{'coll_item_table_name'} = $config->get('test_coll_item_table_name');
@@ -393,13 +393,6 @@ sub create_or_update_item_metadata {
     my $item_table_name = $self->get_item_table_name;
     my $id = $metadata_ref->{'extern_item_id'};
 
-    # XXX insert any integrity checks for metadata_ref here there
-    # should be a general validity check routine for sanity of data
-    # &validate_fields($metadata_ref); &quote_fields ($metadata_ref);
-    # WARNING what is the preprocessing necessary for date fields?
-    # where is the display_title vs sort_title figured out? probably
-    # in client that reads marc xml
-
     if ($self->item_exists($id)) {
         # item already in table so just update the metadata
         DbUtils::update_row_by_key($dbh, $item_table_name, $metadata_ref, 'extern_item_id', $id);
@@ -418,8 +411,7 @@ sub create_or_update_item_metadata {
 
 =item _field_is_valid
 
-# XXX currently implemented for item table.  Do we want to generalize and
-# have tablename as argument?
+Description
 
 =cut
 
@@ -432,13 +424,6 @@ sub _field_is_valid
 
     my $item_table_name = $self->get_item_table_name;
     my $dbh = $self->get_dbh;
-
-    # my @fields =
-
-    # XXX see recent additions to ../lib/App/DbUtils.pm
-    # check that fieldname is ok
-    # run field specific validity checks
-
 
 }
 
@@ -574,82 +559,66 @@ sub list_items {
     my $self = shift;
     my ($coll_id, $sort_key, $direction, $slice_start, $recs_per_slice, $rights_ref, $id_arr_ref) = @_;
 
+    ASSERT($sort_key, qq{no sort key supplied});
+    ASSERT($direction, qq{no direction supplied});
+
     my $item_table = $self->get_item_table_name;
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
 
-    my @metadata_fields = $self->get_item_display_fields_arr;
-    push(@metadata_fields, 'rights');
-    push(@metadata_fields, 'extern_item_id');
-    # push(@metadata_fields, 'book_id');
-
+    my @metadata_fields = ( $self->get_item_display_fields_arr, (qw/rights extern_item_id/) );
     my $item_sort_fields_arr_ref = $self->get_item_sort_fields_arr_ref;
 
-    ASSERT($sort_key, qq{no sort key supplied});
-    ASSERT($direction, qq{no direction supplied});
 
-    # undef $slice_start and for $recs_per_slice implies no LIMIT
+    # undefined $slice_start and for $recs_per_slice implies no LIMIT
     # clause below
     DEBUG('dbcoll', qq{slice start is $slice_start at $recs_per_slice records per slice});
 
-    # XXX check that sort_key is in $self->{'item_sort_fields_ref'} ??
     my $sort_key_in_sort_fields = grep(/$sort_key/, @$item_sort_fields_arr_ref);
+    ASSERT($sort_key_in_sort_fields, qq{Collection::list_items $sort_key not in item_sort_fields});
 
-    ASSERT($sort_key_in_sort_fields,
-           qq{Collection::list_items $sort_key not in item_sort_fields});
-
-    # qualify field names: "$item_table.fieldname" and join in comma
-    # delimited string
+    # SELECT FROM
     @metadata_fields = map { "$item_table." . $_ } @metadata_fields;
-    my $fields = join (", ", @metadata_fields);
-    my $SELECT = qq{SELECT } . $fields;
-    my $FROM = qq{FROM $item_table, $coll_item_table};
+    my $fields = join(",", @metadata_fields);
+    my $SELECT = qq{SELECT $fields FROM $item_table, $coll_item_table};
 
-    # XXX do we need to do a left join and then do something if there
-    # is an item without metadata?
+    # WHERE
     my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=?};
-    if (defined ($id_arr_ref)) {
+    if (defined $id_arr_ref) {
         my $IN_clause = $self->arr_ref2SQL_in_string($id_arr_ref);
         $WHERE .= qq{ AND $item_table.extern_item_id IN $IN_clause };
     }
 
-    # limit to items with rights attributes listed in $rights_ref
-    if (defined ($rights_ref->[0])) {
-        my $AND = qq{ AND } . '( ';
-
-        foreach my $rights (@{$rights_ref}) {
-            $AND .= qq{$item_table.rights=? OR };
-        }
-        # remove last "OR" and insert closing paren
-        $AND =~ s,OR\s*$, \) ,;
-        # append to WHERE
-        $WHERE .= $AND;
+    # AND IN $rights_ref
+    if (defined $rights_ref->[0]) {
+        my $RIGHTS_clause = '(' . join(' ', map{ "$item_table.rights=?" } @$rights_ref) . ')';
+        $RIGHTS_clause =~ s,[ ], OR ,g;
+        $WHERE .= ' AND ' . $RIGHTS_clause;
     }
 
-    if ($direction eq 'a') {
-        $direction = 'ASC';
-    }
-    else {
-        $direction = 'DESC';
-    }
+    # ORDER BY
+    $direction = ($direction eq 'a') ? 'ASC' : 'DESC';
+    $WHERE .= qq{ ORDER BY $sort_key $direction};
 
-    my $ORDER = qq{ORDER BY $sort_key $direction};
-    my $LIMIT = "";
+    # LIMIT
+    my $LIMIT = '';
     my $offset = $slice_start - 1; # MySQL limit counts records from 0
     if ($offset >= 0) {
-        $LIMIT = "LIMIT $offset, $recs_per_slice";
+        $LIMIT = qq{ LIMIT $offset, $recs_per_slice};
     }
 
-    my $statement = join(' ', qq{SELECT * FROM ($SELECT $FROM $WHERE $ORDER) AS t1 $LIMIT});
+    # NOTE: this odd construct is for efficiency
+    my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS t0 $LIMIT};
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_arr_ref, @$rights_ref);
-    my $array_ref = $sth->fetchall_arrayref({});
+    my $arr_ref = $sth->fetchall_arrayref({});
 
-    return $array_ref;
+    return $arr_ref;
 }
+
 
 # ---------------------------------------------------------------------
 
@@ -664,19 +633,8 @@ sub arr_ref2SQL_in_string {
     my $self = shift;
     my $id_arr_ref = shift;
 
-    my $dbh = $self->get_dbh();
-    my $id_string = "";
-
-    foreach my $id (@$id_arr_ref) {
-        # my $quoted_id = $dbh->quote($id);
-        # $id_string .= $quoted_id . ", ";
-        $id_string .= '?, ';
-    }
-
-    $id_string =~ s,\,\s*$,,;
-    $id_string = '( ' . $id_string . ' ) ';
-
-    return $id_string;
+    my $s = '(' . join(',', map {'?'} @$id_arr_ref) . ')';
+    return $s;
 }
 
 
@@ -698,19 +656,18 @@ Fetches the row for $coll_id and caches the result.
 =cut
 
 # ---------------------------------------------------------------------
-my %cache = ();
 sub get_coll_record {
     my $self = shift;
     my $coll_id = shift;
 
-    unless ( $cache{$coll_id} ) {
+    unless ( defined $self->{_collection_collid_record}->{$coll_id} ) {
         my $dbh = $self->get_dbh();
         my $coll_table_name = $self->get_coll_table_name;
         my $statement = qq{SELECT * from $coll_table_name WHERE MColl_ID=?};
         my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-        $cache{$coll_id} = $sth->fetchrow_hashref;
+        $self->{_collection_collid_record}->{$coll_id} = $sth->fetchrow_hashref;
     }
-    return $cache{$coll_id} || {};
+    return $self->{_collection_collid_record}->{$coll_id} || {};
 }
 
 # ----------------------------------------------------------------------
@@ -752,8 +709,7 @@ sub get_shared_status {
 
 =item get_description
 
-XXX do we need any special handling if $description is NULL?  What
-does mysql return? What does DBI return?
+Description
 
 =cut
 
@@ -761,7 +717,7 @@ does mysql return? What does DBI return?
 sub get_description {
     my $self = shift;
     my $coll_id = shift;
-    
+
     return $self->get_coll_record($coll_id)->{description};
 }
 
@@ -809,7 +765,7 @@ sub _edit_metadata {
     my $field = shift;
     my $value = shift;
     my $max_length = shift;
-    
+
     my $user_id = $self->get_user_id;
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
@@ -826,9 +782,9 @@ sub _edit_metadata {
 
     my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
-    
+
     # clear the cache
-    delete $cache{$coll_id};
+    delete $self->{_collection_collid_record}->{$coll_id};
 }
 
 
@@ -879,12 +835,9 @@ $desc is less than 150 characters.
 sub edit_description {
     my $self = shift;
     my $coll_id = shift;
-    my $value = shift;
+    my $description = shift;
 
-    my $dbh = $self->get_dbh;
-
-    # specific processing
-    $self-> _edit_metadata($coll_id, 'description', $value, 255);
+    $self-> _edit_metadata($coll_id, 'description', $description, 255);
 }
 
 
@@ -897,7 +850,6 @@ $co->edit_coll_name($coll_id, $name)
 Replaces existing coll_name with $name client is responsible for
 making sure coll_name is unique for this user
 
-
 =cut
 
 #----------------------------------------------------------------------
@@ -906,19 +858,7 @@ sub edit_coll_name {
     my $coll_id = shift;
     my $coll_name = shift;
 
-    my $value = $coll_name;
-    my $owner = $self->get_user_id;
-    my $dbh = $self->get_dbh;
-    my $config = $self->get_config;
-
-    my $CS = CollectionSet->new($dbh,$self->{config}, $owner);
-
-    ASSERT(! $CS->exists_coll_name_for_owner($coll_name, $owner),
-           qq{Can't change collection name because a collection owned by $owner already exists with that name $coll_name});
-
-    # specific processing: check proposed changed name isn't already
-    # in use need to use CollectionSet->exists_coll_name_for_owner()
-    $self->_edit_metadata($coll_id, 'collname', $value, 100);
+    $self->_edit_metadata($coll_id, 'collname', $coll_name, 100);
 }
 
 
@@ -943,7 +883,6 @@ sub item_in_collection {
 
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
-    # my $q_id = $dbh->quote($id);
 
     my $statement = qq{SELECT count(*) FROM $coll_item_table WHERE MColl_ID=? AND extern_item_id=?};
 
@@ -972,7 +911,6 @@ sub item_exists {
     if ($id) {
         my $item_table = $self->get_item_table_name;
         my $dbh = $self->get_dbh;
-        # my $q_id = $dbh->quote($id);
 
         my $statement = qq{SELECT count(*) FROM $item_table WHERE extern_item_id=?};
         my $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
@@ -1055,7 +993,7 @@ sub get_collnames_for_item_and_user {
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
     # my $q_id = $dbh->quote($id);
-    
+
     my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
 
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
@@ -1081,9 +1019,7 @@ sub get_coll_id_for_collname_and_user {
 
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->get_dbh;
-    # my $q_collname = $dbh->quote($collname);
-    # my $q_user_id = $dbh->quote($user_id);
-    
+
     my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner_name=? AND collname=?};
 
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $collname);
@@ -1110,7 +1046,6 @@ sub get_coll_data_for_item_and_user {
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
-    # my $q_id = $dbh->quote($id);
 
     my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
@@ -1149,24 +1084,28 @@ sub count_full_text {
         $WHERE .= qq{ AND $item_table.extern_item_id IN $id_string  };
     }
 
-    my $AND = qq{ AND } . '( ';
+    my $RIGHTS_clause = '(' . join(' ', map{ "$item_table.rights=?" } @$rights_ref) . ')';
+    $RIGHTS_clause =~ s,[ ], OR ,g;
 
-    foreach my $rights (@$rights_ref) {
-        $AND .= qq{$item_table.rights = ? OR };
-    }
-    # remove last "OR" and insert closing paren
-    $AND =~ s,OR\s*$, \) ,;
-
-    # append to WHERE
-    $WHERE .= $AND;
+    $WHERE .= qq{ AND $RIGHTS_clause };
 
     my $statement = join (' ',  qq{$SELECT $FROM $WHERE});
-    DEBUG('dbcoll', qq{count_full_text sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_array_ref, @$rights_ref);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
+
+    if (0) {
+        my $d = '';
+        require Data::Dumper;
+        $d = Data::Dumper::Dumper($id_array_ref);
+        print STDERR $d;
+        $d =  Data::Dumper::Dumper($rights_ref);
+        print STDERR $d;
+    }
+
+    DEBUG('dbcoll', qq{count_full_text sql=$statement count="$count"});
 
     return $count || 0;
 }
@@ -1183,11 +1122,42 @@ Description
 sub collection_is_large {
     my $self = shift;
     my $coll_id = shift;
+    my $num_items_in_coll = shift;
 
     my $small_collection_max_items = $self->get_config()->get('filter_query_max_item_ids');
-    my $coll_num_items = $self->count_all_items_for_coll($coll_id);
+    unless (defined $num_items_in_coll) {
+        $num_items_in_coll  = $self->count_all_items_for_coll($coll_id);
+    }
 
-    return ($coll_num_items > $small_collection_max_items);
+    return ($num_items_in_coll > $small_collection_max_items);
+}
+
+# ---------------------------------------------------------------------
+
+=item count_rights_for_coll
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub count_rights_for_coll {
+    my $self = shift;
+    my $coll_id = shift;
+    my $rights_attr = shift;
+
+    my $coll_item_table = $self->get_coll_item_table_name;
+    my $item_table = $self->get_item_table_name;
+    my $statement = qq{SELECT COUNT($item_table.rights) FROM $item_table, $coll_item_table WHERE $coll_item_table.MColl_ID=? AND $item_table.rights=? AND $item_table.extern_item_id=$coll_item_table.extern_item_id};
+
+    my $dbh = $self->get_dbh();
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, $rights_attr);
+    my $countref = $sth->fetchall_arrayref([0]);
+    my $count = $countref->[0]->[0] || 0;
+
+    DEBUG('dbcoll', qq{count_rights_for_coll sql=$statement count="$count"});
+
+    return $count;
 }
 
 # ---------------------------------------------------------------------
@@ -1206,14 +1176,14 @@ sub count_all_items_for_coll {
     my $coll_table = $self->get_coll_table_name;
     my $statement = qq{SELECT num_items from $coll_table WHERE MColl_ID=?};
 
-    DEBUG('dbcoll', qq{count_all_items_for_coll sql=$statement});
-
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
-    my $count = $countref->[0]->[0];
+    my $count = $countref->[0]->[0] || 0;
 
-    return $count || 0;
+    DEBUG('dbcoll', qq{count_all_items_for_coll sql=$statement count="$count"});
+
+    return $count;
 }
 
 
@@ -1350,12 +1320,13 @@ sub count_all_items_for_coll_from_coll_items {
     my $WHERE = qq{WHERE MColl_ID=?};
 
     my $statement = join (' ', qq{$SELECT $FROM $WHERE});
-    DEBUG('dbcoll', qq{count_all_items_for_coll_from_coll_items sql=$statement});
 
     my $dbh = $self->get_dbh();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
     my $countref = $sth->fetchall_arrayref([0]);
     my $count = $countref->[0]->[0];
+
+    DEBUG('dbcoll', qq{count_all_items_for_coll_from_coll_items sql=$statement count="$count"});
 
     return $count || 0;
 }
@@ -1391,10 +1362,10 @@ sub update_item_count {
     my $coll_item_count = $self->count_all_items_for_coll_from_coll_items($coll_id);
 
     $statement = qq{UPDATE $coll_table SET num_items=? WHERE MColl_ID=?};
-    DEBUG('dbcoll', qq{DEBUG: $statement});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_item_count, $coll_id);
-    
+
     my $collection_table_count = $self->count_all_items_for_coll($coll_id);
+    DEBUG('dbcoll', qq{DEBUG: update_item_count statement=$statement count="$collection_table_count"});
 
     $statement = qq{UNLOCK TABLES};
     DEBUG('dbcoll', qq{DEBUG: $statement});
@@ -1538,7 +1509,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

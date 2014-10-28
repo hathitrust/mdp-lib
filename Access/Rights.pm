@@ -28,9 +28,9 @@ $rights_attribute = $ar->get_rights_attribute($C, $id);
 where $rights_attribute is a number from (1...) with 0 being bad
 symbolically represented by $RightsGlobals::NOOP_ATTRIBUTE;
 
-$source_attribute = $ar->get_source_attribute($C, $id);
+$access_profile = $ar->get_access_profile($C, $id);
 
-where $source_attribute is a number from (1...) with 0 being bad
+where $access_profile is a number from (1..4) with 0 being bad
 symbolically represented by $RightsGlobals::NOOP_ATTRIBUTE;
 
 $final_accessstatus = $ar->assert_final_access_status($C, $id);
@@ -119,7 +119,7 @@ sub get_rights_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute) = $self->_determine_rights_values($C, $id);
+    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
 
     return $rights_attribute;
 }
@@ -139,9 +139,28 @@ sub get_source_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute) = $self->_determine_rights_values($C, $id);
+    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
 
     return $source_attribute;
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: get_access_profile_attribute
+
+SOURCES See RightsGlobals.pm
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_access_profile_attribute {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+
+    return $access_profile_attribute;
 }
 
 
@@ -371,7 +390,7 @@ sub get_POD_access_status {
     elsif ($self->creative_commons($C, $id)) {
         $status = _resolve_access_by_GeoIP($C, 'US');
     }
-    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} ) && DEBUG('super')) {
+    elsif (Auth::ACL::S___superuser_using_DEBUG_super) {
         $status = 'allow';
     }
     else {
@@ -386,35 +405,51 @@ sub get_POD_access_status {
 
 =item PUBLIC: get_full_PDF_access_status
 
-Under certain conditions the full book PDF download function is
-authorized.
+As of Mon Oct  6 16:22:43 2014 we have rights_current.access_profile
 
-As of Mon Mar 21 17:01:55 2011
+Full book PDF download function is authorized for items meeting the
+following conditions.
 
-Allowed are:
+1) items with access_profile=1 (open) for all users except for pdus items for users at a non-US IP address
 
-1) non-google pd/pdus(on US soil)/world/cc for anyone
-
-2) google pd/pdus(anywhere)/world only authenticated HathiTrust
+2) access_profile=2 (google) only for authenticated HathiTrust
 affiliates. Affiliates of non-US institutions must be at a US IP
-address. Excludes UM friend accounts.
+address.
 
-3) LOC users "in-a-library" are now Thu Mar 8 16:04:11 2012
+3) "in-a-library" users are (Thu Mar 8 16:04:11 2012)
 considered equivalent to authenticated HathiTrust affiliates.
 
-Exceptions: UM Press (ump)(source=3)
+
 
 =cut
 
 # ---------------------------------------------------------------------
+sub _pdf_access_cached {
+    my $self = shift;
+    my $id = shift;
+    my ($message, $status) = @_;
+
+    if (defined $message && defined $status) {
+        $self->{$id}{_pdfaccess}{message} = $message;
+        $self->{$id}{_pdfaccess}{status} = $status;
+    }
+
+    return ($self->{$id}{_pdfaccess}{message},$self->{$id}{_pdfaccess}{status});
+}
+
 sub get_full_PDF_access_status {
     my $self = shift;
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
 
-    my $status = 'deny';
-    my $message = q{NOT_AVAILABLE};
+    # Cache
+    if ($self->_pdf_access_cached($id)) {
+        return ($self->_pdf_access_cached($id));
+    }
+
+    my ($message, $status)= ('NOT_AVAILABLE', 'deny');
+    my $auth = $C->get_object('Auth');
 
     my $creative_commons = $self->creative_commons($C, $id);
 
@@ -422,7 +457,7 @@ sub get_full_PDF_access_status {
         $status = 'allow';
     }
     else {
-        my $source = $self->get_source_attribute($C, $id);
+        my $access_profile = $self->get_access_profile_attribute($C, $id);
 
         # Affiliates of US institutions can download pd/pdus from
         # anywhere on Earth. Unaffiliated users and non-US affiliates
@@ -431,10 +466,9 @@ sub get_full_PDF_access_status {
 
         my $pd = $self->public_domain_world($C, $id);
 
-        if (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_closed_source_values)) {
-            #  Restricted pd sources (google) require affiliation.
-            if ($pd) {
-                my $auth = $C->get_object('Auth');
+        if ($pd) {
+            if (grep(/^$access_profile$/, @RightsGlobals::g_full_PDF_download_limited_access_profile_values)) {
+                #  Limited pd sources (google) require affiliation.
                 my $is_affiliated = (
                                      $auth->affiliation_is_hathitrust($C)
                                      ||
@@ -447,15 +481,11 @@ sub get_full_PDF_access_status {
                     $message = q{NOT_AFFILIATED};
                 }
             }
-        }
-        elsif (grep(/^$source$/, @RightsGlobals::g_full_PDF_download_open_source_values)) {
-            if ($pd) {
+            elsif (grep(/^$access_profile$/, @RightsGlobals::g_full_PDF_download_open_access_profile_values)) {
                 $status = 'allow';
             }
-        }
-        else {
-            if ($pd) {
-                # There's some sort of source restriction on whole book
+            else {
+                # There is an access profile restriction on whole book
                 # download like that which applies to UM Press
                 $message = q{RESTRICTED_SOURCE};
             }
@@ -463,19 +493,31 @@ sub get_full_PDF_access_status {
     }
 
     # Feb 2012 Only developers have unrestricted full PDF download.
-    if (Auth::ACL::a_Authorized( {role => 'superuser'} ) && DEBUG('super')) {
+    if (Auth::ACL::S___superuser_using_DEBUG_super) {
         $status = 'allow';
     }
 
-    # Apr 2103 ssdproxy can generate full PDF
-    if (Auth::ACL::a_Authorized( {role => 'ssdproxy'} )) {
-        $status = 'allow';
+    # Apr 2103 ssdproxy can generate full PDF when item is held
+    if ($auth->user_is_print_disabled_proxy($C)) {
+        my $institution = $auth->get_institution_code($C, 'mapped');
+        my $held = Access::Holdings::id_is_held($C, $id, $institution);
+        if ($held) {
+            $status = 'allow';
+        }
     }
 
     # clear the error message if $status eq 'allow'
     $message = '' if ( $status eq 'allow' );
 
-    DEBUG('pt,auth', qq{<h5>get_full_PDF_access_status: status=$status message=$message</h5>});
+    DEBUG('pt,auth',
+          sub {
+              my $role = Auth::ACL::a_GetUserAttributes('role');
+              my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
+              qq{<h5>get_full_PDF_access_status: role=$role, usertype=$usertype status=$status message=$message</h5>};
+          });
+
+    $self->_pdf_access_cached($id, $message, $status);
+
     return ($message, $status);
 }
 
@@ -663,7 +705,7 @@ sub __read_rights_database {
     my $namespace = Identifier::the_namespace($id);
 
     my $row_hashref;
-    my $statement = qq{SELECT id, attr, source FROM rights_current WHERE id=? AND namespace=?};
+    my $statement = qq{SELECT id, attr, source, access_profile FROM rights_current WHERE id=? AND namespace=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
 
     $row_hashref = $sth->fetchrow_hashref();
@@ -671,15 +713,17 @@ sub __read_rights_database {
 
     my $attr = $$row_hashref{attr};
     my $source = $$row_hashref{source};
+    my $access_profile = $$row_hashref{access_profile};
     my $db_id = $$row_hashref{id};
 
     my $rc = defined($db_id) ? $OK_ID : $BAD_ID;
     unless ($rc == $OK_ID) {
         $attr = $RightsGlobals::NOOP_ATTRIBUTE;
         $source = $RightsGlobals::NOOP_ATTRIBUTE;
+        $access_profile = $RightsGlobals::NOOP_ATTRIBUTE;
     }
 
-    return ($attr, $source, $rc);
+    return ($attr, $source, $access_profile, $rc);
 }
 
 
@@ -700,9 +744,10 @@ sub _determine_rights_values {
 
     my $attr = $self->{rights_attribute};
     my $source = $self->{source_attribute};
+    my $access_profie = $self->{access_profile_attribute};
 
-    if (defined($attr) && defined($source)) {
-        return ($attr, $source, $rc);
+    if (defined($attr) && defined($source) && defined($access_profile)) {
+        return ($attr, $source, $access_profile);
     }
 
     # local.conf over-ride only for superusers. Note HT_DEV is useless
@@ -712,30 +757,31 @@ sub _determine_rights_values {
     my $superuser_set_rights = 0;
 
     if (defined $local_dataroot) {
-        # (pd, dlps)
-        ($attr, $source) = (1,2);
+        # (pd, dlps, open)
+        ($attr, $source, $access_profile) = (1,2,1);
     }
-    elsif (Auth::ACL::a_Authorized( {role => 'superuser'} )) {
+    elsif (Auth::ACL::S___superuser_role) {
         my $config = $C->get_object('MdpConfig', $config);
         if ($config->has('debug_attr_source')) {
-            ($attr, $source) = $config->get('debug_attr_source');
-            $superuser_set_rights = 1 if ($attr && $source);
+            ($attr, $source, $access_profile) = $config->get('debug_attr_source');
+            $superuser_set_rights = 1 if ($attr && $source && access_profile);
         }
     }
 
     # unless attr and source defined and > 0, skip and read database
-    unless ($attr && $source) {
-        ($attr, $source, $rc) = __read_rights_database($C, $id);
+    unless ($attr && $source && $access_profile) {
+        ($attr, $source, $access_profile, $rc) = __read_rights_database($C, $id);
     }
 
     if ($rc == $OK_ID) {
         $self->{rights_attribute} = $attr;
         $self->{source_attribute} = $source;
+        $self->{access_profile_attribute} = $access_profile;
     }
 
-    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$attr} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
+    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$source} access_profile=$access_profile desc=$RightsGlobals::g_access_profile_names{$access_profile} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
 
-    return ($attr, $source);
+    return ($attr, $source, $access_profile);
 }
 
 # ----------------------------------------------------------------------
@@ -996,43 +1042,37 @@ sub _determine_access_type {
     my $auth = $C->get_object('Auth');
 
     if (DEBUG('ord', 'ORDINARY user-type access forced')) {
+        # coordinate with Auth::ACL
         $access_type = $RightsGlobals::ORDINARY_USER;
     }
-    elsif (DEBUG('ssd', 'SSD user-type access forced')) {
-        $access_type = $RightsGlobals::SSD_USER;
-    }
     elsif (DEBUG('hathi', 'HathiTrust affiliated user-type access forced')) {
+        # coordinate with Auth::ACL
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
-    elsif
-      (Auth::ACL::a_Authorized( {access => 'total'}) && DEBUG('super')) {
-        $access_type = $RightsGlobals::HT_ACL_USER;
+    elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
+        # access=total user with access enabled via debug=super,
+        # e.g. users with role=crms
+        $access_type = $RightsGlobals::HT_TOTAL_USER;
     }
-    elsif
-      (Auth::ACL::a_Authorized( {role => 'ssdproxy'} )) {
+    elsif ($auth->user_is_print_disabled_proxy($C)) {
         $access_type = $RightsGlobals::SSD_PROXY_USER;
     }
-    elsif
-      ($auth->get_eduPersonEntitlement_print_disabled($C)) {
+    elsif ( $auth->user_is_print_disabled($C) ) {
         $access_type = $RightsGlobals::SSD_USER;
     }
-    elsif
-      ($auth->affiliation_is_umich($C)) {
-        # on or off-campus full PDF of pd + outside of library
-        # exclusive brittle access + some DLPS ic works + orphans
+    elsif ($auth->is_in_library()) {
+        # full pd PDF + brittle book access limited by number held and
+        # 24h exclusivity. UM only (by IP) until Shibboleth library-walk-in
+        # entitlement is implemented.
+        $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
+    }
+    elsif ($auth->affiliation_is_umich($C)) {
+        # full pd PDF on or off-campus + some DLPS ic works
         $access_type = $RightsGlobals::UM_AFFILIATE;
     }
-    elsif
-      ($auth->affiliation_is_hathitrust($C)) {
-        # full PDF + exclusive brittle access + orph modulo geo location
+    elsif ($auth->affiliation_is_hathitrust($C)) {
+        # full pd PDF
         $access_type = $RightsGlobals::HT_AFFILIATE;
-    }
-    elsif
-      ($auth->is_in_library()) {
-        # brittle book access limited by number held and 24h
-        # exclusivity: UM only until Holding Db carries condition
-        # data.
-        $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
     }
     else {
         $access_type = $RightsGlobals::ORDINARY_USER;
@@ -1041,7 +1081,7 @@ sub _determine_access_type {
     DEBUG('pt,auth,all',
           sub {
               my $a = $RightsGlobals::g_access_type_names{$access_type};
-              my $s = qq{<h4>AccessType="$a" SDRINST="$ENV{SDRINST}", SDRLIB="$ENV{SDRLIB}", id="$id"</h4>};
+              my $s = qq{<h4>AccessType=<font color="blue">$a</font> SDRINST="$ENV{SDRINST}", SDRLIB="$ENV{SDRLIB}"</h4>};
               return $s;
           });
 

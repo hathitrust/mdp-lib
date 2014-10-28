@@ -12,7 +12,6 @@ namespace-specific data.
  CREATE TABLE `ht_namespaces` (
     `namespace`      varchar(8)   NOT     NULL,
     `institution`    varchar(255) DEFAULT NULL,
-    `inst_code`      varchar(8)   DEFAULT NULL,
     `grin_instance`  varchar(32)  DEFAULT NULL,
     `default_source` varchar(32)  DEFAULT NULL,
            PRIMARY KEY (`namespace`)
@@ -36,12 +35,42 @@ use Database;
 use DbUtils;
 use Identifier;
 
-my %Namespace_Hash;
+# ---------------------------------------------------------------------
 
+=item ___get_N_ref, ___set_N_ref
+
+Needed for persistent clients, e.g. imgsrv.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___get_N_ref {
+    my $C = shift;
+
+    my $Namespace_Hash_ref = ( $C->has_object('Namespaces') ? $C->get_object('Namespaces') : {} );
+    return $Namespace_Hash_ref;
+}
+sub ___set_N_ref {
+    my ($C, $n_ref) = @_;
+
+    bless $n_ref, 'Namespaces';
+    $C->set_object('Namespaces', $n_ref);
+}
+
+# ---------------------------------------------------------------------
+
+=item __load_namespace_hash
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
 sub __load_namespace_hash {
     my $C = shift;
 
-    return if (scalar keys %Namespace_Hash);
+    my $Namespace_Hash_ref = ___get_N_ref($C);
+    return if (scalar keys %$Namespace_Hash_ref);
 
     my $dbh = $C->get_object('Database')->get_DBH;
 
@@ -49,13 +78,14 @@ sub __load_namespace_hash {
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
-    %Namespace_Hash = map { $_->{namespace},
-                              {
-                               institution   => $_->{institution},
-                               inst_code     => $_->{inst_code},
-                               grin_instance => $_->{grin_instance},
-                              }
-                          } @$ref_to_arr_of_hashref;
+    my %Namespace_Hash = map { $_->{namespace},
+                                 {
+                                  institution   => $_->{institution},
+                                  grin_instance => $_->{grin_instance},
+                                 }
+                             } @$ref_to_arr_of_hashref;
+
+    ___set_N_ref($C, \%Namespace_Hash);
 }
 
 
@@ -74,7 +104,8 @@ sub get_institution_by_namespace {
     __load_namespace_hash($C);
     my ($namespace, $barcode) = Identifier::split_id($id);
 
-    return $Namespace_Hash{$namespace}->{institution};
+    my $Namespace_Hash_ref = ___get_N_ref($C);
+    return $Namespace_Hash_ref->{$namespace}->{institution};
 }
 
 # ---------------------------------------------------------------------
@@ -92,9 +123,10 @@ sub get_google_id_by_namespace {
     __load_namespace_hash($C);
     my ($namespace, $barcode) = Identifier::split_id($id);
 
+    my $Namespace_Hash_ref = ___get_N_ref($C);
     my $grin_prefix =
       __map_UCAL_GRIN_prefix(
-                             $Namespace_Hash{$namespace}{grin_instance},
+                             $Namespace_Hash_ref->{$namespace}{grin_instance},
                              $barcode
                             );
 
@@ -115,35 +147,31 @@ sub __map_UCAL_GRIN_prefix {
 
     return $grin_prefix
       unless (defined $grin_prefix && $grin_prefix eq 'UCAL');
-
-    my $barcode_len = length($barcode);
+  
+    # From ht_to_grin.rb aelkiss
+    return 'UCSC'
+      if ( $barcode =~ m/^32106\d{9}$/ );
+    return 'UCSD'
+      if ( $barcode =~ m/^31822\d{9}$/ );
+    return 'UCSF'
+      if ( $barcode =~ m/^31378\d{9}$/ );
+    return 'UCD'
+      if ( $barcode =~ m/^31175\d{9}$/ );
     return 'UCLA'
-      if ($barcode_len == 11 && substr($barcode, 0, 1) eq 'l');
-    return 'UCB'
-      if ($barcode_len == 10);
+      if ( $barcode =~ m/^l\d{10}|31158\d{9}$/ );
+    return 'SRLF'
+      if ( $barcode =~ m/^a{1,3}\d{9}/ );
 
-    if ($barcode_len == 14) {
-        my $barcode_chars = substr($barcode, 1, 4);
-        return 'UCSD'
-          if ($barcode_chars eq '1822');
-        return 'UCI'
-          if ($barcode_chars eq '1970');
-        return 'UCSF'
-          if ($barcode_chars eq '1378');
-        return 'UCSC'
-          if ($barcode_chars eq '2106');
-        return 'UCSB'
-          if ($barcode_chars eq '1205');
-        return 'UCD'
-          if ($barcode_chars eq '1175');
-        return 'UCLA'
-          if ($barcode_chars eq '1158');
-        return 'UCR'
-          if ($barcode_chars eq '1210');
-    }
-    else {
-        return 'UCAL';
-    }
+    # Nothing from these campuses?
+    return 'UCI'
+      if ( $barcode =~ m/^.1970\d{9}$/ );
+    return 'UCSB'
+      if ( $barcode =~ m/^.1205\d{9}$/ );
+    return 'UCB'
+      if ( $barcode =~ m/^\d{10}$/ );
+
+    # No matches
+    return 'UCAL';
 }
 
 1;
@@ -156,7 +184,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2012-13 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2012-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

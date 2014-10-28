@@ -67,18 +67,8 @@ sub _initialize {
     my $self = shift;
     my $C = shift;
     my $name = shift;
-    my $production_disabled = shift;
 
     $self->{'application_name'} = $name;
-    $self->{'production_disabled'} = $production_disabled;
-
-    # See if the UNAVAILABLE envvar switch is on due to server
-    # maintenance ...
-    $self->test_availability();
-
-    # ... or set it in code if app is production disabled except for
-    # development
-    $self->__test_app_enabled();
 }
 
 
@@ -114,72 +104,6 @@ sub get_app_name {
     return $self->{'application_name'};
 }
 
-
-# ---------------------------------------------------------------------
-
-=item __test_app_enabled
-
-Description: Temporary switch to allow development subnet to see full
-functionality not yet available in production.  
-
-=cut
-
-# ---------------------------------------------------------------------
-my $g_override_enabled_test = 1;
-
-sub __test_app_enabled {
-    my $self = shift;
-    
-    if ($ENV{'HT_DEV'}) {
-        return 1;
-    }
-    else
-    {
-        # Skip tests if flag is set
-        return 1
-            if ($g_override_enabled_test);
-
-        # Can everyone see me in production or test for
-        # debugging_enabled() allows me to run just from development
-        # subnet
-        if ($self->{'production_disabled'}) {
-            if (! Debug::DUtils::debugging_enabled()) {
-                $ENV{'UNAVAILABLE'} = 1;
-                ASSERT(0);
-            }
-        }
-    }
-}
-
-
-
-
-# ---------------------------------------------------------------------
-
-=item test_availability
-
-Determine whether this app is allowed to run by testing the
-UNAVAILABLE environment variable.
-
-UNAVAILABLE can be set in the virtual host for maintenance or
-programatically for a variety of reasons.
-
-When set and followed by any assertion failure, it triggers the
-display of a friendly page explaining the outage.
-
-=cut
-
-# ---------------------------------------------------------------------
-sub test_availability
-{
-    my $self = shift;
-
-    # Set by the virtual host for maintenance
-    ASSERT(0)
-        if (defined($ENV{'UNAVAILABLE'}));
-}
-
-
 1;
 
 __END__
@@ -190,7 +114,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-14 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

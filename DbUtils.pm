@@ -23,17 +23,13 @@ Coding example
 
 =cut
 
-BEGIN
-{
-    if ($ENV{'HT_DEV'})
-    {
-        require "strict.pm";
-        strict::import();
-    }
-}
+use strict;
+use warnings;
 
 use DBI;
 use Utils;
+use Debug::DUtils;
+
 use constant DATABASE_RETRY_SLEEP => 300; # 5 minutes
 use constant MAX_DATABASE_RETRIES => 12;  # 1 hour of outage
 
@@ -46,9 +42,10 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
-sub prep_n_execute
-{
+sub prep_n_execute {
     my ($dbh, $statement, @params) = @_;
+
+    my $start = time;
 
     # Ensure connection for long running jobs and for apps that have
     # to work across database maintenance intervals
@@ -64,14 +61,14 @@ sub prep_n_execute
             }
         }
     }
-    
+
     @params = () if (! defined $params[0]);
 
     my $count_ref;
     if ( ref($params[-1]) ) {
         $count_ref = pop @params;
     }
-    
+
     # my $statement;
     # my @params;
     # unless(ref($statement_n_params)) {
@@ -80,7 +77,7 @@ sub prep_n_execute
     #     $statement = shift @$statement_n_params;
     #     @params = @$statement_n_params;
     # }
-    
+
     my $ct;
     my $sth;
     eval
@@ -88,16 +85,22 @@ sub prep_n_execute
         $sth = $dbh->prepare($statement);
     };
     ASSERT((! $@), qq{DBI error: $@});
-    ASSERT($sth, qq{Could not prepare statement: $statement } . $dbh->errstr);
+    ASSERT($sth, qq{Could not prepare statement: $statement } . ($dbh->errstr || ''));
 
     eval
     {
         $ct = $sth->execute(@params);
     };
     ASSERT((! $@), qq{DBI error on statement=$statement: $@});
-    ASSERT($ct, qq{Could not execute statement=$statement } . $sth->errstr);
+    ASSERT($ct, qq{Could not execute statement=$statement } . ($sth->errstr || ''));
     $$count_ref = $ct if (ref($count_ref));
-    
+
+    if (DEBUG('dbtime') || 0) { #XXX 1
+        my $elapsed = time - $start;
+        my ($package, $filename, $line, $subroutine) = caller(1);
+        print STDERR "elapsed=$elapsed $subroutine $statement \n";
+    }
+
     return $sth;
 }
 
@@ -159,8 +162,11 @@ sub get_cell_by_key
 {
     my ($dbh, $table_name, $cell_name, $key_col_name, $key_col_val, $limit) = @_;
 
-    my $limit_clause = qq{LIMIT $limit}
-        if ( $limit =~ m,^\d+$, );
+
+    my $limit_clause = '';
+    if ( (defined $limit) && ($limit =~ m,^\d+$,) ) {
+        $limit_clause = qq{LIMIT $limit};
+    }
 
     my $statement = qq{SELECT $cell_name FROM $table_name WHERE $key_col_name=? $limit_clause;};
     my $sth = prep_n_execute($dbh, $statement, $key_col_val);
@@ -212,9 +218,9 @@ column values as values.  ($where) value of where clause to match rows
 on.
 
 Potentially updates multiple rows if there are multiple matches of the
-where clause.  Order of columns not important.  
+where clause.  Order of columns not important.
 
-Only the columns to be updated must be provided.  
+Only the columns to be updated must be provided.
 
 Columns with auto_entered data should generally not be included. The
 database will handle them.
@@ -231,13 +237,13 @@ sub update_row_where
     my @tmp;
     foreach my $col_name (keys %$row_hashref)
     {
-        push @tmp, $$row_hashref{$col_name};        
+        push @tmp, $$row_hashref{$col_name};
 	    $set_string .= $col_name . qq{=?, };
     }
     # strip the trailing comma and space off the end of the setString
     chop($set_string);
     chop($set_string);
-    
+
     unshift @params, @tmp;
 
     my $statement = qq{UPDATE $table_name SET $set_string $where;};
@@ -383,7 +389,7 @@ sub insert_one_or_more_rows
 	my $one_row_str;
 	my @one_row_vals;
 	my @one_row_params;
-	my $c;
+	my $c = 0;
 
 	foreach my $colname (@$col_names_array_ref)
 	{

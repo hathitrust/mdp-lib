@@ -139,10 +139,10 @@ sub handle_ACCESS_USE_PI
 
     my $ar = $C->get_object('Access::Rights');
     my $attr = $ar->get_rights_attribute($C, $id);
-    my $source = $ar->get_source_attribute($C, $id);
+    my $access_profile = $ar->get_access_profile_attribute($C, $id);
 
     my $ref_to_arr_of_hashref =
-      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $source,
+      Access::Statements::get_stmt_by_rights_values($C, undef, $attr, $access_profile,
                                                   {
                                                    stmt_url      => 1,
                                                    stmt_url_aux  => 1,
@@ -359,12 +359,13 @@ sub handle_ENV_VAR_PI
 
     my $environment_variable = $$piParamHashRef{'variable'};
     my $v = $ENV{$environment_variable};
+    $v = Encode::decode_utf8($v);
+
     # occassionally environment variable has chars in need of
     # mapping. e.g., AT&T
     Utils::map_chars_to_cers(\$v);
     # occassionally environment variable contains invalid XML cahrs
-    $v = Encode::decode_utf8($v);
-    Utils::remove_nonprinting_chars(\$v);
+    my $removed = Utils::remove_invalid_xml_chars(\$v);
 
     return $v;
 }
@@ -387,14 +388,8 @@ sub handle_SUPPRESS_ACCESS_BANNER
 
     my $suppress;
 
-    my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
-    if (defined $usertype) {
-        if (Auth::ACL::a_Authorized( {access => 'total'} )) {
-            $suppress = 'true'
-        }
-        else {
-            $suppress = 'false'
-        }
+    if (Auth::ACL::S___total_access()) {
+        $suppress = 'true'
     }
     else {
         $suppress = 'false'

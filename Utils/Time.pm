@@ -23,7 +23,9 @@ use Date::Calc;
 use Time::HiRes;
 
 use base qw(Exporter);
-our @EXPORT = qw( unix_Time iso_UTC_Time iso_Time friendly_iso_Time );
+our @EXPORT = qw( unix_Time iso_UTC_Time iso_Time friendly_iso_Time days_Until );
+
+use Utils;
 
 my %MONTHS =
 (0=>'Jan',1=>'Feb',2=>'Mar',3=>'Apr',4=>'May',5=>'Jun',6=>'Jul',7=>'Aug',8=>'Sep',9=>'Oct',10=>'Nov',11=>'Dec');
@@ -98,7 +100,7 @@ time zone, e.g. 2010-09-28 18:43 UTC
 # ---------------------------------------------------------------------
 sub iso_UTC_Time {
     my $time = shift;
-    
+
     my @time = gmtime($time);
 
     #  0    1    2     3     4    5     6     7     8
@@ -111,7 +113,7 @@ sub iso_UTC_Time {
     my $sec = $time[0];
 
     my $isoUTCtime = sprintf("%4d-%02d-%02d %02d:%02d UTC", $yea, $mon, $day, $hou, $min);
-    
+
     return $isoUTCtime;
 }
 
@@ -174,6 +176,10 @@ sub iso_Time {
         $isoTime = sprintf("%4d-%02d-%02d_%02d:%02d:%02d", $yea, $mon, $day, $hou, $min, $sec);
         $isoTime .= "_$zon" if ($include_zone);
     }
+    elsif  ($what eq 'filename') {
+        $isoTime = sprintf("%4d-%02d-%02d_%02d-%02d-%02d", $yea, $mon, $day, $hou, $min, $sec);
+        $isoTime .= "_$zon" if ($include_zone);
+    }
 
     return $isoTime;
 }
@@ -214,7 +220,12 @@ sub days_Until {
     $today[0] += 1900;
     $today[1]++;
 
+    my $num_date_elems = scalar @untilDate;
+    ASSERT( ($num_date_elems == 3), qq{invalid "until" date. num elems must be 3: seen=$num_date_elems} );
+
     my $daysUntil = Date::Calc::Delta_Days(@today, @untilDate);
+
+    return $daysUntil;
 }
 
 # ---------------------------------------------------------------------

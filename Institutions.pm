@@ -10,21 +10,22 @@ Institutions;
 This package provides the interface and access logic to
 institution-specific data.
 
- CREATE TABLE `ht_institutions`
-   (
-    `sdrinst`        varchar(32)  NOT NULL DEFAULT ' ',
-    `name`           varchar(256) NOT NULL DEFAULT ' ',
-    `template`       varchar(256) NOT NULL DEFAULT ' ',
-    `authtype`       varchar(32)  NOT NULL DEFAULT 'shibboleth',
-    `domain`         varchar(32)  NOT NULL DEFAULT ' ',
-    `us`             tinyint(1)   NOT NULL DEFAULT '0',
-    `mapto_domain`   varchar(32)  NULL,
-    `mapto_sdrinst`  varchar(32)  NULL,
-    `mapto_name`     varchar(256) NULL,
-    `enabled`        tinyint(1)   NOT NULL DEFAULT '0',
-    `orph_agree`     tinyint(1)   NOT NULL DEFAULT '0',
-           PRIMARY KEY (`sdrinst`)
-   );
+ CREATE TABLE `ht_institutions` (
+   `sdrinst`          varchar(32)  NOT NULL DEFAULT ' ',
+   `name`             varchar(256) NOT NULL DEFAULT ' ',
+   `template`         varchar(256) NOT NULL DEFAULT ' ',
+   `authtype`         varchar(32)  NOT NULL DEFAULT 'shibboleth',
+   `domain`           varchar(32)  NOT NULL DEFAULT ' ',
+   `us`               tinyint(1)   NOT NULL DEFAULT '0',
+   `mapto_domain`     varchar(32)           DEFAULT NULL,
+   `mapto_sdrinst`    varchar(32)           DEFAULT NULL,
+   `mapto_name`       varchar(256)          DEFAULT NULL,
+   `map_to_entityID`  varchar(256)          DEFAULT NULL,
+   `enabled`          tinyint(1)   NOT NULL DEFAULT '0',
+   `orph_agree`       tinyint(1)   NOT NULL DEFAULT '0',
+   `entityID`         varchar(256)          DEFAULT NULL,
+              PRIMARY KEY (`sdrinst`)
+ );
 
 =head1 SYNOPSIS
 
@@ -36,15 +37,41 @@ Coding example
 
 =cut
 
+use strict;
+use warnings;
+
 use Context;
 use Database;
 use DbUtils;
 
-my $Institution_Hash;
+# ---------------------------------------------------------------------
 
-sub __load_institution_hash {
+=item ___get_I_ref, ___set_I_ref
+
+Needed for persistent clients, e.g. imgsrv.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___get_I_ref {
+    my $C = shift;
+
+    my $Institution_Hash_ref = ( $C->has_object('Institutions') ? $C->get_object('Institutions') : {} );
+    return $Institution_Hash_ref;
+}
+sub ___set_I_ref {
+    my ($C, $i_ref) = @_;
+
+    bless $i_ref, 'Institutions';
+    $C->set_object('Institutions', $i_ref);
+}
+
+
+sub __Load_Institution_Hash {
     my $C = shift;
     my ($selector, $key, $value) = @_;
+
+    my $Institution_Hash = ___get_I_ref($C);
 
     my $dbh = $C->get_object('Database')->get_DBH;
 
@@ -52,73 +79,94 @@ sub __load_institution_hash {
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $value);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
-    $Institution_Hash->{$selector}->{$value} =
-      {
-       'sdrinst'       => $ref_to_arr_of_hashref->[0]->{sdrinst},
-       'name'          => $ref_to_arr_of_hashref->[0]->{name},
-       'template'      => $ref_to_arr_of_hashref->[0]->{template},
-       'authtype'      => $ref_to_arr_of_hashref->[0]->{authtype},
-       'domain'        => $ref_to_arr_of_hashref->[0]->{domain},
-       'us'            => $ref_to_arr_of_hashref->[0]->{us},
-       'mapto_domain'  => $ref_to_arr_of_hashref->[0]->{mapto_domain},
-       'mapto_sdrinst' => $ref_to_arr_of_hashref->[0]->{mapto_sdrinst},
-       'mapto_name'    => $ref_to_arr_of_hashref->[0]->{mapto_name},
-       'enabled'       => $ref_to_arr_of_hashref->[0]->{enabled},
-       'orph_agree'    => $ref_to_arr_of_hashref->[0]->{orph_agree},
-      };
+    $Institution_Hash->{$selector}{$value} = $ref_to_arr_of_hashref->[0];
+
+    ___set_I_ref($C, $Institution_Hash);
+
+    return $Institution_Hash;
+}
+
+
+# ---------------------------------------------------------------------
+
+=item _load_institution_sdrinst_hash, _load_institution_entityID_hash, _load_institution_domain_hash
+
+We do lookups based on entityID if the user is authenticated or, when
+not, by sdrinst, obtained from Apache SDRINST environment variable
+which is set based on institutional IP address ranges.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub _load_institution_sdrinst_hash {
+    my $C = shift;
+    my $sdrinst = shift;
+
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{sdrinsts}{$sdrinst});
+
+    $Institution_Hash = __Load_Institution_Hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
+    return $Institution_Hash;
+}
+
+sub _load_institution_entityID_hash {
+    my $C = shift;
+    my $entityID = shift;
+
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{entityIDs}{$entityID});
+
+    $Institution_Hash = __Load_Institution_Hash($C, 'entityIDs', 'entityID', $entityID);
+    return $Institution_Hash;
 }
 
 sub _load_institution_domain_hash {
     my $C = shift;
     my $domain = shift;
 
-    return if (defined $Institution_Hash->{domains}->{$domain});
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{domains}{$domain});
 
-    __load_institution_hash($C, 'domains', 'domain', $domain);
-}
-
-sub _load_institution_sdrinst_hash {
-    my $C = shift;
-    my $sdrinst = shift;
-
-    return if (defined $Institution_Hash->{sdrinsts}->{$sdrinst});
-
-    __load_institution_hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
+    $Institution_Hash = __Load_Institution_Hash($C, 'domains', 'domain', $domain);
+    return $Institution_Hash;
 }
 
 
 # ---------------------------------------------------------------------
 
-=item get_institution_field_val
+=item get_institution_entityID_field_val
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_institution_domain_field_val {
+sub get_institution_entityID_field_val {
     my $C = shift;
-    my ($domain, $field, $mapped) = @_;
+    my ($entityID, $field, $mapped) = @_;
 
-    _load_institution_domain_hash($C, $domain);
+    my $Institution_Hash = _load_institution_entityID_hash($C, $entityID);
 
     my $val;
 
     if (! $mapped) {
-        $val = $Institution_Hash->{domains}->{$domain}->{$field};
+        $val = $Institution_Hash->{entityIDs}{$entityID}{$field};
     }
     else {
-        if ($field eq 'name' && $Institution_Hash->{domains}->{$domain}->{mapto_name}) {
-            $val = $Institution_Hash->{domains}->{$domain}->{mapto_name};
+        if ($field eq 'name' && $Institution_Hash->{entityIDs}{$entityID}{mapto_name}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_name};
         }
-        elsif ($field eq 'domain' && $Institution_Hash->{domains}->{$domain}->{mapto_domain}) {
-            $val = $Institution_Hash->{domains}->{$domain}->{mapto_domain};
+        elsif ($field eq 'domain' && $Institution_Hash->{entityIDs}{$entityID}{mapto_domain}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{domains}->{$domain}->{mapto_sdrinst}) {
-            $val = $Institution_Hash->{domains}->{$domain}->{mapto_sdrinst};
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{entityIDs}{$entityID}{mapto_entityID}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst};
         }
         else {
-            $val = $Institution_Hash->{domains}->{$domain}->{$field};
+            $val = $Institution_Hash->{entityIDs}{$entityID}{$field};
         }
     }
 
@@ -138,25 +186,69 @@ sub get_institution_sdrinst_field_val {
     my $C = shift;
     my ($sdrinst, $field, $mapped) = @_;
 
-    _load_institution_sdrinst_hash($C, $sdrinst);
+    my $Institution_Hash = _load_institution_sdrinst_hash($C, $sdrinst);
 
     my $val;
 
     if (! $mapped) {
-        $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{$field};
+        $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};
     }
     else {
-        if ($field eq 'name' && $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_name}) {
-            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_name};
+        if ($field eq 'name' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_name}) {
+            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_name};
         }
-        elsif ($field eq 'domain' && $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_domain}) {
-            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_domain};
+        elsif ($field eq 'domain' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_domain}) {
+            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_sdrinst}) {
-            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{mapto_sdrinst};
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_sdrinst}) {
+            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_entityID}) {
+            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_entityID};
         }
         else {
-            $val = $Institution_Hash->{sdrinsts}->{$sdrinst}->{$field};
+            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};
+        }
+    }
+
+    return $val;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_domain_field_val
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_domain_field_val {
+    my $C = shift;
+    my ($domain, $field, $mapped) = @_;
+
+    my $Institution_Hash = _load_institution_domain_hash($C, $domain);
+
+    my $val;
+
+    if (! $mapped) {
+        $val = $Institution_Hash->{domains}{$domain}{$field};
+    }
+    else {
+        if ($field eq 'name' && $Institution_Hash->{domains}{$domain}{mapto_name}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_name};
+        }
+        elsif ($field eq 'domain' && $Institution_Hash->{domains}{$domain}{mapto_domain}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_domain};
+        }
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{domains}{$domain}{mapto_sdrinst}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{domains}{$domain}{mapto_entityID}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_entityID};
+        }
+        else {
+            $val = $Institution_Hash->{domains}{$domain}{$field};
         }
     }
 
@@ -184,6 +276,17 @@ sub get_institution_list {
     return $ref_to_arr_of_hashref;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_idp_list
+
+Description
+
+Used by ping.
+
+=cut
+
+# ---------------------------------------------------------------------
 sub get_idp_list {
     my $C = shift;
     my $list_ref = get_institution_list($C);
@@ -191,34 +294,37 @@ sub get_idp_list {
 
     my $inst = $C->get_object('Auth')->get_institution_code($C) || 'notaninstitution';
 
-    foreach my $hash ( sort { $$a{name} cmp $$b{name} } @$list_ref ) {
-        my $development = 0;
+    foreach my $hash_ref ( sort { $a->{name} cmp $b->{name} } @$list_ref ) {
+        my $add_to_list = 0;
 
-        if ( ! $$hash{enabled} ) {
-            $development = 1;
-            next unless ( $ENV{HT_DEV} );
+        if ( $hash_ref->{enabled} == 0 ) {
+            $add_to_list = 1 if ( defined $ENV{HT_DEV} );
         }
+        elsif ( $hash_ref->{enabled} == 1 ) {
+            $add_to_list = 1;
+        }
+        elsif ( $hash_ref->{enabled} == 2 ) {
+            $add_to_list = 0;
+        }
+        next unless ($add_to_list);
 
-        my $idp_url = $$hash{template};
+        my $idp_url = $hash_ref->{template};
         my $host = $ENV{'HTTP_HOST'} || 'localhost';
         $idp_url =~ s,___HOST___,$host,;
-        ## $idp_url =~ s,___TARGET___,$L_target,;
 
-        push @$results, { 
-            enabled => $$hash{enabled},
-            sdrinst => $$hash{sdrinst},
+        push @$results, {
+            enabled => $hash_ref->{enabled},
+            sdrinst => $hash_ref->{sdrinst},
             idp_url => $idp_url,
-            authtype => $$hash{authtype},
-            name => $$hash{name},
-            selected => ( $inst eq $$hash{sdrinst} ),
+            authtype => $hash_ref->{authtype},
+            name => $hash_ref->{name},
+            selected => ( $inst eq $hash_ref->{sdrinst} ),
         };
 
     }
 
     return $results;
-
 }
-
 
 1;
 
@@ -230,7 +336,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2012 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2012-2014 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
