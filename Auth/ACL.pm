@@ -63,7 +63,7 @@ from within the Auth::ACL package.
 
 'normal' access excludes attr=8 (nobody)
 
-Counting user in-copyright access activity 
+Counting user in-copyright access activity
 
  DESCRIBE ht_counts;
  +----------------+--------------+------+-----+---------------------+-------+
@@ -181,8 +181,9 @@ line) and is not incremented if access expires.
 
 # ---------------------------------------------------------------------
 sub a_Increment_accesscount {
+    my $id = shift;
     __load_access_control_list();
-    __update_accesscount();
+    __update_accesscount($id);
 }
 
 # ---------------------------------------------------------------------
@@ -479,6 +480,7 @@ Counts are not deleted from this table.
 
 # ---------------------------------------------------------------------
 sub __update_accesscount {
+    my $id = shift;
 
     my $usertype = __get_user_attributes('usertype', 'unmasked');
 
@@ -492,8 +494,16 @@ sub __update_accesscount {
 
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH;
+    my $attr = $C->get_object('Access::Rights')->get_rights_attribute($C, $id);
 
     my $userid = $C->get_object('Auth')->get_user_name($C);
+    my $ipaddr = $ENV{REMOTE_ADDR} || '';
+    my $role = __get_user_attributes('role');
+    my $access = __get_user_attributes('access');
+    my $expires = __get_user_attributes('expires');
+    my $s = (defined($userid) && $userid) ? "userid=$userid" : "NULL userid";
+
+    print STDERR "Auth::ACL::__update_accesscount: $s id=$id attr=$attr ipaddr=$ipaddr usertype=$usertype role=$role access=$access expires=$expires";
 
     my ($sth, $statement);
     eval {

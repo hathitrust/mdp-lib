@@ -145,9 +145,10 @@ sub get_institution_entityID_field_val {
     my $C = shift;
     my ($entityID, $field, $mapped) = @_;
 
-    my $Institution_Hash = _load_institution_entityID_hash($C, $entityID);
-
+    return undef unless ( (defined($entityID) && $entityID) && (defined($field) && $field) );
+    
     my $val;
+    my $Institution_Hash = _load_institution_entityID_hash($C, $entityID);
 
     if (! $mapped) {
         $val = $Institution_Hash->{entityIDs}{$entityID}{$field};
@@ -186,9 +187,10 @@ sub get_institution_sdrinst_field_val {
     my $C = shift;
     my ($sdrinst, $field, $mapped) = @_;
 
-    my $Institution_Hash = _load_institution_sdrinst_hash($C, $sdrinst);
+    return undef unless ( (defined($sdrinst) && $sdrinst) && (defined($field) && $field) );
 
     my $val;
+    my $Institution_Hash = _load_institution_sdrinst_hash($C, $sdrinst);
 
     if (! $mapped) {
         $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};
@@ -227,9 +229,10 @@ sub get_institution_domain_field_val {
     my $C = shift;
     my ($domain, $field, $mapped) = @_;
 
-    my $Institution_Hash = _load_institution_domain_hash($C, $domain);
+    return undef unless ( (defined($domain) && $domain) && (defined($field) && $field) );
 
     my $val;
+    my $Institution_Hash = _load_institution_domain_hash($C, $domain);
 
     if (! $mapped) {
         $val = $Institution_Hash->{domains}{$domain}{$field};
@@ -279,8 +282,6 @@ sub get_institution_list {
 # ---------------------------------------------------------------------
 
 =item get_idp_list
-
-Description
 
 Used by ping.
 

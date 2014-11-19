@@ -44,17 +44,13 @@ sub get_large_coll_coll_ids {
     my $config = $C->get_object('MdpConfig');
     my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
 
-    my $coll_item_table_name = 
-      $use_test_tables 
-        ? $config->get('test_coll_item_table_name')
-          : $config->get('coll_item_table_name');
-
+    my $coll_table_name = $use_test_tables ? $config->get('test_coll_table_name') : $config->get('coll_table_name');
     my $small_collection_max_items = $config->get('filter_query_max_item_ids');
 
     my $coll_id_arr_ref = [];
     
     eval {
-        $statement = qq{SELECT MColl_ID, count(extern_item_id) FROM $coll_item_table_name GROUP BY MColl_ID HAVING count(extern_item_id) > $small_collection_max_items};
+        $statement = qq{SELECT MColl_ID FROM $coll_table_name WHERE num_items > $small_collection_max_items};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
 
