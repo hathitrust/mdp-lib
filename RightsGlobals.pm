@@ -134,6 +134,7 @@ our $HT_AFFILIATE        = 7;
    '23' => 'Creative Commons Attribution-NonCommercial 4.0 International license',
    '24' => 'Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license',
    '25' => 'Creative Commons Attribution-ShareAlike 4.0 International license',
+   '26' => 'public domain but access limited due to privacy concerns',
   );
 
 %g_source_names =
@@ -190,6 +191,7 @@ our $HT_AFFILIATE        = 7;
    23 => 'cc-by-nc-4.0',
    24 => 'cc-by-nc-sa-4.0',
    25 => 'cc-by-sa-4.0',
+   26 => 'pd-private',
   );
 
 %g_access_profile_names =
@@ -475,6 +477,16 @@ our $HT_AFFILIATE        = 7;
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
            },
+   # not available to view but searchable, more restrictive than ic(2) but less than nobody(8)
+   '26' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'deny',
+            $SSD_USER              => 'deny',
+            $SSD_PROXY_USER        => 'deny',
+            $LIBRARY_IPADDR_USER   => 'deny',
+            $UM_AFFILIATE          => 'deny',
+            $HT_AFFILIATE          => 'deny',
+           },
   );
 
 # ---------------------------------------------------------------------
@@ -527,7 +539,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-14 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-15 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
