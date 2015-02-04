@@ -191,7 +191,7 @@ our $HT_AFFILIATE        = 7;
    23 => 'cc-by-nc-4.0',
    24 => 'cc-by-nc-sa-4.0',
    25 => 'cc-by-sa-4.0',
-   26 => 'pd-private',
+   26 => 'pd-pvt',
   );
 
 %g_access_profile_names =
