@@ -89,11 +89,13 @@ sub __Load_Institution_Hash {
 
 # ---------------------------------------------------------------------
 
-=item _load_institution_sdrinst_hash, _load_institution_entityID_hash, _load_institution_domain_hash
+=item _load_institution_sdrinst_hash, _load_institution_entityID_hash, _load_institution_domain_hash, _load_institution_inst_id_hash
 
 We do lookups based on entityID if the user is authenticated or, when
 not, by sdrinst, obtained from Apache SDRINST environment variable
-which is set based on institutional IP address ranges.
+which is set based on institutional IP address ranges or based on
+inst_id when we have a collection_code for an item id we can map to
+inst_id via ht_collections.
 
 =cut
 
@@ -131,6 +133,17 @@ sub _load_institution_domain_hash {
     return $Institution_Hash;
 }
 
+sub _load_institution_inst_id_hash {
+    my $C = shift;
+    my $inst_id = shift;
+
+    my $Institution_Hash = ___get_I_ref($C);
+    return $Institution_Hash if (defined $Institution_Hash->{inst_ids}{$inst_id});
+
+    $Institution_Hash = __Load_Institution_Hash($C, 'inst_ids', 'inst_id', $inst_id);
+    return $Institution_Hash;
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -146,7 +159,7 @@ sub get_institution_entityID_field_val {
     my ($entityID, $field, $mapped) = @_;
 
     return undef unless ( (defined($entityID) && $entityID) && (defined($field) && $field) );
-    
+
     my $val;
     my $Institution_Hash = _load_institution_entityID_hash($C, $entityID);
 
@@ -252,6 +265,48 @@ sub get_institution_domain_field_val {
         }
         else {
             $val = $Institution_Hash->{domains}{$domain}{$field};
+        }
+    }
+
+    return $val;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_institution_inst_id_field_val
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_institution_inst_id_field_val {
+    my $C = shift;
+    my ($inst_id, $field, $mapped) = @_;
+
+    return undef unless ( (defined($inst_id) && $inst_id) && (defined($field) && $field) );
+
+    my $val;
+    my $Institution_Hash = _load_institution_inst_id_hash($C, $inst_id);
+
+    if (! $mapped) {
+        $val = $Institution_Hash->{inst_ids}{$inst_id}{$field};
+    }
+    else {
+        if ($field eq 'name' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_name}) {
+            $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_name};
+        }
+        elsif ($field eq 'domain' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_domain}) {
+            $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_domain};
+        }
+        elsif ($field eq 'sdrinst' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_sdrinst}) {
+            $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_sdrinst};
+        }
+        elsif ($field eq 'entityID' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_entityID}) {
+            $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_entityID};
+        }
+        else {
+            $val = $Institution_Hash->{inst_ids}{$inst_id}{$field};
         }
     }
 
