@@ -498,7 +498,7 @@ sub _render_template
         my $config = $C->get_object('MdpConfig');
         my $cache_dir = Utils::get_true_cache_dir($C, 'xsltwrite_cache_dir') . '/';
         Utils::mkdir_path($cache_dir);
-        my $user = ($ENV{'REMOTE_USER'} || 'anonymous-' . time());
+        my $user = (Utils::Get_Remote_User() || 'anonymous-' . time());
         my $partial_path = $cache_dir . $user;
         my $xsl_filename = $partial_path . '.temp.xsl';
         my $xml_filename = $partial_path . '.temp.xml';

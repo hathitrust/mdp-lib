@@ -148,7 +148,7 @@ sub set_HathiTrust_debug_environment {
     if (DEBUG('nonus')) {
         # Not at a US IP address (Madrid)
         $ENV{REMOTE_ADDR} = $HathiTrust_IP_hash{'ucm'};
-        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0HwjoIEbxQgt6dfXh65ZXSOk=';
+        $ENV{REMOTE_USER} = 'https://shibboleth.umich.edu/idp/shibboleth!http://www.hathitrust.org/shibboleth-sp!vam0hwjoiebxqgt6dfxh65zxsok=';
         $ENV{SDRINST} = 'ucm';
         $ENV{AUTH_TYPE} = 'shibboleth';
         $ENV{affiliation} = 'member@ucm.es';

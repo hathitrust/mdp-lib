@@ -869,7 +869,7 @@ sub ___final_access_status_check {
            ($final_access_status eq 'deny'),
            qq{Invalid final access status value="$final_access_status"});
 
-    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="$ENV{REMOTE_USER}"</h4>});
+    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="} . Utils::Get_Remote_User() . qq{"</h4>});
 }
 
 

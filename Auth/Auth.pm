@@ -381,8 +381,7 @@ sub is_logged_in {
     my $self = shift;
 
     return 0 if (DEBUG('notlogged'));
-
-    return exists $ENV{REMOTE_USER};
+    return Utils::Get_Remote_User();
 }
 
 # ---------------------------------------------------------------------
@@ -665,10 +664,11 @@ sub get_eduPersonPrincipalName {
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if ($self->login_realm_is_friend) {
-            $eduPersonPrincipalName = $ENV{REMOTE_USER} || '';
+            $eduPersonPrincipalName = Utils::Get_Remote_User();
         }
         else {
-            $eduPersonPrincipalName = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} . '@umich.edu' : '');
+            my $remote_user = Utils::Get_Remote_User();
+            $eduPersonPrincipalName = ($remote_user ? $remote_user . '@umich.edu' : '');
         }
     }
 
@@ -959,7 +959,7 @@ sub __get_displayName {
         $displayName = $self->__get_parsed_displayName();
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
-        $displayName = $ENV{REMOTE_USER} || '';
+        $displayName = Utils::Get_Remote_User();
     }
 
     return $displayName;
@@ -1065,7 +1065,7 @@ sub get_user_display_name {
                 $user_display_name = Auth::ACL::a_GetUserAttributes('displayname');
             }
             elsif ($self->auth_sys_is_COSIGN($C)) {
-                $user_display_name = $ENV{REMOTE_USER} || '';
+                $user_display_name = Utils::Get_Remote_User();
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name = $self->__get_displayName($C);
@@ -1111,7 +1111,7 @@ sub get_user_name {
     my $user_id;
 
     if ($self->is_logged_in()) {
-        $user_id = $ENV{REMOTE_USER} || '';
+        $user_id = Utils::Get_Remote_User();
     }
     else {
         if ($C->has_object('Session')) {

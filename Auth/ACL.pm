@@ -103,8 +103,8 @@ use warnings;
 
 use Context;
 use Utils;
-use Debug::DUtils;
 use Utils::Time;
+use Debug::DUtils;
 use Database;
 use DbUtils;
 
@@ -340,23 +340,6 @@ sub S___total_access {
 
 # ---------------------------------------------------------------------
 
-=item __get_remote_user
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_remote_user {
-    my $remote_user = '';
-    if ( exists($ENV{REMOTE_USER}) ) {
-        $remote_user = lc $ENV{REMOTE_USER};
-    }
-    return $remote_user;
-}
-
-# ---------------------------------------------------------------------
-
 =item __debug_acl
 
 Description
@@ -372,13 +355,14 @@ sub __debug_acl {
     my $test_case = shift;
 
     my $Access_Control_List_ref = ___get_ACL;
+    my $remote_user = Utils::Get_Remote_User();
 
     # masked data to reflect effect of debugging switches.
     DEBUG('auth,all',
           sub {
               return '' if $__a_debug_printed;
               my $ipaddr = $ENV{REMOTE_ADDR} || '';
-              my $userid = __get_remote_user();
+              my $userid = $remote_user;
               my $usertype = __get_user_attributes('usertype');
               my $role = __get_user_attributes('role');
               my $access = __get_user_attributes('access');
@@ -439,7 +423,7 @@ sub __get_user_attributes {
 
     my $Access_Control_List_ref = ___get_ACL;
 
-    my $userid = __get_remote_user();
+    my $userid = Utils::Get_Remote_User();
     my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
 
     # Superuser debugging over-rides
@@ -501,7 +485,7 @@ sub __update_accesscount {
     my $role = __get_user_attributes('role');
     my $access = __get_user_attributes('access');
     my $expires = __get_user_attributes('expires');
-    my $s = (defined($userid) && $userid) ? "userid=$userid" : "NULL userid";
+    my $s = $userid ? "userid=$userid" : "NULL userid";
 
     print STDERR "Auth::ACL::__update_accesscount: $s id=$id attr=$attr ipaddr=$ipaddr usertype=$usertype role=$role access=$access expires=$expires";
 

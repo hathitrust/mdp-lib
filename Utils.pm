@@ -53,6 +53,32 @@ use Debug::DUtils;
 use JSON::XS;
 
 
+
+# ---------------------------------------------------------------------
+
+=item Get_Remote_User
+
+ALL ACCESS to $ENV{REMOTE_USER} should be via this routine because
+friend account access depends on case insensitive matching,
+i.e. MarySmith@foo.edu must match marysmith@foo.edu.
+
+Returning '' rather than undef so the subroutine call can be
+interpolated into strings without generating Perl warnings.
+
+So do not use "defined Utils::Get_Remote_User"
+
+Always use if (Utils::Get_Remote_User()) {
+ ...
+}
+
+=cut
+
+# ---------------------------------------------------------------------
+sub Get_Remote_User {
+    return lc $ENV{REMOTE_USER} if (exists $ENV{REMOTE_USER} && defined $ENV{REMOTE_USER} && $ENV{REMOTE_USER});
+    return '';
+}
+
 # ---------------------------------------------------------------------
 
 =item ASSERT_fail

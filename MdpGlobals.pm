@@ -22,9 +22,10 @@ package MdpGlobals;
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # Set path to feedback cgi as a function of development state and auth state.
-my $cgi_path_component = ($ENV{'AUTH_TYPE'} eq 'shibboleth') ? '/shcgi' : '/cgi';
-my $protocol  = defined($ENV{'AUTH_TYPE'}) ? 'https://' : 'http://';
-my $host = $ENV{'HTTP_HOST'};
+my $auth_type = $ENV{AUTH_TYPE} || '';
+my $cgi_path_component = ($auth_type eq 'shibboleth') ? '/shcgi' : '/cgi';
+my $protocol  = $auth_type ? 'https://' : 'http://';
+my $host = $ENV{'HTTP_HOST'} || '';
 
 $gFeedbackCGIUrl = $protocol . $host . $cgi_path_component . q{/feedback};
 
