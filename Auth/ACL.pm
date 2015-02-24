@@ -227,7 +227,7 @@ sub __a_Authorized_core {
             }
         }
     }
-
+    
     return $authorized;
 }
 

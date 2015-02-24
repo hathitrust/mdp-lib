@@ -531,6 +531,8 @@ $g_orphan_candidate_attribute_value = 16;
      'VI', # Virgin Islands, U.S.
     );
 
+%g_pdus_country_codes_hash = map { $_ => 1 } @g_pdus_country_codes;
+
 1;
 
 =head1 AUTHOR

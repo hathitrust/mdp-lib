@@ -1162,7 +1162,10 @@ sub _resolve_nonus_aff_access_by_GeoIP {
 
 =item CLASS PRIVATE: _resolve_access_by_GeoIP
 
-First check IP for US/NONUS origin then test for proxies.
+First check IP for US/NONUS origin then test for proxies. Require both
+proxy and client to be either both inside or both outside the US to
+attempt to prevent illicit PDUS or ICUS access, respectively.  We
+still can't win vs. determined users.
 
 =cut
 
@@ -1171,21 +1174,29 @@ sub _resolve_access_by_GeoIP {
     my $C = shift;
     my $required_location = shift;
 
+    require "Geo/IP.pm";
+
     my $status = 'deny';
 
     # Use forwarded IP address if proxied, else UA IP addr
-    my $IPADDR = $ENV{HTTP_X_FORWARDED_FOR} || $ENV{REMOTE_ADDR};
+    my $FORWARDED_ADDR = $ENV{HTTP_X_FORWARDED_FOR} || $ENV{REMOTE_ADDR};
+    my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
 
-    require "Geo/IP.pm";
     my $geoIP = Geo::IP->new();
-    my $country_code = $geoIP->country_code_by_addr($IPADDR);
+    my $forwarded_country_code = $geoIP->country_code_by_addr($FORWARDED_ADDR);
+    my $remote_country_code = $geoIP->country_code_by_addr($REMOTE_ADDR);
+
+    my $location_is_US = ( $RightsGlobals::g_pdus_country_codes_hash{$forwarded_country_code}
+                           &&
+                           $RightsGlobals::g_pdus_country_codes_hash{$remote_country_code}
+                         );
 
     my $correct_location = 0;
     if ($required_location eq 'US') {
-        $correct_location = (grep(/^$country_code$/, @RightsGlobals::g_pdus_country_codes));
+        $correct_location = $location_is_US; 
     }
     elsif ($required_location eq 'NONUS') {
-        $correct_location = (! grep(/^$country_code$/, @RightsGlobals::g_pdus_country_codes));
+        $correct_location = (! location_is_US);
     }
     else {
         ASSERT(0, qq{Invalid required_location value="$required_location"});
@@ -1207,6 +1218,7 @@ sub _resolve_access_by_GeoIP {
     else {
         $status = 'deny';
     }
+    DEBUG('auth', qq{_resolve_access_by_GeoIP: status=$status country_code = $country_code required_location=$required_location correct_location=$correct_location});
 
     return $status;
 }
