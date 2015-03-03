@@ -59,6 +59,8 @@ equate to fulltext access.
 =over 8
 
 =cut
+use strict;
+use warnings;
 
 use CGI;
 use Context;
@@ -744,7 +746,7 @@ sub _determine_rights_values {
 
     my $attr = $self->{rights_attribute};
     my $source = $self->{source_attribute};
-    my $access_profie = $self->{access_profile_attribute};
+    my $access_profile = $self->{access_profile_attribute};
 
     if (defined($attr) && defined($source) && defined($access_profile)) {
         return ($attr, $source, $access_profile);
@@ -761,10 +763,10 @@ sub _determine_rights_values {
         ($attr, $source, $access_profile) = (1,2,1);
     }
     elsif (Auth::ACL::S___superuser_role) {
-        my $config = $C->get_object('MdpConfig', $config);
+        my $config = $C->get_object('MdpConfig');
         if ($config->has('debug_attr_source')) {
             ($attr, $source, $access_profile) = $config->get('debug_attr_source');
-            $superuser_set_rights = 1 if ($attr && $source && access_profile);
+            $superuser_set_rights = 1 if ($attr && $source && $access_profile);
         }
     }
 
@@ -1146,7 +1148,7 @@ sub _resolve_nonus_aff_access_by_GeoIP {
     my $status = 'deny';
 
     my $inst_status = $C->get_object('Auth')->get_institution_us_status($C);
-    if ($us_status eq 'affnonus') {
+    if ($inst_status eq 'affnonus') {
         $status = 'allow';
     }
     elsif ($inst_status eq 'affus') {
@@ -1157,6 +1159,18 @@ sub _resolve_nonus_aff_access_by_GeoIP {
     return $status;
 }
 
+# ---------------------------------------------------------------------
+
+=item ___proxied_address
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub ___proxied_address {
+    return $ENV{HTTP_X_FORWARDED_FOR} || $ENV{HTTP_X_FORWARDED} || $ENV{HTTP_FORWARDED_FOR} || $ENV{HTTP_CLIENT_IP} || $ENV{HTTP_VIA};
+}
 
 # ---------------------------------------------------------------------
 
@@ -1174,41 +1188,60 @@ sub _resolve_access_by_GeoIP {
     my $C = shift;
     my $required_location = shift;
 
-    require "Geo/IP.pm";
-
     my $status = 'deny';
 
-    # Use forwarded IP address if proxied, else UA IP addr
-    my $FORWARDED_ADDR = $ENV{HTTP_X_FORWARDED_FOR} || $ENV{REMOTE_ADDR};
+    require "Geo/IP.pm";
+    my $geoIP = Geo::IP->new();
+
+    # If there's a proxy involved force both proxy and client to be
+    # coterminous geographically.  It's the best we can do since all
+    # these addresses can be spoofed.
+    my $PROXIED_ADDR = ___proxied_address();
+    my $proxy_detected = $PROXIED_ADDR;
+    
     my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
 
-    my $geoIP = Geo::IP->new();
-    my $forwarded_country_code = $geoIP->country_code_by_addr($FORWARDED_ADDR);
-    my $remote_country_code = $geoIP->country_code_by_addr($REMOTE_ADDR);
+    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR );
+    my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
+    my $remote_addr_is_nonUS = (! $remote_addr_is_US);
+    
+    my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
+    my $proxied_addr_is_US = ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
+    my $proxied_addr_is_nonUS = (! $proxied_addr_is_US);
 
-    my $location_is_US = ( $RightsGlobals::g_pdus_country_codes_hash{$forwarded_country_code}
-                           &&
-                           $RightsGlobals::g_pdus_country_codes_hash{$remote_country_code}
-                         );
+    my $IPADDR = 0;
+    my $address_location = 'notalocation';
 
-    my $correct_location = 0;
-    if ($required_location eq 'US') {
-        $correct_location = $location_is_US; 
-    }
-    elsif ($required_location eq 'NONUS') {
-        $correct_location = (! location_is_US);
+    if ($PROXIED_ADDR) {
+        if ( ($proxied_addr_is_US && $remote_addr_is_US) || ($proxied_addr_is_nonUS && $remote_addr_is_nonUS) ) {
+            $IPADDR = $PROXIED_ADDR;
+            if ($proxied_addr_is_US && $remote_addr_is_US) {
+                $address_location = 'US';
+            }
+            else {
+                $address_location = 'NONUS'; 
+            }
+        }
     }
     else {
-        ASSERT(0, qq{Invalid required_location value="$required_location"});
-    }
+        $IPADDR = $REMOTE_ADDR;
+        if ($remote_addr_is_US) {
+            $address_location = 'US'; 
+        }
+        else {
+            $address_location = 'NONUS'; 
+        }
+    }    
+
+    my $correct_location = ($required_location eq $address_location) || 0;
 
     if ($correct_location) {
-        # veryify this is not a blacklisted US(NONUS) proxy that does not set
-        # HTTP_X_FORWARDED_FOR for a non-US(US) request
+        # veryify this is not a blacklisted proxy that does not
+        # forward the address of its client
         require "Access/Proxy.pm";
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
-        if (Access::Proxy::blacklisted($dbh, $IPADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})) {
+        if (Access::Proxy::blacklisted($dbh, $REMOTE_ADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})) {
             $status = 'deny';
         }
         else {
@@ -1218,7 +1251,12 @@ sub _resolve_access_by_GeoIP {
     else {
         $status = 'deny';
     }
-    DEBUG('auth', qq{_resolve_access_by_GeoIP: status=$status country_code = $country_code required_location=$required_location correct_location=$correct_location});
+
+    DEBUG('auth', 
+          sub { my $s = qq{_resolve_access_by_GeoIP: status=$status remote_addr_country_code=$remote_addr_country_code required_location=$required_location correct_location=$correct_location};
+                $s .= qq{ proxy_detected=$proxy_detected forwarded_addr_country_code=$proxied_addr_country_code} if ($proxy_detected);
+                return $s;
+            });
 
     return $status;
 }
