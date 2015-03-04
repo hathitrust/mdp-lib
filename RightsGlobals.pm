@@ -34,6 +34,7 @@ package RightsGlobals;
  23	cc-by-nc-4.0	copyright	Creative Commons Attribution-NonCommercial 4.0 International license
  24	cc-by-nc-sa-4.0	copyright	Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license
  25	cc-by-sa-4.0	copyright	Creative Commons Attribution-ShareAlike 4.0 International license
+ 26     pd-pvt          access          public domain but access limited due to privacy concerns
 
  (Orphan works project)
 
