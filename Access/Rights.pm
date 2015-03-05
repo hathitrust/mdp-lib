@@ -121,9 +121,9 @@ sub get_rights_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
 
-    return $rights_attribute;
+    return $rights_hashref->{attr};
 }
 
 
@@ -141,9 +141,9 @@ sub get_source_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
 
-    return $source_attribute;
+    return $rights_hashref->{source};
 }
 
 # ---------------------------------------------------------------------
@@ -160,9 +160,28 @@ sub get_access_profile_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
 
-    return $access_profile_attribute;
+    return $rights_hashref->{access_profile};
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: get_all_rights_values
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_all_rights_values {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
+
+    return $rights_hashref;
 }
 
 
@@ -693,7 +712,15 @@ sub _validate_id {
 
 =item CLASS PRIVATE: __read_rights_database
 
-Description
+  `attr` tinyint(4) NOT NULL,
+  `reason` tinyint(4) NOT NULL,
+  `source` tinyint(4) NOT NULL, (DEPRECATED)
+  `access_profile` tinyint(4) NOT NULL,
+  `user` varchar(32) NOT NULL DEFAULT '',
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `note` text,
+
+
 
 =cut
 
@@ -706,26 +733,15 @@ sub __read_rights_database {
     my $stripped_id = Identifier::get_id_wo_namespace($id);
     my $namespace = Identifier::the_namespace($id);
 
-    my $row_hashref;
-    my $statement = qq{SELECT id, attr, source, access_profile FROM rights_current WHERE id=? AND namespace=?};
+    my $statement = qq{SELECT attr, reason, source, access_profile, user, time, note FROM rights_current WHERE id=? AND namespace=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
 
-    $row_hashref = $sth->fetchrow_hashref();
+    my $rights_hashref = $sth->fetchrow_hashref();
     $sth->finish;
 
-    my $attr = $$row_hashref{attr};
-    my $source = $$row_hashref{source};
-    my $access_profile = $$row_hashref{access_profile};
-    my $db_id = $$row_hashref{id};
+    my $rc = defined($rights_hashref) ? $OK_ID : $BAD_ID;
 
-    my $rc = defined($db_id) ? $OK_ID : $BAD_ID;
-    unless ($rc == $OK_ID) {
-        $attr = $RightsGlobals::NOOP_ATTRIBUTE;
-        $source = $RightsGlobals::NOOP_ATTRIBUTE;
-        $access_profile = $RightsGlobals::NOOP_ATTRIBUTE;
-    }
-
-    return ($attr, $source, $access_profile, $rc);
+    return ($rights_hashref, $rc);
 }
 
 
@@ -738,52 +754,65 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+sub __default_rights_values {
+    my $rights_fail = shift;
+    
+    my $rights_hashref = {};
+    my $noop_arrtibute = $RightsGlobals::NOOP_ATTRIBUTE;
+    
+    # (pd, dlps, open)
+    $rights_hashref->{attr}           = $rights_fail ? $noop_arrtibute : 1;
+    $rights_hashref->{source}         = $rights_fail ? $noop_arrtibute : 2;
+    $rights_hashref->{access_profile} = $rights_fail ? $noop_arrtibute : 1;
+    $rights_hashref->{reason}         = $rights_fail ? $noop_arrtibute : 1;
+    $rights_hashref->{user}           = 'foobar';
+    $rights_hashref->{time}           = '0000-00-00 00:00:00';
+    $rights_hashref->{note}           = 'none';
+
+    return $rights_hashref;
+}
+
 sub _determine_rights_values {
     my $self = shift;
     my ($C, $id) = @_;
 
     my $rc = $OK_ID;
 
-    my $attr = $self->{rights_attribute};
-    my $source = $self->{source_attribute};
-    my $access_profile = $self->{access_profile_attribute};
-
-    if (defined($attr) && defined($source) && defined($access_profile)) {
-        return ($attr, $source, $access_profile);
-    }
+    my $rights_hashref = $self->{_rights_hashref};
+    return $rights_hashref if (defined $rights_hashref);
 
     # local.conf over-ride only for superusers. Note HT_DEV is useless
     # here because it is set on the beta-* hosts which could possibly
     # be exposed to the outside world.
     my $local_dataroot = Utils::using_localdataroot($C, $id);
     my $superuser_set_rights = 0;
-
+    
     if (defined $local_dataroot) {
         # (pd, dlps, open)
-        ($attr, $source, $access_profile) = (1,2,1);
+        $rights_hashref = __default_rights_values();
     }
     elsif (Auth::ACL::S___superuser_role) {
         my $config = $C->get_object('MdpConfig');
         if ($config->has('debug_attr_source')) {
-            ($attr, $source, $access_profile) = $config->get('debug_attr_source');
-            $superuser_set_rights = 1 if ($attr && $source && $access_profile);
+            $rights_hashref = __default_rights_values();
+            ($rights_hashref->{attr}, $rights_hashref->{source}, $rights_hashref->{access_profile}) = $config->get('debug_attr_source');
+            $superuser_set_rights = 1 if ($rights_hashref->{attr} && $rights_hashref->{source} && $rights_hashref->{access_profile});
         }
     }
 
     # unless attr and source defined and > 0, skip and read database
-    unless ($attr && $source && $access_profile) {
-        ($attr, $source, $access_profile, $rc) = __read_rights_database($C, $id);
+    unless (defined $rights_hashref) {
+        ($rights_hashref, $rc) = __read_rights_database($C, $id);
     }
 
-    if ($rc == $OK_ID) {
-        $self->{rights_attribute} = $attr;
-        $self->{source_attribute} = $source;
-        $self->{access_profile_attribute} = $access_profile;
+    unless ($rc == $OK_ID) {
+        $rights_hashref = __default_rights_values('rights_fail');
     }
+    $self->{_rights_hashref} = $rights_hashref;
 
-    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$source} access_profile=$access_profile desc=$RightsGlobals::g_access_profile_names{$access_profile} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
+    DEBUG('db,auth,all', qq{<h4>_determine_rights_values: id="$id", attr=$rights_hashref->{attr}($RightsGlobals::g_attribute_names{$rights_hashref->{attr}}) source=$rights_hashref->{source}($RightsGlobals::g_source_names{$rights_hashref->{source}}) access_profile=$rights_hashref->{access_profile}($RightsGlobals::g_access_profile_names{$rights_hashref->{access_profile}}) local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
 
-    return ($attr, $source, $access_profile);
+    return $rights_hashref;
 }
 
 # ----------------------------------------------------------------------
