@@ -126,12 +126,12 @@ sub __debug_auth {
 
               my $auth_str =
                 q{<h1>AUTH:</h1> userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
-                  . q{ loggedin=} . $self->is_logged_in() . q{ in-library=} . $self->is_in_library()
-                    . q{ authsys=} . __get_auth_sys($ses)
+                  . q{ loggedin=} . ($self->is_logged_in() || '') . q{ in-library=} . $self->is_in_library()
+                    . q{ authsys=} . (__get_auth_sys($ses) || '')
                       . q{ newlogin=} . $self->isa_new_login()
-                        . q{ entityID=} . $self->get_shibboleth_entityID($C)
+                        . q{ entityID=} . ($self->get_shibboleth_entityID($C) || '')
                           . q{ parsed-persistent_id=} . $self->get_eduPersonTargetedID()
-                            . q{ eppn=} . $self->get_eduPersonPrincipalName($C)
+                            . q{ eppn=} . ($self->get_eduPersonPrincipalName($C) || '')
                               . q{ prioritized-scoped-affiliation=} . $self->get_eduPersonScopedAffiliation($C)
                                 . q{ institution code=} . $self->get_institution_code($C) . q{ institution-code (mapped)=} . $self->get_institution_code($C, 1)
                                   . q{ institution name=} . $self->get_institution_name($C) . q{ institution-name (mapped)=} . $self->get_institution_name($C, 1)
@@ -141,6 +141,7 @@ sub __debug_auth {
                                           . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
                                             . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
                                               . q{ print-disabled=} . $self->user_is_print_disabled($C);
+
               $self->{__debug_auth_printed} = 1;
               return $auth_str;
           });
