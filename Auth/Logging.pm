@@ -95,8 +95,8 @@ sub log_failed_access  {
 
         require Geo::IP;
         my $geoIp = Geo::IP->new();
-        my $countryCode = $geoIp->country_code_by_addr($remote_addr);
-        my $countryName = $geoIp->country_name_by_addr($remote_addr);
+        my $country_code = $geoIp->country_code_by_addr($remote_addr); chomp $country_code;
+        my $country_name = $geoIp->country_name_by_addr($remote_addr); chomp $country_name;
 
         my ($usertype, $role) = (
                                  Auth::ACL::a_GetUserAttributes('usertype') || 'notset',
@@ -104,8 +104,7 @@ sub log_failed_access  {
                                 );
         my $datetime = Utils::Time::iso_Time();
 
-        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr remote_user[env=$remote_user_from_env processed=$remote_user_processed] usertype=$usertype role=$role geo_code=$countryCode geo_name=$countryName";
-};
+        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr remote_user(env=$remote_user_from_env processed=$remote_user_processed) usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name};
 
         # The optional_dir_pattern "slip/run-___RUN___" is used here
         # to replace that portion of the logdir set when the slip
