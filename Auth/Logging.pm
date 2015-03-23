@@ -81,31 +81,44 @@ failed accesses.
 # ---------------------------------------------------------------------
 sub log_failed_access  {
     my ($C, $id) = @_;
-
+    
     my $ar = $C->get_object('Access::Rights');
     if ( $ar->check_final_access_status($C, $id) ne 'allow' ) {
-        my $attr = $ar->get_rights_attribute($C, $id) || 0;
-        my $ic = $ar->in_copyright($C, $id) || 0;
-        my $access_type = $ar->get_access_type($C, 'as_string');
-
+        my $attr                  = $ar->get_rights_attribute($C, $id) || 0;
+        my $ic                    = $ar->in_copyright($C, $id) || 0;
+        my $access_type           = $ar->get_access_type($C, 'as_string');
         my $remote_user_processed = Utils::Get_Remote_User() || 'notset';
-        my $remote_user_from_env = $ENV{REMOTE_USER} || 'notset';
-        my $proxied_addr = Access::Rights::proxied_address() || 'notset';
-        my $remote_addr = $ENV{REMOTE_ADDR} || 'notset';
-
+        my $remote_user_from_env  = $ENV{REMOTE_USER} || 'notset';
+        my $proxied_addr          = Access::Rights::proxied_address() || 'notset';
+        my $remote_addr           = $ENV{REMOTE_ADDR} || 'notset';
+        my $sdrinst               = $ENV{SDRINST} || 'notset';
+        my $remote_realm          = $ENV{REMOTE_REALM} || 'notset';
+        my $auth_type             = lc $ENV{AUTH_TYPE} || 'notset';
+        my $http_host             = $ENV{HTTP_HOST} || 'notset';
+        my $sdrlib                = $ENV{SDRLIB} || 'notset';
+        
         require Geo::IP;
         my $geoIp = Geo::IP->new();
         my $country_code = $geoIp->country_code_by_addr($remote_addr); chomp $country_code;
         my $country_name = $geoIp->country_name_by_addr($remote_addr); chomp $country_name;
-
+        
         my ($usertype, $role) = (
                                  Auth::ACL::a_GetUserAttributes('usertype') || 'notset',
                                  Auth::ACL::a_GetUserAttributes('role') || 'notset',
                                 );
         my $datetime = Utils::Time::iso_Time();
-
-        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr remote_user(env=$remote_user_from_env processed=$remote_user_processed) usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name};
-
+        
+        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr remote_user(env=$remote_user_from_env processed=$remote_user_processed) usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host };
+        
+        if ($auth_type eq 'shibboleth') {
+            my $affiliation = $ENV{affiliation} || 'notset';
+            my $eppn = $ENV{eppn} || 'notset';
+            my $display_name = $ENV{displayName} || 'notset';
+            my $entityID = $ENV{Shib_Identity_Provider};
+            
+            $s .= qq{eduPersonScopedAffiliation=$affiliation eduPersonPrincipalName=$eppn displayName=$display_name Shib_Identity_Provider=$entityID};
+        }
+        
         # The optional_dir_pattern "slip/run-___RUN___" is used here
         # to replace that portion of the logdir set when the slip
         # config is merged into pt's config to restore the original
