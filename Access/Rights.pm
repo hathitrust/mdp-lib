@@ -784,10 +784,10 @@ sub _determine_rights_values {
     # local.conf over-ride only for superusers. Note HT_DEV is useless
     # here because it is set on the beta-* hosts which could possibly
     # be exposed to the outside world.
-    my $local_dataroot = Utils::using_localdataroot($C, $id);
+    my $local_dataroot = Utils::using_localdataroot($C, $id) || 0;
     my $superuser_set_rights = 0;
     
-    if (defined $local_dataroot) {
+    if ($local_dataroot) {
         # (pd, dlps, open)
         $rights_hashref = __default_rights_values();
     }
@@ -810,7 +810,7 @@ sub _determine_rights_values {
     }
     $self->{_rights_hashref} = $rights_hashref;
 
-    DEBUG('db,auth,all', qq{<h4>_determine_rights_values: id="$id", attr=$rights_hashref->{attr}($RightsGlobals::g_attribute_names{$rights_hashref->{attr}}) source=$rights_hashref->{source}($RightsGlobals::g_source_names{$rights_hashref->{source}}) access_profile=$rights_hashref->{access_profile}($RightsGlobals::g_access_profile_names{$rights_hashref->{access_profile}}) local_SDRDATAROOT="${\( defined $local_dataroot ? $local_dataroot : '-')}" superuser_set_rights=$superuser_set_rights</h4>});
+    DEBUG('db,auth,all', qq{<h4>_determine_rights_values: id="$id", attr=$rights_hashref->{attr}($RightsGlobals::g_attribute_names{$rights_hashref->{attr}}) source=$rights_hashref->{source}($RightsGlobals::g_source_names{$rights_hashref->{source}}) access_profile=$rights_hashref->{access_profile}($RightsGlobals::g_access_profile_names{$rights_hashref->{access_profile}}) local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
 
     return $rights_hashref;
 }
@@ -1190,14 +1190,14 @@ sub _resolve_nonus_aff_access_by_GeoIP {
 
 # ---------------------------------------------------------------------
 
-=item ___proxied_address
+=item proxied_address
 
 Description
 
 =cut
 
 # ---------------------------------------------------------------------
-sub ___proxied_address {
+sub proxied_address {
     return $ENV{HTTP_X_FORWARDED_FOR} || $ENV{HTTP_X_FORWARDED} || $ENV{HTTP_FORWARDED_FOR} || $ENV{HTTP_CLIENT_IP} || $ENV{HTTP_VIA};
 }
 
@@ -1225,21 +1225,18 @@ sub _resolve_access_by_GeoIP {
     # If there's a proxy involved force both proxy and client to be
     # coterminous geographically.  It's the best we can do since all
     # these addresses can be spoofed.
-    my $PROXIED_ADDR = ___proxied_address();
+    my $PROXIED_ADDR = proxied_address();
     my $proxy_detected = $PROXIED_ADDR;
     
     my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
 
-    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR ) || '';
+    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR );
     my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
     
-    my ( $proxied_addr_country_code, $proxied_addr_is_US, $proxied_addr_is_nonUS );
-    if ( $PROXIED_ADDR ) {
-        $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR ) || '';
-        $proxied_addr_is_US = ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
-        $proxied_addr_is_nonUS = (! $proxied_addr_is_US);
-    }
+    my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
+    my $proxied_addr_is_US = ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
+    my $proxied_addr_is_nonUS = (! $proxied_addr_is_US);
 
     my $IPADDR = 0;
     my $address_location = 'notalocation';

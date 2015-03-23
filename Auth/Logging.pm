@@ -69,6 +69,52 @@ sub log_incopyright_access  {
     return $logged;
 }
 
+# ---------------------------------------------------------------------
+
+=item log_failed_access
+
+Log accesses to the web log for security reporting and debugging
+failed accesses.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub log_failed_access  {
+    my ($C, $id) = @_;
+
+    my $ar = $C->get_object('Access::Rights');
+    if ( $ar->check_final_access_status($C, $id) ne 'allow' ) {
+        my $attr = $ar->get_rights_attribute($C, $id) || 0;
+        my $ic = $ar->in_copyright($C, $id) || 0;
+        my $access_type = $ar->get_access_type($C, 'as_string');
+
+        my $remote_user_processed = Utils::Get_Remote_User() || 'notset';
+        my $remote_user_from_env = $ENV{REMOTE_USER} || 'notset';
+        my $proxied_addr = Access::Rights::proxied_address() || 'notset';
+        my $remote_addr = $ENV{REMOTE_ADDR} || 'notset';
+
+        require Geo::IP;
+        my $geoIp = Geo::IP->new();
+        my $countryCode = $geoIp->country_code_by_addr($remote_addr);
+        my $countryName = $geoIp->country_name_by_addr($remote_addr);
+
+        my ($usertype, $role) = (
+                                 Auth::ACL::a_GetUserAttributes('usertype') || 'notset',
+                                 Auth::ACL::a_GetUserAttributes('role') || 'notset',
+                                );
+        my $datetime = Utils::Time::iso_Time();
+
+        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr remote_user[env=$remote_user_from_env processed=$remote_user_processed] usertype=$usertype role=$role geo_code=$countryCode geo_name=$countryName";
+};
+
+        # The optional_dir_pattern "slip/run-___RUN___" is used here
+        # to replace that portion of the logdir set when the slip
+        # config is merged into pt's config to restore the original
+        # logdir path SDRROOT/logs/pt ... what a tangled web we weave
+        Utils::Logger::__Log_string($C, $s, 'pt_access_logfile', 'slip/run-___RUN___', 'pt');
+    }
+}
+
 1;
 
 __END__
@@ -79,7 +125,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2011 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2011-2015 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
