@@ -436,11 +436,11 @@ sub get_institution_code {
 
     my $entity_id = $self->get_shibboleth_entityID($C);
     if ($entity_id) {
-        $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'sdrinst', $mapped);
+        $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'inst_id', $mapped);
     }
     else {
-        my $sdrinst = __get_institution_code_by_ip_address();
-        $inst_code = Institutions::get_institution_sdrinst_field_val($C, $sdrinst, 'sdrinst', $mapped);
+        my $inst_id = __get_institution_code_by_ip_address();
+        $inst_code = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'inst_id', $mapped);
     }
 
     return $inst_code;
@@ -492,8 +492,8 @@ sub get_institution_name {
         $inst_name = Institutions::get_institution_entityID_field_val($C, $entity_id, 'name', $mapped);
     }
     else {
-        my $sdrinst = __get_institution_code_by_ip_address();
-        $inst_name = Institutions::get_institution_sdrinst_field_val($C, $sdrinst, 'name', $mapped);
+        my $inst_id = __get_institution_code_by_ip_address();
+        $inst_name = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'name', $mapped);
     }
 
     return $inst_name;

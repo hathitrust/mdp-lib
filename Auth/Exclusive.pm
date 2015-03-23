@@ -182,7 +182,7 @@ PRIVATE
 An item can be owned by more than one user if their affiliations are
 different.
 
-Note: 'affiliation is the Shib sdrinst institution code, e.g. 'uom'
+Note: 'affiliation is the Shib inst_id institution code, e.g. 'uom'
 not 'umich.edu'.
 
 If $brittle_lost_missing, check the access_count for number of these

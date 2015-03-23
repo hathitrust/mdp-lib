@@ -11,20 +11,20 @@ This package provides the interface and access logic to
 institution-specific data.
 
  CREATE TABLE `ht_institutions` (
-   `sdrinst`          varchar(32)  NOT NULL DEFAULT ' ',
+   `inst_id`          varchar(32)  NOT NULL DEFAULT ' ',
    `name`             varchar(256) NOT NULL DEFAULT ' ',
    `template`         varchar(256) NOT NULL DEFAULT ' ',
    `authtype`         varchar(32)  NOT NULL DEFAULT 'shibboleth',
    `domain`           varchar(32)  NOT NULL DEFAULT ' ',
    `us`               tinyint(1)   NOT NULL DEFAULT '0',
    `mapto_domain`     varchar(32)           DEFAULT NULL,
-   `mapto_sdrinst`    varchar(32)           DEFAULT NULL,
+   `mapto_inst_id`    varchar(32)           DEFAULT NULL,
    `mapto_name`       varchar(256)          DEFAULT NULL,
    `map_to_entityID`  varchar(256)          DEFAULT NULL,
    `enabled`          tinyint(1)   NOT NULL DEFAULT '0',
    `orph_agree`       tinyint(1)   NOT NULL DEFAULT '0',
    `entityID`         varchar(256)          DEFAULT NULL,
-              PRIMARY KEY (`sdrinst`)
+              PRIMARY KEY (`inst_id`)
  );
 
 =head1 SYNOPSIS
@@ -89,10 +89,10 @@ sub __Load_Institution_Hash {
 
 # ---------------------------------------------------------------------
 
-=item _load_institution_sdrinst_hash, _load_institution_entityID_hash, _load_institution_domain_hash, _load_institution_inst_id_hash
+=item _load_institution_entityID_hash, _load_institution_domain_hash, _load_institution_inst_id_hash
 
 We do lookups based on entityID if the user is authenticated or, when
-not, by sdrinst, obtained from Apache SDRINST environment variable
+not, by inst_id, obtained from Apache SDRINST environment variable
 which is set based on institutional IP address ranges or based on
 inst_id when we have a collection_code for an item id we can map to
 inst_id via ht_collections.
@@ -100,17 +100,6 @@ inst_id via ht_collections.
 =cut
 
 # ---------------------------------------------------------------------
-sub _load_institution_sdrinst_hash {
-    my $C = shift;
-    my $sdrinst = shift;
-
-    my $Institution_Hash = ___get_I_ref($C);
-    return $Institution_Hash if (defined $Institution_Hash->{sdrinsts}{$sdrinst});
-
-    $Institution_Hash = __Load_Institution_Hash($C, 'sdrinsts', 'sdrinst', $sdrinst);
-    return $Institution_Hash;
-}
-
 sub _load_institution_entityID_hash {
     my $C = shift;
     my $entityID = shift;
@@ -173,56 +162,14 @@ sub get_institution_entityID_field_val {
         elsif ($field eq 'domain' && $Institution_Hash->{entityIDs}{$entityID}{mapto_domain}) {
             $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst}) {
-            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst};
+        elsif ($field eq 'inst_id' && $Institution_Hash->{entityIDs}{$entityID}{mapto_inst_id}) {
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_inst_id};
         }
         elsif ($field eq 'entityID' && $Institution_Hash->{entityIDs}{$entityID}{mapto_entityID}) {
-            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_sdrinst};
+            $val = $Institution_Hash->{entityIDs}{$entityID}{mapto_entityID};
         }
         else {
             $val = $Institution_Hash->{entityIDs}{$entityID}{$field};
-        }
-    }
-
-    return $val;
-}
-
-# ---------------------------------------------------------------------
-
-=item get_institution_sdrinst_field_val
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub get_institution_sdrinst_field_val {
-    my $C = shift;
-    my ($sdrinst, $field, $mapped) = @_;
-
-    return undef unless ( (defined($sdrinst) && $sdrinst) && (defined($field) && $field) );
-
-    my $val;
-    my $Institution_Hash = _load_institution_sdrinst_hash($C, $sdrinst);
-
-    if (! $mapped) {
-        $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};
-    }
-    else {
-        if ($field eq 'name' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_name}) {
-            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_name};
-        }
-        elsif ($field eq 'domain' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_domain}) {
-            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_domain};
-        }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_sdrinst}) {
-            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_sdrinst};
-        }
-        elsif ($field eq 'entityID' && $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_entityID}) {
-            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{mapto_entityID};
-        }
-        else {
-            $val = $Institution_Hash->{sdrinsts}{$sdrinst}{$field};
         }
     }
 
@@ -257,8 +204,8 @@ sub get_institution_domain_field_val {
         elsif ($field eq 'domain' && $Institution_Hash->{domains}{$domain}{mapto_domain}) {
             $val = $Institution_Hash->{domains}{$domain}{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{domains}{$domain}{mapto_sdrinst}) {
-            $val = $Institution_Hash->{domains}{$domain}{mapto_sdrinst};
+        elsif ($field eq 'inst_id' && $Institution_Hash->{domains}{$domain}{mapto_inst_id}) {
+            $val = $Institution_Hash->{domains}{$domain}{mapto_inst_id};
         }
         elsif ($field eq 'entityID' && $Institution_Hash->{domains}{$domain}{mapto_entityID}) {
             $val = $Institution_Hash->{domains}{$domain}{mapto_entityID};
@@ -299,8 +246,8 @@ sub get_institution_inst_id_field_val {
         elsif ($field eq 'domain' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_domain}) {
             $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_domain};
         }
-        elsif ($field eq 'sdrinst' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_sdrinst}) {
-            $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_sdrinst};
+        elsif ($field eq 'inst_id' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_inst_id}) {
+            $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_inst_id};
         }
         elsif ($field eq 'entityID' && $Institution_Hash->{inst_ids}{$inst_id}{mapto_entityID}) {
             $val = $Institution_Hash->{inst_ids}{$inst_id}{mapto_entityID};
@@ -370,11 +317,11 @@ sub get_idp_list {
 
         push @$results, {
             enabled => $hash_ref->{enabled},
-            sdrinst => $hash_ref->{sdrinst},
+            sdrinst => $hash_ref->{inst_id},
             idp_url => $idp_url,
             authtype => $hash_ref->{authtype},
             name => $hash_ref->{name},
-            selected => ( $inst eq $hash_ref->{sdrinst} ),
+            selected => ( $inst eq $hash_ref->{inst_id} ),
         };
 
     }
