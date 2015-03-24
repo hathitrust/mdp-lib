@@ -756,10 +756,10 @@ Description
 # ---------------------------------------------------------------------
 sub __default_rights_values {
     my $rights_fail = shift;
-    
+
     my $rights_hashref = {};
     my $noop_arrtibute = $RightsGlobals::NOOP_ATTRIBUTE;
-    
+
     # (pd, dlps, open)
     $rights_hashref->{attr}           = $rights_fail ? $noop_arrtibute : 1;
     $rights_hashref->{source}         = $rights_fail ? $noop_arrtibute : 2;
@@ -786,7 +786,7 @@ sub _determine_rights_values {
     # be exposed to the outside world.
     my $local_dataroot = Utils::using_localdataroot($C, $id) || 0;
     my $superuser_set_rights = 0;
-    
+
     if ($local_dataroot) {
         # (pd, dlps, open)
         $rights_hashref = __default_rights_values();
@@ -1190,6 +1190,29 @@ sub _resolve_nonus_aff_access_by_GeoIP {
 
 # ---------------------------------------------------------------------
 
+=item get_proxied_address_data
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_proxied_address_data {
+    my $client_hash = {};
+
+    my @env_keys = ( qw/HTTP_X_FORWARDED_FOR HTTP_X_FORWARDED HTTP_FORWARDED_FOR HTTP_CLIENT_IP/ );
+    foreach my $key (@env_keys) {
+        my $ipaddr = $ENV{$key};
+        if ($ipaddr) {
+            $client_hash->{$key} = $ipaddr;
+        }
+    }
+
+    return $client_hash;
+}
+
+# ---------------------------------------------------------------------
+
 =item proxied_address
 
 Description
@@ -1198,7 +1221,16 @@ Description
 
 # ---------------------------------------------------------------------
 sub proxied_address {
-    return $ENV{HTTP_X_FORWARDED_FOR} || $ENV{HTTP_X_FORWARDED} || $ENV{HTTP_FORWARDED_FOR} || $ENV{HTTP_CLIENT_IP} || $ENV{HTTP_VIA};
+    my $client_hash = get_proxied_address_data();
+
+    foreach my $key (keys %$client_hash) {
+        my $ipaddr = $ENV{$key};
+        if ($ipaddr) {
+            return $ipaddr;
+        }
+    }
+
+    return undef;
 }
 
 # ---------------------------------------------------------------------
@@ -1225,15 +1257,15 @@ sub _resolve_access_by_GeoIP {
     # If there's a proxy involved force both proxy and client to be
     # coterminous geographically.  It's the best we can do since all
     # these addresses can be spoofed.
-    my $PROXIED_ADDR = proxied_address();
+    my $PROXIED_ADDR = proxied_address() || 0;
     my $proxy_detected = $PROXIED_ADDR;
-    
+
     my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
 
     my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR );
     my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
-    
+
     my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
     my $proxied_addr_is_US = ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
     my $proxied_addr_is_nonUS = (! $proxied_addr_is_US);
@@ -1248,19 +1280,19 @@ sub _resolve_access_by_GeoIP {
                 $address_location = 'US';
             }
             else {
-                $address_location = 'NONUS'; 
+                $address_location = 'NONUS';
             }
         }
     }
     else {
         $IPADDR = $REMOTE_ADDR;
         if ($remote_addr_is_US) {
-            $address_location = 'US'; 
+            $address_location = 'US';
         }
         else {
-            $address_location = 'NONUS'; 
+            $address_location = 'NONUS';
         }
-    }    
+    }
 
     my $correct_location = ($required_location eq $address_location) || 0;
 
@@ -1281,7 +1313,7 @@ sub _resolve_access_by_GeoIP {
         $status = 'deny';
     }
 
-    DEBUG('auth', 
+    DEBUG('auth',
           sub { my $s = qq{_resolve_access_by_GeoIP: status=$status remote_addr_country_code=$remote_addr_country_code required_location=$required_location correct_location=$correct_location};
                 $s .= qq{ proxy_detected=$proxy_detected forwarded_addr_country_code=$proxied_addr_country_code} if ($proxy_detected);
                 return $s;
