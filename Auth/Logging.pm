@@ -83,7 +83,7 @@ failed accesses.
 
 # ---------------------------------------------------------------------
 sub log_failed_access  {
-    my ($C, $id) = @_;
+    my ($C, $id, $app_name) = @_;
 
     my $ar = $C->get_object('Access::Rights');
 
@@ -111,10 +111,10 @@ sub log_failed_access  {
 
         require Geo::IP;
         my $geoIp = Geo::IP->new();
-        my $country_code = $geoIp->country_code_by_addr($remote_addr); chomp $country_code;
-        my $country_name = $geoIp->country_name_by_addr($remote_addr); chomp $country_name;
-        my $country_code_prox = $geoIp->country_code_by_addr($proxied_addr); chomp $country_code_prox;
-        my $country_name_prox = $geoIp->country_name_by_addr($proxied_addr); chomp $country_name_prox;
+        my $country_code = $geoIp->country_code_by_addr($remote_addr) || 'notset'; chomp $country_code;
+        my $country_name = $geoIp->country_name_by_addr($remote_addr) || 'notset'; chomp $country_name;
+        my $country_code_prox = $geoIp->country_code_by_addr($proxied_addr) || 'notset'; chomp $country_code_prox;
+        my $country_name_prox = $geoIp->country_name_by_addr($proxied_addr) || 'notset'; chomp $country_name_prox;
 
         my ($usertype, $role) = (
                                  Auth::ACL::a_GetUserAttributes('usertype') || 'notset',
@@ -122,7 +122,7 @@ sub log_failed_access  {
                                 );
         my $datetime = Utils::Time::iso_Time();
 
-        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
+        my $s = qq{access failure: app=$app_name id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
 
         my $proxied_addr_hash = Access::Rights::get_proxied_address_data();
         foreach my $key (keys %$proxied_addr_hash) {
@@ -146,7 +146,9 @@ sub log_failed_access  {
         # to replace that portion of the logdir set when the slip
         # config is merged into pt's config to restore the original
         # logdir path SDRROOT/logs/pt ... what a tangled web we weave
-        Utils::Logger::__Log_string($C, $s, 'pt_access_logfile', 'slip/run-___RUN___', 'pt');    }
+        my $pattern = qr(slip/run-___RUN___|___QUERY___);
+        Utils::Logger::__Log_string($C, $s, 'pt_access_logfile', $pattern, 'pt');
+    }
 }
 
 1;
