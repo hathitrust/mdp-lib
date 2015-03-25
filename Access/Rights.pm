@@ -1204,7 +1204,9 @@ sub get_proxied_address_data {
     foreach my $key (@env_keys) {
         my $ipaddr = $ENV{$key};
         if ($ipaddr) {
-            $client_hash->{$key} = $ipaddr;
+            if ($ipaddr !~ m/$RightsGlobals::private_network_ranges_regexp/) {
+                $client_hash->{$key} = $ipaddr;
+            }
         }
     }
 

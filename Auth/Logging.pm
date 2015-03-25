@@ -113,6 +113,8 @@ sub log_failed_access  {
         my $geoIp = Geo::IP->new();
         my $country_code = $geoIp->country_code_by_addr($remote_addr); chomp $country_code;
         my $country_name = $geoIp->country_name_by_addr($remote_addr); chomp $country_name;
+        my $country_code_prox = $geoIp->country_code_by_addr($proxied_addr); chomp $country_code_prox;
+        my $country_name_prox = $geoIp->country_name_by_addr($proxied_addr); chomp $country_name_prox;
 
         my ($usertype, $role) = (
                                  Auth::ACL::a_GetUserAttributes('usertype') || 'notset',
@@ -120,7 +122,7 @@ sub log_failed_access  {
                                 );
         my $datetime = Utils::Time::iso_Time();
 
-        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
+        my $s = qq{access failure: id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
 
         my $proxied_addr_hash = Access::Rights::get_proxied_address_data();
         foreach my $key (keys %$proxied_addr_hash) {
