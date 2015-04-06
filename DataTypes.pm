@@ -27,8 +27,16 @@ Coding example
 
 =cut
 
-our %dataTypeMatrix = 
+our %dataTypeMatrix =
   (
+   q{http://www.hathitrust.org/documents/hathitrust-mets-profile2.1.xml} =>
+   [{
+     _xpath   => q{},
+     _value   => q{},
+     _type    => q{volume},
+     _subtype => q{volume},
+    }],
+
    q{http://www.hathitrust.org/documents/hathitrust-mets-profile2.0.xml} =>
    [{
      _xpath   => q{},
@@ -51,14 +59,14 @@ our %dataTypeMatrix =
      _subtype => q{TEI},
     }],
 
-   q{http://www.hathitrust.org/documents/hathitrust-audio-mets-profile1.0.xml} => 
+   q{http://www.hathitrust.org/documents/hathitrust-audio-mets-profile1.0.xml} =>
    [{
      _xpath   => q{},
      _value   => q{},
      _type    => q{audio},
      _subtype => q{audio},
     }],
-  );                                                                                  
+  );
 
 
 # ---------------------------------------------------------------------
@@ -111,9 +119,9 @@ sub __getMatrixValue {
     my $level = shift;
 
     my $profile = __get_METS_profile_URI($METS_root);
-    
+
     my $discriminators = $dataTypeMatrix{$profile};
-    
+
     if ($discriminators) {
         foreach my $d_hashref (@$discriminators) {
             my $xpath = $d_hashref->{_xpath};
@@ -127,7 +135,7 @@ sub __getMatrixValue {
             }
         }
     }
-    
+
     return undef;
 }
 
@@ -143,7 +151,7 @@ Description
 # ---------------------------------------------------------------------
 sub __get_METS_profile_URI {
     my $METS_root = shift;
-    
+
     my $xpath = q{/METS:mets/@PROFILE};
     return $METS_root->findvalue($xpath);
 }
