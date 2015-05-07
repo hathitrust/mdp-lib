@@ -591,9 +591,8 @@ sub list_items {
 
     # AND IN $rights_ref
     if (defined $rights_ref->[0]) {
-        my $RIGHTS_clause = '(' . join(' ', map{ "$item_table.rights=?" } @$rights_ref) . ')';
-        $RIGHTS_clause =~ s,[ ], OR ,g;
-        $WHERE .= ' AND ' . $RIGHTS_clause;
+        my $IN_clause = $self->arr_ref2SQL_in_string($rights_ref);
+        $WHERE .= qq{ AND $item_table.rights IN $IN_clause };
     }
 
     # ORDER BY
@@ -1084,10 +1083,10 @@ sub count_full_text {
         $WHERE .= qq{ AND $item_table.extern_item_id IN $id_string  };
     }
 
-    my $RIGHTS_clause = '(' . join(' ', map{ "$item_table.rights=?" } @$rights_ref) . ')';
-    $RIGHTS_clause =~ s,[ ], OR ,g;
-
-    $WHERE .= qq{ AND $RIGHTS_clause };
+    if (defined $rights_ref->[0]) {
+        my $IN_clause = $self->arr_ref2SQL_in_string($rights_ref);
+        $WHERE .= qq{ AND $item_table.rights IN $IN_clause };
+    }
 
     my $statement = join (' ',  qq{$SELECT $FROM $WHERE});
 
@@ -1106,6 +1105,8 @@ sub count_full_text {
     }
 
     DEBUG('dbcoll', qq{count_full_text sql=$statement count="$count"});
+    DEBUG('dbcoll', Data::Dumper::Dumper($id_array_ref));
+    DEBUG('dbcoll', Data::Dumper::Dumper($rights_ref));
 
     return $count || 0;
 }
