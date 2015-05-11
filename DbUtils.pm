@@ -33,6 +33,12 @@ use Debug::DUtils;
 use constant DATABASE_RETRY_SLEEP => 300; # 5 minutes
 use constant MAX_DATABASE_RETRIES => 12;  # 1 hour of outage
 
+use Utils::Logger;
+use Time::HiRes qw(time);
+
+use constant LOG_QUERIES => 1;
+
+
 # ---------------------------------------------------------------------
 
 =item prep_n_execute
@@ -99,6 +105,10 @@ sub prep_n_execute {
         my $elapsed = time - $start;
         my ($package, $filename, $line, $subroutine) = caller(1);
         print STDERR "elapsed=$elapsed $subroutine $statement \n";
+    }
+
+    if ( LOG_QUERIES ) {
+        _log_message($start, $statement, \@params);
     }
 
     return $sth;
@@ -426,6 +436,27 @@ sub quote
 
     my $quoted = $dbh->quote($string);
     return $quoted;
+}
+
+sub _log_message
+{
+    my ( $start, $statement, $params) = @_;
+    my $C = new Context;
+    my $auth = ref($C) ? $C->get_object('Auth') : undef;
+
+    $statement =~ s,\s+, ,gsm;
+    my $s = join('|',
+        Utils::Time::iso_Time(),
+        "delta=" . ( Time::HiRes::time() - $start ),
+        "userid=" . ( ref($auth) ? $auth->get_user_name($C) : '-' ),
+        "cgi=" . $ENV{SCRIPT_URL},
+        "statement=" . $statement,
+        "params=" . join(' /', @$params),
+    );
+
+    # see lament in Auth::Logging
+    my $pattern = qr(slip/run-___RUN___|___QUERY___);
+    Utils::Logger::__Log_string($C, $s, q{db_statement_logfile}, $pattern, 'db');
 }
 
 1;
