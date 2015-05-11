@@ -442,7 +442,7 @@ sub _log_message
 {
     my ( $start, $statement, $params) = @_;
     my $C = new Context;
-    my $auth = ref($C) ? $C->get_object('Auth') : undef;
+    my $auth = ref($C) ? $C->get_object('Auth', 1) : undef;    
 
     $statement =~ s,\s+, ,gsm;
     my $s = join('|',
@@ -451,7 +451,7 @@ sub _log_message
         "userid=" . ( ref($auth) ? $auth->get_user_name($C) : '-' ),
         "cgi=" . $ENV{SCRIPT_URL},
         "statement=" . $statement,
-        "params=" . join(' /', @$params),
+        "params=" . join(' / ', @$params),
     );
 
     # see lament in Auth::Logging
