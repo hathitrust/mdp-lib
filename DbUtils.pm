@@ -449,7 +449,7 @@ sub _log_message
         Utils::Time::iso_Time(),
         "delta=" . ( Time::HiRes::time() - $start ),
         "userid=" . ( ref($auth) ? $auth->get_user_name($C) : '-' ),
-        "cgi=" . $ENV{SCRIPT_URL},
+        "cgi=" . (defined $ENV{SCRIPT_URL} ? $ENV{SCRIPT_URL} : '-'),
         "statement=" . $statement,
         "params=" . join(' / ', @$params),
     );
