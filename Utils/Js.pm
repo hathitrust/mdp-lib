@@ -104,7 +104,8 @@ sub build_javascript_assoc_array
     $js .= qq{var $arr_name = new Array();\n};
 
     foreach my $key (keys %$hashref) {
-        $js .= qq{$arr_name\[$key\] = $hashref->{$key};\n};
+        my $value = $hashref->{$key} || 0;
+        $js .= qq{$arr_name\[$key\] = $value;\n};
     }
     $js .= qq{return $arr_name;\n};
     $js .= qq{\}\n};
