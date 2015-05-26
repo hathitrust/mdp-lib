@@ -14,6 +14,8 @@ use strict;
 use DBI;
 use Apache::Session::Store::DBI;
 
+use Time::HiRes qw(time);
+
 use vars qw(@ISA $VERSION);
 
 @ISA = qw(Apache::Session::Store::DBI);
@@ -35,10 +37,10 @@ sub connection {
         $self->{dbh} = $session->{args}->{Handle};
         $self->{commit} = $session->{args}->{Commit};
         
-        if ( $self->{dbh}->{AutoCommit} == 1 && $self->{commit} ) {
-            $self->{dbh}->begin_work;
-            # $self->{dbh}->{AutoCommit} = 0;
-        }
+        # if ( $self->{dbh}->{AutoCommit} == 1 && $self->{commit} ) {
+        #     $self->{dbh}->begin_work;
+        #     # $self->{dbh}->{AutoCommit} = 0;
+        # }
 
         return;
     }
@@ -73,10 +75,16 @@ sub materialize {
 
     local $self->{dbh}->{RaiseError} = 1;
 
+    # if (!defined $self->{materialize_sth}) {
+    #     $self->{materialize_sth} = 
+    #         $self->{dbh}->prepare_cached(qq{
+    #             SELECT a_session FROM $self->{'table_name'} WHERE id = ? FOR UPDATE});
+    # }
+
     if (!defined $self->{materialize_sth}) {
         $self->{materialize_sth} = 
             $self->{dbh}->prepare_cached(qq{
-                SELECT a_session FROM $self->{'table_name'} WHERE id = ? FOR UPDATE});
+                SELECT a_session FROM $self->{'table_name'} WHERE id = ?});
     }
     
     $self->{materialize_sth}->bind_param(1, $session->{data}->{_session_id});
@@ -96,12 +104,96 @@ sub materialize {
     $session->{serialized} = $results->[0];
 }
 
+sub insert {
+    my $self    = shift;
+    my $session = shift;
+    
+    $self->connection($session);
+    eval {
+        $self->_begin_work;
+        $self->SUPER::insert($session);
+        $self->_commit;
+    };
+    if ( my $err = $@ ) {
+        print STDERR "SESSION INSERT ERROR : $err : " . $self->{dbh}->errstr . "\n";
+        $self->_rollback;
+    }
+}
+
+sub update {
+    my $self    = shift;
+    my $session = shift;
+
+    my $t0 = time();
+    
+    $self->connection($session);
+    eval {
+        # my @tmp = ();
+        # my ($package, $filename, $line, $subroutine) = caller(1);
+        # push @tmp, $subroutine;
+        # ($package, $filename, $line, $subroutine) = caller(2);
+        # push @tmp, $subroutine;
+        # ($package, $filename, $line, $subroutine) = caller(3);
+        # push @tmp, $subroutine;
+        # ($package, $filename, $line, $subroutine) = caller(4);
+        # push @tmp, $subroutine;
+        # print STDERR "SESSION UPDATE : $$session{data}{_session_id} : $ENV{REQUEST_URI} : @tmp\n";
+        $self->_begin_work;
+        $self->SUPER::update($session);
+        $self->_commit;
+    };
+    if ( my $err = $@ ) {
+        print STDERR "SESSION UPDATE ERROR : $err : " . $self->{dbh}->errstr . "\n";
+        $self->_rollback;
+    }
+
+}
+
+sub remove {
+    my $self    = shift;
+    my $session = shift;
+    
+    $self->connection($session);
+    eval {
+        $self->_begin_work;
+        $self->SUPER::remove($session);
+        $self->_commit;
+    };
+    if ( my $err = $@ ) {
+        print STDERR "SESSION REMOVE ERROR : $err : " . $self->{dbh}->errstr . "\n";
+        $self->_rollback;
+    }
+}
+
+sub _begin_work {
+    my $self = shift;
+    if ( $self->{dbh}->{AutoCommit} == 1 && $self->{commit} ) {
+        # $self->{dbh}->begin_work;
+        $self->{dbh}->{AutoCommit} = 0;
+        $self->{__in_transaction} = 1;
+    } elsif ( $self->{dbh}->{AutoCommit} == 0 ) {
+        # NOT autocommitting
+        $self->{__in_transaction} = 1;
+    }
+}
+
+sub _commit {
+    my $self = shift;
+    $self->{dbh}->commit if ( $self->{__in_transaction} );
+}
+
+sub _rollback {
+    my $self = shift;
+    $self->{dbh}->rollback;
+}
+
 sub DESTROY {
     my $self = shift;
 
-    if ($self->{commit} ) {
-        $self->{dbh}->commit;
-    }
+    # if ($self->{commit} ) {
+    #     print STDERR "STILL COMMITING : " . $self->{dbh}->{AutoCommit} . "\n";
+    #     $self->{dbh}->commit;
+    # }
     
     if ($self->{disconnect}) {
         $self->{dbh}->disconnect;
