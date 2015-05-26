@@ -1127,6 +1127,20 @@ sub get_user_name {
     return $user_id;
 }
 
+sub get_legacy_user_name {
+    my $self = shift;
+    my $C = shift;
+    my $user_id;
+    if ( $self->is_logged_in() && $self->get_institution_code($C, 1) eq 'umich' ) {
+        if ( $self->login_realm_is_friend ) {
+            $user_id = lc $ENV{mail};
+        } else {
+            $user_id = lc((split(/\@/, $ENV{eppn}))[0]);
+        }
+    }
+    return $user_id;
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -1139,6 +1153,11 @@ True if the user's session was not logged in until now.
 # ---------------------------------------------------------------------
 sub isa_new_login {
     my $self = shift;
+    my $C = shift;
+    if ( defined $C && $C->get_object('Session')->get_persistent('_isa_new_login_via_pong') ) {
+        $C->get_object('Session')->set_persistent('_isa_new_login_via_pong', 0);
+        return 1;
+    }
     return $self->{'isa_new_login'} ? 1 : 0;
 }
 
