@@ -441,6 +441,9 @@ sub quote
 sub _log_message
 {
     my ( $start, $statement, $params) = @_;
+
+    return unless ( defined $ENV{HTTP_HOST} );
+
     my $C = new Context;
     my $auth = ref($C) ? $C->get_object('Auth', 1) : undef;    
 
