@@ -442,9 +442,14 @@ sub _log_message
 {
     my ( $start, $statement, $params) = @_;
 
-    return unless ( defined $ENV{HTTP_HOST} );
-
     my $C = new Context;
+
+    # if there's no config, DO NOT LOG
+    my $config = ref($C) ? $C->get_object('MdpConfig', 1) : undef;
+    unless ( $config ) {
+        return;
+    }
+
     my $auth = ref($C) ? $C->get_object('Auth', 1) : undef;    
 
     $statement =~ s,\s+, ,gsm;
