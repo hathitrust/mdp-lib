@@ -36,7 +36,7 @@ use constant MAX_DATABASE_RETRIES => 12;  # 1 hour of outage
 use Utils::Logger;
 use Time::HiRes qw(time);
 
-use constant LOG_QUERIES => 1;
+use constant LOG_QUERIES => 0;
 
 
 # ---------------------------------------------------------------------
@@ -450,7 +450,7 @@ sub _log_message
         return;
     }
 
-    my $auth = ref($C) ? $C->get_object('Auth', 1) : undef;    
+    my $auth = ref($C) ? $C->get_object('Auth', 1) : undef;
 
     $statement =~ s,\s+, ,gsm;
     my $s = join('|',
