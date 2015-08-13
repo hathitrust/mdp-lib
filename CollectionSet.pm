@@ -259,7 +259,7 @@ sub get_coll_data_from_user_id
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
 
-    my $statement = qq{SELECT collname, MColl_ID FROM $coll_table WHERE owner=? ORDER BY collname};
+    my $statement = qq{SELECT collname, MColl_ID, num_items FROM $coll_table WHERE owner=? ORDER BY collname};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
     my $coll_data_ref = $sth->fetchall_arrayref({});
 
