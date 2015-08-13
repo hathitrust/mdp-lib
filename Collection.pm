@@ -578,9 +578,10 @@ sub list_items {
     ASSERT($sort_key_in_sort_fields, qq{Collection::list_items $sort_key not in item_sort_fields});
 
     # SELECT FROM
-    @metadata_fields = map { "$item_table." . $_ } @metadata_fields;
+    @metadata_fields = map { "a." . $_ } @metadata_fields;
     my $fields = join(",", @metadata_fields);
-    my $SELECT = qq{SELECT $fields FROM $item_table, $coll_item_table};
+
+    my $SELECT = qq{SELECT mb_item.extern_item_id FROM $item_table, $coll_item_table };
 
     # WHERE
     my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=?};
@@ -591,7 +592,7 @@ sub list_items {
 
     # AND IN $rights_ref
     if (defined $rights_ref->[0]) {
-        my $IN_clause = $self->arr_ref2SQL_in_string($rights_ref);
+        my $IN_clause = $self->arr_ref2SQL_in_string([ sort { $a <=> $b } @$rights_ref ]);
         $WHERE .= qq{ AND $item_table.rights IN $IN_clause };
     }
 
@@ -606,8 +607,9 @@ sub list_items {
         $LIMIT = qq{ LIMIT $offset, $recs_per_slice};
     }
 
-    # NOTE: this odd construct is for efficiency
-    my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS t0 $LIMIT};
+    # # NOTE: this odd construct is for efficiency
+    # my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS t0 $LIMIT};
+    my $statement = qq{SELECT $fields FROM ( $SELECT $WHERE $LIMIT ) o JOIN $item_table a ON a.extern_item_id = o.extern_item_id ORDER BY $sort_key $direction};
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
@@ -880,6 +882,9 @@ sub item_in_collection {
     my $id = shift;
     my $coll_id = shift;
 
+    my $items_hr = $self->get_ids_for_coll($coll_id, {});
+    return ( $$items_hr{$id} );
+
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
 
@@ -1053,6 +1058,39 @@ sub get_coll_data_for_item_and_user {
     return $ref_to_ary_of_hashref;
 }
 
+sub get_coll_data_for_items_and_user {
+    my $self = shift;
+    my $idlist = shift;
+    my $user_id = shift;
+
+    return {} unless ( scalar @$idlist );
+
+    my $coll_table = $self->get_coll_table_name;
+    my $coll_item_table = $self->get_coll_item_table_name;
+    my $dbh = $self->get_dbh;
+
+    my $expr = []; my $params = [];
+    foreach my $item_hashref ( @$idlist ) {
+        push @$expr, '?';
+        push @$params, $item_hashref->{'extern_item_id'};
+    }
+
+    $expr = join(',', @$expr);
+
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname, $coll_item_table.extern_item_id FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id IN ( $expr ) ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, @$params);
+    my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
+    my $result = {};
+    foreach my $ref ( @$ref_to_ary_of_hashref ) {
+        my $id = $$ref{extern_item_id};
+        unless ( ref($$result{$id}) ) {
+            $$result{$id} = [];
+        }
+        push @{ $$result{ $id } }, $ref;
+    }
+
+    return $result;
+}
 
 # ---------------------------------------------------------------------
 
@@ -1067,48 +1105,22 @@ sub count_full_text {
     my $self = shift;
     my $coll_id = shift;
     my $rights_ref = shift;
-    my $id_array_ref = shift;
-
-    my $item_table = $self->get_item_table_name;
-    my $coll_item_table = $self->get_coll_item_table_name;
+    my $id_array_ref = shift || [];
 
     ASSERT(defined ($rights_ref->[0]), qq{rights ref must be defined!});
 
-    my $SELECT = qq{SELECT count($item_table.extern_item_id) } ;
-    my $FROM = qq{FROM $item_table, $coll_item_table};
-    my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=?};
-
-    if (defined ($id_array_ref)) {
-        my $id_string = $self->arr_ref2SQL_in_string($id_array_ref);
-        $WHERE .= qq{ AND $item_table.extern_item_id IN $id_string  };
+    my $rights_hr = { map { $_ => 1 } @$rights_ref }; 
+    my $items_hr = $self->get_ids_for_coll($coll_id, {});
+    unless ( scalar @$id_array_ref ) {
+        $id_array_ref = [ keys %$items_hr ];
     }
-
-    if (defined $rights_ref->[0]) {
-        my $IN_clause = $self->arr_ref2SQL_in_string($rights_ref);
-        $WHERE .= qq{ AND $item_table.rights IN $IN_clause };
+    my $count = 0;
+    foreach my $id ( @$id_array_ref ) {
+        my $rights = $$items_hr{$id};
+        my $check = $$rights_hr{$rights};
+        $count += 1 if ( $check );
     }
-
-    my $statement = join (' ',  qq{$SELECT $FROM $WHERE});
-
-    my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_array_ref, @$rights_ref);
-    my $countref = $sth->fetchall_arrayref([0]);
-    my $count = $countref->[0]->[0];
-
-    if (0) {
-        my $d = '';
-        require Data::Dumper;
-        $d = Data::Dumper::Dumper($id_array_ref);
-        print STDERR $d;
-        $d =  Data::Dumper::Dumper($rights_ref);
-        print STDERR $d;
-    }
-
-    DEBUG('dbcoll', qq{count_full_text sql=$statement count="$count"});
-    DEBUG('dbcoll', Data::Dumper::Dumper($id_array_ref));
-    DEBUG('dbcoll', Data::Dumper::Dumper($rights_ref));
-
-    return $count || 0;
+    return $count;
 }
 
 # ---------------------------------------------------------------------
@@ -1200,19 +1212,29 @@ my $id_ary_ref = $co->get_ids_for_coll($coll_id);
 sub get_ids_for_coll {
     my $self = shift;
     my $coll_id = shift;
+    my $format = shift;
 
-    my $coll_item_table = $self->get_coll_item_table_name();
-    my $statement = qq{SELECT extern_item_id FROM $coll_item_table WHERE MColl_ID=?};
+    $format = ref($format) || 'ARRAY';
+    my $results_ref;
+    unless ( $results_ref = $$self{'_collection_ids',$coll_id,$format} ) {
+        my $coll_item_table = $self->get_coll_item_table_name();
+        my $statement = qq{SELECT a.extern_item_id, b.rights FROM $coll_item_table a JOIN mb_item b ON a.extern_item_id = b.extern_item_id WHERE a.MColl_ID = ? };
 
-    DEBUG('dbcoll', qq{get_item_ids_for_coll sql=$statement});
+        DEBUG('dbcoll', qq{get_item_ids_for_coll sql=$statement});
 
-    my $dbh = $self->get_dbh();
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my $ids_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
+        my $dbh = $self->get_dbh();
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
+        my $ids_ary_of_ary_ref = $sth->fetchall_arrayref([0, 1]);
 
-    my $ids_ary_ref = [ map {$_->[0]} @$ids_ary_of_ary_ref ];
+        if ( $format eq 'HASH' ) {
+            $results_ref = { map {$_->[0] => $_->[1] } @$ids_ary_of_ary_ref };
+        } else {
+            $results_ref = [ map {$_->[0]} @$ids_ary_of_ary_ref ];
+        }
+        $$self{'_collection_ids',$coll_id,$format} = $results_ref;
+    }
 
-    return $ids_ary_ref;
+    return $results_ref;
 }
 
 
