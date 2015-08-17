@@ -615,10 +615,8 @@ sub list_items {
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
     my $dbh = $self->get_dbh();
-    my $t0 = Time::HiRes::time();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_arr_ref, @$rights_ref);
     my $arr_ref = $sth->fetchall_arrayref({});
-    print STDERR "LIST ITEMS : " . ( Time::HiRes::time() - $t0 ) . "\n";
 
     return $arr_ref;
 }
@@ -693,6 +691,9 @@ sub get_shared_status {
 
     my $status_string = "";
     my $status = $self->get_coll_record($coll_id)->{shared};
+
+    ## TESTING - MAKE LARGEST COLLECTION PUBLIC ON DEMAND
+    $status = 1 if ( $coll_id eq '1693617892' );
 
     # instead of returning 1 or 0 return strings
     if ($status == 0) {
@@ -1126,7 +1127,6 @@ sub count_full_text {
         my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, sort @$rights_ref);
         $sth = DbUtils::prep_n_execute($dbh, qq{SELECT FOUND_ROWS()});
         ( $count ) = $sth->fetchrow_array();
-        print STDERR "-- COUNT ALL FULL TEXT : $count\n";
         return $count;
     }
 
@@ -1141,7 +1141,6 @@ sub count_full_text {
         my $check = $$rights_hr{$rights};
         $count += 1 if ( $check );
     }
-    print STDERR "-- COUNT SUBSET FULL TEXT : " . ( scalar @$id_array_ref ) . " : " . $count . "\n";
     return $count;
 }
 
