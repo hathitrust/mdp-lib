@@ -581,7 +581,7 @@ sub list_items {
     @metadata_fields = map { "a." . $_ } @metadata_fields;
     my $fields = join(",", @metadata_fields);
 
-    my $SELECT = qq{SELECT mb_item.extern_item_id FROM $item_table, $coll_item_table };
+    my $SELECT = qq{SELECT $item_table.extern_item_id FROM $item_table, $coll_item_table };
 
     # WHERE
     my $WHERE = qq{WHERE $item_table.extern_item_id=$coll_item_table.extern_item_id AND $coll_item_table.MColl_ID=?};
@@ -609,13 +609,16 @@ sub list_items {
 
     # # NOTE: this odd construct is for efficiency
     # my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS t0 $LIMIT};
+    $fields = time() . ", $fields";
     my $statement = qq{SELECT $fields FROM ( $SELECT $WHERE $LIMIT ) o JOIN $item_table a ON a.extern_item_id = o.extern_item_id ORDER BY $sort_key $direction};
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
 
     my $dbh = $self->get_dbh();
+    my $t0 = Time::HiRes::time();
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$id_arr_ref, @$rights_ref);
     my $arr_ref = $sth->fetchall_arrayref({});
+    print STDERR "LIST ITEMS : " . ( Time::HiRes::time() - $t0 ) . "\n";
 
     return $arr_ref;
 }
@@ -1109,17 +1112,36 @@ sub count_full_text {
 
     ASSERT(defined ($rights_ref->[0]), qq{rights ref must be defined!});
 
+    unless ( scalar @$id_array_ref ) {
+        my $coll_item_table = $self->get_coll_item_table_name;
+        my $coll_table = $self->get_coll_table_name;
+        my $item_table = $self->get_item_table_name;
+
+        my $expr = [ map { '?' } @$rights_ref ];
+        $expr = join(',', @$expr);
+
+        my $count = 0;
+        my $dbh = $self->get_dbh;
+        my $statement = qq{SELECT SQL_CALC_FOUND_ROWS b.extern_item_id FROM $coll_item_table a JOIN $item_table b WHERE a.extern_item_id = b.extern_item_id AND a.MColl_ID = ? AND b.rights IN ($expr) LIMIT 1};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, sort @$rights_ref);
+        $sth = DbUtils::prep_n_execute($dbh, qq{SELECT FOUND_ROWS()});
+        ( $count ) = $sth->fetchrow_array();
+        print STDERR "-- COUNT ALL FULL TEXT : $count\n";
+        return $count;
+    }
+
     my $rights_hr = { map { $_ => 1 } @$rights_ref }; 
     my $items_hr = $self->get_ids_for_coll($coll_id, {});
-    unless ( scalar @$id_array_ref ) {
-        $id_array_ref = [ keys %$items_hr ];
-    }
+    # unless ( scalar @$id_array_ref ) {
+    #     $id_array_ref = [ keys %$items_hr ];
+    # }
     my $count = 0;
     foreach my $id ( @$id_array_ref ) {
         my $rights = $$items_hr{$id};
         my $check = $$rights_hr{$rights};
         $count += 1 if ( $check );
     }
+    print STDERR "-- COUNT SUBSET FULL TEXT : " . ( scalar @$id_array_ref ) . " : " . $count . "\n";
     return $count;
 }
 
