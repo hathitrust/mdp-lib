@@ -1166,6 +1166,19 @@ sub collection_is_large {
     return ($num_items_in_coll > $small_collection_max_items);
 }
 
+sub collection_is_very_large {
+    my $self = shift;
+    my $coll_id = shift;
+    my $num_items_in_coll = shift;
+
+    my $large_collection_max_items = $self->get_config()->get('delete_check_max_item_ids');
+    unless (defined $num_items_in_coll) {
+        $num_items_in_coll  = $self->count_all_items_for_coll($coll_id);
+    }
+
+    return ($num_items_in_coll >= $large_collection_max_items);
+}
+
 # ---------------------------------------------------------------------
 
 =item count_rights_for_coll
