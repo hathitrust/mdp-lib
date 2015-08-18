@@ -1248,7 +1248,7 @@ sub get_ids_for_coll {
         my $ids_ary_of_ary_ref = $sth->fetchall_arrayref([0, 1]);
 
         if ( $format eq 'HASH' ) {
-            $results_ref = { map {$_->[0] => $_->[1] } @$ids_ary_of_ary_ref };
+            $results_ref = { map { @$_ } @$ids_ary_of_ary_ref };
         } else {
             $results_ref = [ map {$_->[0]} @$ids_ary_of_ary_ref ];
         }
