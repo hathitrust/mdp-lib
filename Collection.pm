@@ -692,9 +692,6 @@ sub get_shared_status {
     my $status_string = "";
     my $status = $self->get_coll_record($coll_id)->{shared};
 
-    ## TESTING - MAKE LARGEST COLLECTION PUBLIC ON DEMAND
-    $status = 1 if ( $coll_id eq '1693617892' );
-
     # instead of returning 1 or 0 return strings
     if ($status == 0) {
         $status_string = 'private';
