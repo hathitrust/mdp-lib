@@ -608,8 +608,8 @@ sub list_items {
     }
 
     # # NOTE: this odd construct is for efficiency
-    # my $statement = qq{SELECT * FROM ($SELECT $WHERE) AS t0 $LIMIT};
-    $fields = time() . ", $fields";
+    #### add time() to bust MySQL cache
+    #### $fields = time() . ", $fields";
     my $statement = qq{SELECT $fields FROM ( $SELECT $WHERE $LIMIT ) o JOIN $item_table a ON a.extern_item_id = o.extern_item_id ORDER BY $sort_key $direction};
 
     DEBUG('dbcoll', qq{list_items sql=$statement});
