@@ -572,6 +572,28 @@ sub P_output_data_HTTP {
     print STDOUT $$data_ref;
 }
 
+sub P_output_none_HTTP {
+    my ($C) = @_ ;
+
+    my $ses = $C->get_object('Session', 1);
+    if ($ses) {
+        my $cookie = $ses->get_cookie();
+        Utils::add_header($C, 'Cookie' => $cookie);
+    }    
+    
+    my $auth = $C->get_object('Auth', 1);
+    if ($auth && $auth->isa_new_login()) {
+        my $cookie = Utils::get_user_status_cookie($C, $auth);
+        Utils::add_header($C, 'Cookie' => $cookie);
+    }
+    
+    my $headers_ref = $C->get_object('HTTP::Headers');
+    
+    print STDOUT "Status: 204" . $CGI::CRLF;
+    print STDOUT $headers_ref->as_string($CGI::CRLF);
+    print STDOUT $CGI::CRLF;
+}
+
 sub IF_LT_IE9 {
     return <<END;
 <!--[if lt IE 9]>
