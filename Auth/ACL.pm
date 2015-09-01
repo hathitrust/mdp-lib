@@ -487,8 +487,6 @@ sub __update_accesscount {
     my $expires = __get_user_attributes('expires');
     my $s = $userid ? "userid=$userid" : "NULL userid";
 
-    print STDERR "Auth::ACL::__update_accesscount: $s id=$id attr=$attr ipaddr=$ipaddr usertype=$usertype role=$role access=$access expires=$expires";
-
     my ($sth, $statement);
     eval {
         $statement = qq{INSERT INTO ht_counts SET userid=?, accesscount=1, last_access=NOW() ON DUPLICATE KEY UPDATE accesscount=accesscount+1, last_access=NOW()};
