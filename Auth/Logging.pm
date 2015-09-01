@@ -88,7 +88,7 @@ sub log_successful_access  {
     my $ar = $C->get_object('Access::Rights');
 
     if ( $ar->check_final_access_status($C, $id) eq 'allow' ) {
-        _log_access($C, $id, $app_name, 'access success');
+        _log_access($C, $id, $app_name, 'access=success');
     }
 }
 
@@ -107,7 +107,7 @@ sub log_failed_access  {
     my $ar = $C->get_object('Access::Rights');
 
     if ( $ar->check_final_access_status($C, $id) ne 'allow' ) {
-        _log_access($C, $id, $app_name, 'access failure');
+        _log_access($C, $id, $app_name, 'access=failure');
     }
 }
 
@@ -129,7 +129,7 @@ sub _log_access {
     my $auth_type             = lc ($ENV{AUTH_TYPE} || 'notset');
     my $http_host             = $ENV{HTTP_HOST} || 'notset';
     my $sdrlib                = $ENV{SDRLIB} || 'notset';
-    my $http_referer          = $ENV{HTTP_REFERER}  || 'notset';
+    my $http_referer          = $ENV{HTTP_REFERER}  || 'notset'; $http_referer =~ s,\|,//,g;
     my $user_agent            = $ENV{HTTP_USER_AGENT}  || 'notset';
     my $inst_code             = $auth->get_institution_code($C) || 'notset';
     my $inst_code_mapped      = $auth->get_institution_code($C, 1) || 'notset';
@@ -149,7 +149,20 @@ sub _log_access {
                             );
     my $datetime = Utils::Time::iso_Time();
 
-    my $s = qq{$message: app=$app_name id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
+    # my $s = qq{$message: app=$app_name id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
+
+    my $s .= qq{$message|app=$app_name|id=$id|datetime=$datetime|attr=$attr|ic=$ic|access_type=$access_type|remote_addr=$remote_addr|proxied_addr=$proxied_addr|http_referer=$http_referer|user_agent=$user_agent|remote_user_env=$remote_user_from_env|remote_user_processed=$remote_user_processed|auth_type=$auth_type|usertype=$usertype|role=$role|sdrinst=$sdrinst|sdrlib=$sdrlib|http_host=$http_host|inst_code=$inst_code|inst_code_mapped=$inst_code_mapped|inst_name=$inst_name|inst_name_mapped=$inst_name_mapped|geo_code=$country_code|geo_name=$country_name|geo_code_proxy=$country_code_prox|geo_name_proxy=$country_name_prox};
+
+    if ($auth_type eq 'shibboleth') {
+        my $affiliation = $ENV{affiliation} || 'notset';
+        my $eppn = $ENV{eppn} || 'notset';
+        my $display_name = $ENV{displayName} || 'notset';
+        my $entityID = $ENV{Shib_Identity_Provider} || 'notset';
+        my $persistent_id = $ENV{persistent_id} || 'notset';
+
+        $s .= qq{|eduPersonScopedAffiliation=$affiliation|eduPersonPrincipalName=$eppn|displayName=$display_name|persistent_id=$persistent_id|Shib_Identity_Provider=$entityID};
+    }
+
 
     my $proxied_addr_hash = Access::Rights::get_proxied_address_data();
     foreach my $key (keys %$proxied_addr_hash) {
