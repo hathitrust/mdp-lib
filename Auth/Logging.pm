@@ -117,6 +117,8 @@ sub _log_access {
     my $ar = $C->get_object('Access::Rights');
     my $auth = $C->get_object('Auth');
 
+    require URI::Escape;
+
     my $attr                  = $ar->get_rights_attribute($C, $id) || 0;
     my $ic                    = $ar->in_copyright($C, $id) || 0;
     my $access_type           = $ar->get_access_type($C, 'as_string');
@@ -129,7 +131,8 @@ sub _log_access {
     my $auth_type             = lc ($ENV{AUTH_TYPE} || 'notset');
     my $http_host             = $ENV{HTTP_HOST} || 'notset';
     my $sdrlib                = $ENV{SDRLIB} || 'notset';
-    my $http_referer          = $ENV{HTTP_REFERER}  || 'notset'; $http_referer =~ s,\|,//,g;
+    my $http_referer          = $ENV{HTTP_REFERER}  || 'notset'; $http_referer = URI::Escape::uri_escape($http_referer);
+    my $request_uri           = $ENV{REQUEST_URI}  || 'notset'; $request_uri = URI::Escape::uri_escape($request_uri);
     my $user_agent            = $ENV{HTTP_USER_AGENT}  || 'notset';
     my $inst_code             = $auth->get_institution_code($C) || 'notset';
     my $inst_code_mapped      = $auth->get_institution_code($C, 1) || 'notset';
@@ -151,7 +154,7 @@ sub _log_access {
 
     # my $s = qq{$message: app=$app_name id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
 
-    my $s .= qq{$message|app=$app_name|id=$id|datetime=$datetime|attr=$attr|ic=$ic|access_type=$access_type|remote_addr=$remote_addr|proxied_addr=$proxied_addr|http_referer=$http_referer|user_agent=$user_agent|remote_user_env=$remote_user_from_env|remote_user_processed=$remote_user_processed|auth_type=$auth_type|usertype=$usertype|role=$role|sdrinst=$sdrinst|sdrlib=$sdrlib|http_host=$http_host|inst_code=$inst_code|inst_code_mapped=$inst_code_mapped|inst_name=$inst_name|inst_name_mapped=$inst_name_mapped|geo_code=$country_code|geo_name=$country_name|geo_code_proxy=$country_code_prox|geo_name_proxy=$country_name_prox};
+    my $s .= qq{$message|app=$app_name|id=$id|datetime=$datetime|attr=$attr|ic=$ic|access_type=$access_type|remote_addr=$remote_addr|proxied_addr=$proxied_addr|request_uri=$request_uri|http_referer=$http_referer|user_agent=$user_agent|remote_user_env=$remote_user_from_env|remote_user_processed=$remote_user_processed|auth_type=$auth_type|usertype=$usertype|role=$role|sdrinst=$sdrinst|sdrlib=$sdrlib|http_host=$http_host|inst_code=$inst_code|inst_code_mapped=$inst_code_mapped|inst_name=$inst_name|inst_name_mapped=$inst_name_mapped|geo_code=$country_code|geo_name=$country_name|geo_code_proxy=$country_code_prox|geo_name_proxy=$country_name_prox};
 
     if ($auth_type eq 'shibboleth') {
         my $affiliation = $ENV{affiliation} || 'notset';
