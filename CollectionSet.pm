@@ -207,9 +207,24 @@ sub add_coll
         $description = substr($description, 0, 150);
     }
 
-    my $MColl_ID = DbUtils::generate_unique_id($dbh, $coll_table_name, 'MColl_ID');
-    $$coll_hash_ref{'MColl_ID'} = $MColl_ID;
-    DbUtils::insert_new_row($dbh, $coll_table_name, $coll_hash_ref);
+    my $MColl_ID;
+    DbUtils::begin_work($dbh);
+
+    eval {
+
+        ## ------------------------------------------------------------------
+
+        $MColl_ID = DbUtils::generate_unique_id($dbh, $coll_table_name, 'MColl_ID');
+        $$coll_hash_ref{'MColl_ID'} = $MColl_ID;
+        DbUtils::insert_new_row($dbh, $coll_table_name, $coll_hash_ref);
+
+        DbUtils::commit($dbh);
+
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with add_coll: $err});
+    }
 
     return $MColl_ID;
 }
@@ -236,8 +251,16 @@ sub change_owner
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
     
-    my $statement = qq{UPDATE $coll_table SET owner=?, owner_name=? WHERE owner=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $new_user_id, $user_display_name, $old_user_id);
+    DbUtils::begin_work($dbh);
+    eval {
+        my $statement = qq{UPDATE $coll_table SET owner=?, owner_name=? WHERE owner=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $new_user_id, $user_display_name, $old_user_id);
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with change_owner: $err});
+    }
 }
 
 # ---------------------------------------------------------------------
@@ -360,26 +383,29 @@ sub delete_all_colls_for_user
     my $coll_item_table = $self->get_coll_item_table_name;
     
     my ($statement, $sth);
-    
-    # lock both tables
-    $statement = qq{LOCK TABLES $coll_item_table WRITE,$coll_table WRITE};
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
-    
-    #  delete from coll_item table
-    $statement  = qq{ DELETE $coll_item_table };
-    $statement .= qq{from $coll_item_table,$coll_table};
-    $statement .= qq{  WHERE $coll_item_table.MColl_ID = $coll_table.MColl_ID};
-    $statement .= qq{ and $coll_table.owner = ? };
 
-    $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
+    DbUtils::begin_work($dbh);
+    eval {
+        #  delete from coll_item table
+        $statement  = qq{ DELETE $coll_item_table };
+        $statement .= qq{from $coll_item_table,$coll_table};
+        $statement .= qq{  WHERE $coll_item_table.MColl_ID = $coll_table.MColl_ID};
+        $statement .= qq{ and $coll_table.owner = ? };
 
-    # XXX check for errors ?
-    $statement = qq{DELETE from $coll_table WHERE owner = ?\;};
-    $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
-    # XXX check for errors ?
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
 
-    $statement = qq{UNLOCK TABLES};
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
+        # XXX check for errors ?
+        $statement = qq{DELETE from $coll_table WHERE owner = ?\;};
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
+        # XXX check for errors ?
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with delete_all_colls_for_user: $err});
+    }
+   
 
 }
 

@@ -194,8 +194,10 @@ sub enqueue_all_ids {
         ? $config->get('test_coll_item_table_name')
           : $config->get('coll_item_table_name');
 
+    DbUtils::begin_work($dbh);
     eval {
-        $statement = qq{LOCK TABLES $coll_item_table_name WRITE, slip_shared_queue WRITE};
+        # $statement = qq{LOCK TABLES $coll_item_table_name WRITE, slip_shared_queue WRITE};
+        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
         
@@ -207,8 +209,10 @@ sub enqueue_all_ids {
         $statement = qq{UNLOCK TABLES};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement);
+        DbUtils::commit($dbh);
     };
     if ($@) {
+        $dbh->rollback();
         $ok = 0;
     }
     

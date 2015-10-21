@@ -36,7 +36,40 @@ use constant MAX_DATABASE_RETRIES => 12;  # 1 hour of outage
 use Utils::Logger;
 use Time::HiRes qw(time);
 
-use constant LOG_QUERIES => 0;
+use constant LOG_QUERIES => 1;
+
+our $__transaction = 0;
+
+sub begin_work {
+    my ( $dbh ) = @_;
+    if ( $dbh->{AutoCommit} == 1 ) {
+        $dbh->{AutoCommit} = 0;
+    }
+    $__transaction += 1;
+    # print STDERR "DBUTILS : BEGIN_WORK : " . _get_callers() . "\n";
+    if ( LOG_QUERIES ) {
+        _log_message(time(), qq{BEGIN WORK : $__transaction}, []);
+    }
+}
+
+sub commit {
+    my ( $dbh ) = @_;
+    if ( $dbh->{AutoCommit} == 0 && $__transaction == 1 ) {
+        $dbh->{AutoCommit} = 1;
+        # print STDERR "DBUTILS : COMMIT : " . $__transaction  . " :: " . _get_callers() . "\n";
+    } else {
+        # print STDERR "DBUTILS : COUNTING DOWN COMMIT : " . $__transaction  . " :: " . _get_callers() . "\n";
+    }
+    if ( LOG_QUERIES ) {
+        _log_message(time(), qq{COMMIT : $__transaction}, []);
+    }
+    $__transaction -= 1;
+}
+
+sub rollback {
+    my ( $dbh ) = @_;
+    $dbh->rollback;
+}
 
 
 # ---------------------------------------------------------------------
@@ -86,19 +119,30 @@ sub prep_n_execute {
 
     my $ct;
     my $sth;
-    eval
     {
-        $sth = $dbh->prepare($statement);
-    };
-    ASSERT((! $@), qq{DBI error: $@});
-    ASSERT($sth, qq{Could not prepare statement: $statement } . ($dbh->errstr || ''));
+        local $dbh->{RaiseError} = 1;
+        eval
+        {
+            $sth = $dbh->prepare($statement);
+        };
+        if ( my $err = $@ ) {
+            $dbh->rollback() unless ( $dbh->{AutoCommit} );
+            ASSERT((! $err), qq{DBI error: $err});
+            ASSERT($sth, qq{Could not prepare statement: $statement } . ($dbh->errstr || ''));
+        }
 
-    eval
-    {
-        $ct = $sth->execute(@params);
+        eval
+        {
+            $ct = $sth->execute(@params);
+        };
+        if ( my $err = $@ ) {
+            $dbh->rollback() unless ( $dbh->{AutoCommit} );
+            ASSERT((! $err), qq{DBI error on statement=$statement: $err});
+            ASSERT($ct, qq{Could not execute statement=$statement } . ($sth->errstr || ''));
+        }
+
     };
-    ASSERT((! $@), qq{DBI error on statement=$statement: $@});
-    ASSERT($ct, qq{Could not execute statement=$statement } . ($sth->errstr || ''));
+
     $$count_ref = $ct if (ref($count_ref));
 
     if (DEBUG('dbtime') || 0) { #XXX 1
@@ -360,7 +404,38 @@ sub insert_new_row
     $sth->finish;
 }
 
+=item insert_or_update_row
 
+Sets up INSERT INTO ... ON DUPLICATE KEY UPDATE ... statement.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub insert_or_update_row
+{
+    my ($dbh, $table_name, $row_hashref, $key_col_name) = @_;
+
+    # get column names and join them in a comma delimited string
+    my @col_names = sort keys(%$row_hashref);
+
+    my $statement = qq{INSERT INTO $table_name SET };
+    my @params; my @tmp;
+    foreach my $col_name ( @col_names ) {
+        push @tmp, qq{$col_name = ?};
+        push @params, $$row_hashref{$col_name};
+    }
+    $statement .= join(', ', @tmp); @tmp = ();
+    $statement .= qq{ ON DUPLICATE KEY UPDATE };
+    foreach my $col_name ( @col_names ) {
+        next if ( $col_name eq $key_col_name );
+        push @tmp, qq{$col_name = ?};
+        push @params, $$row_hashref{$col_name};
+    }
+    $statement .= join(', ', @tmp);
+
+    my $sth = prep_n_execute($dbh, $statement, @params);
+    $sth->finish;
+}
 
 # ---------------------------------------------------------------------
 

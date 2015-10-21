@@ -393,15 +393,24 @@ sub create_or_update_item_metadata {
     my $item_table_name = $self->get_item_table_name;
     my $id = $metadata_ref->{'extern_item_id'};
 
-    if ($self->item_exists($id)) {
-        # item already in table so just update the metadata
-        DbUtils::update_row_by_key($dbh, $item_table_name, $metadata_ref, 'extern_item_id', $id);
-    }
-    else {
-        # item not in item_metadata table so create new item and
-        # return extern_item_id do sql insert.  Generate a new unique item_id.
-        DbUtils::insert_new_row($dbh, $item_table_name, $metadata_ref);
-    }
+    DbUtils::begin_work($dbh);
+    eval {
+        if ($self->item_exists($id)) {
+            # item already in table so just update the metadata
+            DbUtils::update_row_by_key($dbh, $item_table_name, $metadata_ref, 'extern_item_id', $id);
+        }
+        else {
+            # item not in item_metadata table so create new item and
+            # return extern_item_id do sql insert.  Generate a new unique item_id.
+            DbUtils::insert_new_row($dbh, $item_table_name, $metadata_ref);
+        }
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with create_or_update_item_metadata: $err});
+    }    
 
     return $id;
 }
@@ -463,11 +472,20 @@ sub copy_items {
         }
     }
 
-    # Add the items
-    DbUtils::insert_one_or_more_rows($dbh, $coll_item_table_name, $col_names_array_ref, $row_array_ref);
+    DbUtils::begin_work($dbh);
+    eval {
+        # Add the items
+        DbUtils::insert_one_or_more_rows($dbh, $coll_item_table_name, $col_names_array_ref, $row_array_ref);
 
-    # Add count to collections table
-    $self->update_item_count($coll_id);
+        # Add count to collections table
+        $self->update_item_count($coll_id);
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with copy_items: $err});
+    } 
 }
 
 
@@ -500,11 +518,20 @@ sub delete_items {
 
     my $id_string = $self->arr_ref2SQL_in_string($id_arr_ref);
 
-    my $statement = qq{DELETE FROM $coll_item_table_name WHERE extern_item_id IN $id_string AND MColl_ID=?};
-    DbUtils::prep_n_execute ($dbh, $statement, @$id_arr_ref, $coll_id);
+    DbUtils::begin_work($dbh);
+    eval {
+        my $statement = qq{DELETE FROM $coll_item_table_name WHERE extern_item_id IN $id_string AND MColl_ID=?};
+        DbUtils::prep_n_execute ($dbh, $statement, @$id_arr_ref, $coll_id);
 
-    # update item count int collection table!
-    $self->update_item_count($coll_id);
+        # update item count int collection table!
+        $self->update_item_count($coll_id);
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with delete_items: $err});
+    }
 }
 
 #----------------------------------------------------------------------
@@ -531,11 +558,20 @@ sub delete_coll {
                qq{Collection $coll_id not owned by user $user_id});
     }
 
-    DbUtils::del_row_by_key($dbh, $coll_table_name, 'MColl_ID', $coll_id);
+    DbUtils::begin_work($dbh);
+    eval {
+        DbUtils::del_row_by_key($dbh, $coll_table_name, 'MColl_ID', $coll_id);
 
-    # DbUtils doesn't return a status so should we write our own?
-    # return $status;
-    DbUtils::del_one_or_more_rows_by_key($dbh, $coll_item_table_name, 'MColl_ID', $coll_id);
+        # DbUtils doesn't return a status so should we write our own?
+        # return $status;
+        DbUtils::del_one_or_more_rows_by_key($dbh, $coll_item_table_name, 'MColl_ID', $coll_id);
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with delete_coll: $err});
+    }
 }
 
 
@@ -782,11 +818,21 @@ sub _edit_metadata {
         }
     }
 
-    my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
+    DbUtils::begin_work($dbh);
+    eval {
+        # Add the items
+        my $statement = qq{UPDATE $coll_table_name SET $field=?  WHERE MColl_ID=?};
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $value, $coll_id);
 
-    # clear the cache
-    delete $self->{_collection_collid_record}->{$coll_id};
+        # clear the cache
+        delete $self->{_collection_collid_record}->{$coll_id};
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with _edit_metadata : $field : $err});
+    }    
 }
 
 
@@ -1409,22 +1455,25 @@ sub update_item_count {
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
 
-    $statement = qq{LOCK TABLES $coll_item_table WRITE, $coll_table WRITE};
-    DEBUG('dbcoll', qq{DEBUG: $statement});
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
+    my $coll_item_count;
 
-    my $coll_item_count = $self->count_all_items_for_coll_from_coll_items($coll_id);
+    DbUtils::begin_work($dbh);
+    eval {
+        $coll_item_count = $self->count_all_items_for_coll_from_coll_items($coll_id);
 
-    $statement = qq{UPDATE $coll_table SET num_items=? WHERE MColl_ID=?};
-    $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_item_count, $coll_id);
+        $statement = qq{UPDATE $coll_table SET num_items=? WHERE MColl_ID=?};
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_item_count, $coll_id);
 
-    my $collection_table_count = $self->count_all_items_for_coll($coll_id);
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT(0, qq{Problem with copy_items: $err});
+    }
+
+    my $collection_table_count = $self->count_all_items_for_coll($coll_id, 1);
     DEBUG('dbcoll', qq{DEBUG: update_item_count statement=$statement count="$collection_table_count"});
-
-    $statement = qq{UNLOCK TABLES};
-    DEBUG('dbcoll', qq{DEBUG: $statement});
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
-
     ASSERT($coll_item_count == $collection_table_count, qq{update_item_count failed for $coll_id});
 }
 
