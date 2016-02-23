@@ -537,6 +537,11 @@ $g_orphan_candidate_attribute_value = 16;
      'US', # United States
      'UM', # United States Minor Outlying Islands
      'VI', # Virgin Islands, U.S.
+     'PR', # Puerto Rico
+     'MH', # Marshall Islands,
+     'GU', # Guam
+     'MP', # Northern Mariana Islands
+     # 'AS', # America Samoa - not as of 2015-10-22
     );
 
 %g_pdus_country_codes_hash = map { $_ => 1 } @g_pdus_country_codes;
