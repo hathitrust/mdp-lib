@@ -499,10 +499,11 @@ ranges when authenticated.
 
 # ---------------------------------------------------------------------
 sub debugging_enabled {
-    use constant NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1 => 0;
 
-    my $development_override = NEVER_DEPLOY_TO_PRODUCTION_WHEN_SET_TO_1;
-    return 1 if ($development_override);
+    my $C = new Context;
+    my $config = $C->get_object('MdpConfig', 1); 
+    my $debug_enabled = ( defined $config && $config->has('debug_enabled') ) ? $config->get('debug_enabled') : 0;
+    return 1 if ($debug_enabled);
 
     return Auth::ACL::S___total_access;
 }
