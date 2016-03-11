@@ -144,10 +144,8 @@ sub enqueue_item_ids {
     my $ok = 1;
     my ($sth, $statement);
 
+    DbUtils::begin_work($dbh);
     eval {
-        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
-        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
 
         my @values;
         foreach my $v (@$id_arr_ref) {
@@ -160,11 +158,12 @@ sub enqueue_item_ids {
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
 
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        DbUtils::commit($dbh);
+
     };
-    if ($@) {
+    if (my $err = $@) {
+        eval { $dbh->rollback; };
+        soft_ASSERT(0, qq{Problem with enqueue_item_ids: $err});
         $ok = 0;
     }
     
@@ -196,23 +195,17 @@ sub enqueue_all_ids {
 
     DbUtils::begin_work($dbh);
     eval {
-        # $statement = qq{LOCK TABLES $coll_item_table_name WRITE, slip_shared_queue WRITE};
-        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
-        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
         
         my $SELECT_clause = qq{SELECT extern_item_id AS `id`, NOW() AS `time` FROM $coll_item_table_name WHERE MColl_id=?};
         $statement = qq{REPLACE INTO slip_shared_queue ($SELECT_clause)};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
 
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
         DbUtils::commit($dbh);
     };
-    if ($@) {
+    if (my $err = $@) {
         $dbh->rollback();
+        soft_ASSERT(0, qq{Problem with enqueue_all_ids: $err});
         $ok = 0;
     }
     
@@ -237,9 +230,9 @@ sub read_queued_item_ids {
     my $id_arr_ref = [];
     
     eval {
-        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
-        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        # $statement = qq{LOCK TABLES slip_shared_queue WRITE};
+        # DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
+        # $sth = DbUtils::prep_n_execute($dbh, $statement);
 
         $statement = qq{SELECT id FROM slip_shared_queue LIMIT $offset, $slice_size};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
@@ -250,9 +243,9 @@ sub read_queued_item_ids {
             $id_arr_ref = [ map {$_->[0]} @$ref_to_arr_of_arr_ref ];
         }
 
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        # $statement = qq{UNLOCK TABLES};
+        # DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
+        # $sth = DbUtils::prep_n_execute($dbh, $statement);
     };
     if ($@) {
         $ok = 0;
@@ -278,10 +271,8 @@ sub dequeue_item_ids {
 
     my $id_arr_ref = [];
     
+    DbUtils::begin_work($dbh);
     eval {
-        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
-        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
 
         $statement = qq{SELECT id FROM slip_shared_queue LIMIT $slice_size};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
@@ -302,11 +293,10 @@ sub dequeue_item_ids {
             $sth = DbUtils::prep_n_execute($dbh, $statement, @$id_arr_ref);
         }
 
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        DbUtils::commit($dbh);
     };
-    if ($@) {
+    if (my $err = $@) {
+        soft_ASSERT(0, qq{Problem with dequeue_item_ids: $err});
         $ok = 0;
     }
     
@@ -328,20 +318,17 @@ sub Delete_id_from_j_shared_queue {
     my $ok = 1;
     my ($sth, $statement);
 
+    DbUtils::begin_work($dbh);
     eval {
-        $statement = qq{LOCK TABLES slip_shared_queue WRITE};
-        DEBUG('lsdb,dbcoll', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
 
         $statement = qq{DELETE FROM slip_shared_queue WHERE id=?};
         DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
         $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
 
-        $statement = qq{UNLOCK TABLES};
-        DEBUG('dbcoll,lsdb', qq{DEBUG: $statement});
-        $sth = DbUtils::prep_n_execute($dbh, $statement);
+        DbUtils::commit($dbh);
     };
-    if ($@) {
+    if (my $err = $@) {
+        soft_ASSERT(0, qq{Problem with Delete_id_from_j_shared_queue: $err});
         $ok = 0;
     }
     
