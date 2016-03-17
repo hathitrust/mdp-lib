@@ -170,6 +170,21 @@ our $HT_AFFILIATE        = 7;
    21 => 'ku',
    22 => 'mcgill',
    23 => 'bc',
+   24 => 'nnc',
+   25 => 'geu',
+   26 => 'borndigital',
+   27 => 'yale2',
+   28 => 'mou',
+   29 => 'chtanc',
+   30 => 'bentley-umich',
+   31 => 'clements-umich',
+   32 => 'wau',
+   33 => 'cornell',
+   34 => 'cornell-ms',
+   35 => 'umd',
+   36 => 'frick',
+   37 => 'northwestern',
+   38 => 'umn',
   );
 
 %g_attribute_keys =
