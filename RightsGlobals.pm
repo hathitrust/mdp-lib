@@ -237,6 +237,8 @@ our $HT_AFFILIATE        = 7;
    );
 
 
+ # As of Mon Mar 21 15:51:00 2016 SSD_PROXY_USER has access to any in-copyright
+ # materials, regardless of holdings state.
 %g_rights_matrix =
   (
    # public domain
@@ -254,7 +256,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -271,7 +273,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings', # US implied
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -281,7 +283,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
            $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
            $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
@@ -291,7 +293,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -334,7 +336,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'allow_by_us_geo_ipaddr', # US IP only
            $SSD_USER              => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
-           $SSD_PROXY_USER        => 'allow_us_aff_by_ipaddr',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
            $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
@@ -404,7 +406,7 @@ our $HT_AFFILIATE        = 7;
             $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'deny',
             $SSD_USER              => 'allow_ssd_by_holdings',
-            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+            $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'deny',
             $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
@@ -435,7 +437,7 @@ our $HT_AFFILIATE        = 7;
             $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
-            $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
+            $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
             $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only

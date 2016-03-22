@@ -519,12 +519,15 @@ sub get_full_PDF_access_status {
     }
 
     # Apr 2103 ssdproxy can generate full PDF when item is held
+    # Apr 2016 ssdproxy can generate full PDF regardless - 
+    # - 2013 code left here in case this decision is reversed
     if ($auth->user_is_print_disabled_proxy($C)) {
-        my $institution = $auth->get_institution_code($C, 'mapped');
-        my $held = Access::Holdings::id_is_held($C, $id, $institution);
-        if ($held) {
-            $status = 'allow';
-        }
+        # my $institution = $auth->get_institution_code($C, 'mapped');
+        # my $held = Access::Holdings::id_is_held($C, $id, $institution);
+        # if ($held) {
+        #     $status = 'allow';
+        # }
+        $status = 'allow'; # allow for everyone
     }
 
     # clear the error message if $status eq 'allow'
