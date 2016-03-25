@@ -125,6 +125,8 @@ sub ASSERT_core
             Debug::DUtils::set_error_template($msg);
         }
         croak('ASSERT_FAIL: '. $msg)
+    } elsif ( $development ) {
+        warn('ASSERT FAIL: '. $msg);
     }
 }
 

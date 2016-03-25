@@ -810,7 +810,7 @@ sub _determine_rights_values {
     }
     $self->{_rights_hashref} = $rights_hashref;
 
-    DEBUG('db,auth,all', qq{<h4>_determine_rights_values: id="$id", attr=$rights_hashref->{attr}($RightsGlobals::g_attribute_names{$rights_hashref->{attr}}) source=$rights_hashref->{source}($RightsGlobals::g_source_names{$rights_hashref->{source}}) access_profile=$rights_hashref->{access_profile}($RightsGlobals::g_access_profile_names{$rights_hashref->{access_profile}}) local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>}) if ( $$rights_hashref{attr} );
+    DEBUG('db,auth,all', sub { qq{<h4>_determine_rights_values: id="$id", attr=$rights_hashref->{attr}($RightsGlobals::g_attribute_names{$rights_hashref->{attr}}) source=$rights_hashref->{source}($RightsGlobals::g_source_names{$rights_hashref->{source}}) access_profile=$rights_hashref->{access_profile}($RightsGlobals::g_access_profile_names{$rights_hashref->{access_profile}}) local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>} });
 
     return $rights_hashref;
 }
@@ -1269,8 +1269,8 @@ sub _resolve_access_by_GeoIP {
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
 
     my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
-    my $proxied_addr_is_US = ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
-    my $proxied_addr_is_nonUS = (! $proxied_addr_is_US);
+    my $proxied_addr_is_US = $proxied_addr_country_code ? ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) ) : undef;
+    my $proxied_addr_is_nonUS = ! $proxied_addr_is_US;
 
     my $IPADDR = 0;
     my $address_location = 'notalocation';
