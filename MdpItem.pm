@@ -397,6 +397,12 @@ sub SetItemZipped {
     $self->{'itemiszipped'} = 1;
 }
 
+sub HasServeablePDF {
+    my $self = shift;
+    # 2016-03-30 roger - eventually this will be something real
+    return ( $$self{id} =~ m,^ku01, );
+}
+
 sub GetId {
     my $self = shift;
     return $self->{ 'id' };
@@ -1712,6 +1718,9 @@ sub DumpPageInfoToHtml {
 
     my $basename = $self->Get( 'filesystemlocation' );
     $s .= qq{<h4>Base directory="$basename"</h4>\n};
+
+    $s .= qq{<h4>File Groups</h4>\n};
+    $s .= qq{<pre>} . Data::Dumper::Dumper($self->GetFileGroupMap) . q{</pre>};
 
     $s .= qq{<h4>Volume information</h4>\n};
     my $vol = $self->GetVolumeData();
