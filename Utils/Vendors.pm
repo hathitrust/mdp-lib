@@ -28,7 +28,15 @@ sub init {
         push(@my_inc, "$Bin/../lib");
     }
 
-    my $local_switch = $ENV{DEBUG_LOCAL} || ($ENV{REQUEST_METHOD} ne 'POST' && CGI::param('debug') && (CGI::param('debug') =~ m,local,));
+    my $local_switch = 0;
+    if ( -f "$Bin/../lib/Config/local.conf" ) {
+        local $/;
+        open(my $IN, "$Bin/../lib/Config/local.conf");
+        my $tmp = <$IN>;
+        close($IN);
+        $local_switch = $tmp =~ m/debug_local\s+=\s+1/gsm;
+    }
+    $local_switch = $local_switch || $ENV{DEBUG_LOCAL} || ($ENV{REQUEST_METHOD} ne 'POST' && CGI::param('debug') && (CGI::param('debug') =~ m,local,));
     if ($local_switch) {
         push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
         $ENV{DEBUG} .= ',' if ( $ENV{DEBUG} );
