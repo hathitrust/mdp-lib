@@ -46,7 +46,6 @@ sub begin_work {
         $dbh->{AutoCommit} = 0;
     }
     $__transaction += 1;
-    # print STDERR "DBUTILS : BEGIN_WORK : " . _get_callers() . "\n";
     if ( LOG_QUERIES ) {
         _log_message(time(), qq{BEGIN WORK : $__transaction}, []);
     }
@@ -56,9 +55,7 @@ sub commit {
     my ( $dbh ) = @_;
     if ( $dbh->{AutoCommit} == 0 && $__transaction == 1 ) {
         $dbh->{AutoCommit} = 1;
-        # print STDERR "DBUTILS : COMMIT : " . $__transaction  . " :: " . _get_callers() . "\n";
     } else {
-        # print STDERR "DBUTILS : COUNTING DOWN COMMIT : " . $__transaction  . " :: " . _get_callers() . "\n";
     }
     if ( LOG_QUERIES ) {
         _log_message(time(), qq{COMMIT : $__transaction}, []);

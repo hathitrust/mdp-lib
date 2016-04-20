@@ -52,8 +52,6 @@ use Debug::DUtils;
 
 use JSON::XS;
 
-
-
 # ---------------------------------------------------------------------
 
 =item Get_Remote_User
@@ -585,7 +583,7 @@ sub clean_cgi_params
 
     foreach my $p ($cgi->param)
     {
-        my @vals = $cgi->param($p);
+        my @vals = $cgi->multi_param($p);
         my @newvals = ();
         foreach my $v (@vals)
         {
@@ -668,9 +666,9 @@ sub url_to
 
     my $temp_cgi = new CGI($cgi);
 
-    foreach my $p ($temp_cgi->param())
+    foreach my $p ($temp_cgi->multi_param())
     {
-        my @vals = $temp_cgi->param($p);
+        my @vals = $temp_cgi->multi_param($p);
         my @newvals = ();
         foreach my $v (@vals)
         {
@@ -817,7 +815,7 @@ sub build_hidden_var_XML
 {
     my ($cgi, $var) = @_;
 
-    my @a = ($cgi->param( $var ));
+    my @a = ($cgi->multi_param( $var ));
 
     my $toReturn = '';
     if (@a)

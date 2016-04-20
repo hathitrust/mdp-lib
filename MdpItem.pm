@@ -665,7 +665,7 @@ sub SetCurrentRequestInfo {
 
     # check that the requested sequence is within the range of
     # available pages
-    my $validSeq = $self->GetValidSequence( $cgi->param( 'seq' ) );
+    my $validSeq = $self->GetValidSequence( scalar $cgi->param( 'seq' ) );
     $cgi->param( 'seq', $validSeq );
 
     my $id     = $cgi->param( 'id' );

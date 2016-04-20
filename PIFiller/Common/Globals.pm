@@ -48,7 +48,7 @@ sub handle_CGI_GLOBALS_PI
     my $output;
     foreach my $param_name ($cgi->param())
     {
-        my @param_values = $cgi->param($param_name);
+        my @param_values = $cgi->multi_param($param_name);
         foreach my $val (@param_values)
         {
             $output .= wrap_string_in_tag($val, 'Param', [['name', $param_name]]);
@@ -490,7 +490,7 @@ sub PT_HREF_helper {
 
     my $temp_cgi = new CGI('');
     $temp_cgi->param('id', $extern_id);
-    $temp_cgi->param('debug', CGI::param('debug'));
+    $temp_cgi->param('debug', scalar CGI::param('debug'));
 
     my $cgi = $C->get_object('CGI');
     my $q1 = $cgi->param('q1');
