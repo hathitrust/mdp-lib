@@ -360,8 +360,9 @@ sub SetItemType {
     # intiaizlie subclass...
     if ( $item_type ne 'volume' ) {
         my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
-        eval "require MdpItem::$subclass";
-        bless $self, "MdpItem::$subclass";
+        if ( eval "require MdpItem::$subclass" ) {
+            bless $self, "MdpItem::$subclass";
+        }
     }
 }
 
@@ -614,7 +615,14 @@ sub StoreMETS {
 
     # Replace child of dmdSec/ID=DMD1 with actual metadata
     my ($dmdSec1) = $root->findnodes("//METS:dmdSec[\@ID='DMD1']");
-    $dmdSec1->removeChildNodes() if ($dmdSec1);
+    if ( $dmdSec1 ) {
+        $dmdSec1->removeChildNodes() if ($dmdSec1);
+    } else {
+        # um, create a dmdSec1?
+        $dmdSec1 = $root->ownerDocument->createElementNS( $root->lookupNamespaceURI('METS'), 'dmdSec' );
+        $dmdSec1 = $root->appendChild($dmdSec1);
+        $dmdSec1->setAttribute('ID', 'DMD1');
+    }
 
     my $metadataRef = $self->GetMetadata();
     if ($metadataRef) {
