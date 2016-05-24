@@ -110,7 +110,7 @@ use DbUtils;
 
 # 141.213.171.72-141.213.171.87
 # 141.213.175.72-141.213.175.87
-my $library_vpn_range = q{^(141\.213\.17[15]\.(7[2-9]|8[0-7])$};
+my $library_vpn_range = q{^141\.213\.17[15]\.(7[2-9]|8[0-7])$};
 
 # blocked
 my $iprestrict_all = 'notanipaddress';
