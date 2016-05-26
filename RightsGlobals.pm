@@ -143,6 +143,7 @@ our $HT_AFFILIATE        = 7;
    '24' => 'Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license',
    '25' => 'Creative Commons Attribution-ShareAlike 4.0 International license',
    '26' => 'public domain but access limited due to privacy concerns',
+   '27' => 'suppressed from view',
   );
 
 %g_source_names =
@@ -215,6 +216,7 @@ our $HT_AFFILIATE        = 7;
    24 => 'cc-by-nc-sa-4.0',
    25 => 'cc-by-sa-4.0',
    26 => 'pd-pvt',
+   27 => 'supp',
   );
 
 %g_access_profile_names =
@@ -504,6 +506,16 @@ our $HT_AFFILIATE        = 7;
            },
    # not available to view but searchable, more restrictive than ic(2) but less than nobody(8)
    '26' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'deny',
+            $SSD_USER              => 'deny',
+            $SSD_PROXY_USER        => 'deny',
+            $LIBRARY_IPADDR_USER   => 'deny',
+            $UM_AFFILIATE          => 'deny',
+            $HT_AFFILIATE          => 'deny',
+           },
+   # not available to view, not searchable, more restrictive than nobody(8)
+   '27' => {
             $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'deny',
             $SSD_USER              => 'deny',
