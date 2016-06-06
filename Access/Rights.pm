@@ -687,6 +687,27 @@ sub creative_commons {
     }
 }
 
+# ---------------------------------------------------------------------
+
+=item PUBLIC: suppressed
+
+Description: is this id suppressed?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub suppressed {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    my $attribute = $self->get_rights_attribute($C, $id);
+    if ($attribute == $RightsGlobals::g_suppressed_attribute_value) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
 
 # ----------------------------------------------------------------------
 #

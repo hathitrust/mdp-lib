@@ -540,6 +540,7 @@ $g_public_domain_US_attribute_value = 9;
 $g_public_domain_non_US_attribute_value = 19;
 $g_orphan_attribute_value = 4;
 $g_orphan_candidate_attribute_value = 16;
+$g_suppressed_attribute_value = 27;
 
 # ------------------------------------------------------------------------
 # rights_current.access_profile values that allow full book PDF download.
