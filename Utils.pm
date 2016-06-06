@@ -121,6 +121,8 @@ sub ASSERT_core
         # route around weird conflict between Plack and HTML::Template
         unless ( exists($ENV{'psgi.version'}) ) {
             Debug::DUtils::set_error_template($msg);
+        } else {
+            $ENV{'psgix.message'} = $msg;
         }
         croak('ASSERT_FAIL: '. $msg)
     } elsif ( $development ) {
