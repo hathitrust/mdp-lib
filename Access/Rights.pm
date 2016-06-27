@@ -700,7 +700,7 @@ sub suppressed {
     my $self = shift;
     my ($C, $id) = @_;
 
-    return 0 if Auth::ACL::S___superuser_using_DEBUG_super;
+    return 0 if Auth::ACL::S___total_access_using_DEBUG_super;
 
     my $attribute = $self->get_rights_attribute($C, $id);
     if ($attribute == $RightsGlobals::g_suppressed_attribute_value) {
