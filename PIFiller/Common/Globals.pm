@@ -138,7 +138,12 @@ sub handle_ACCESS_USE_PI
     my $id = $C->get_object('CGI')->param('id');
 
     my $ar = $C->get_object('Access::Rights');
+
     my $attr = $ar->get_rights_attribute($C, $id);
+    if ($attr == $RightsGlobals::g_suppressed_attribute_value) {
+        return wrap_string_in_tag('This item is suppressed', 'Header');
+    }
+
     my $access_profile = $ar->get_access_profile_attribute($C, $id);
 
     my $ref_to_arr_of_hashref =
