@@ -98,7 +98,11 @@ consistent with the value in the CGI object.
 # ---------------------------------------------------------------------
 sub validate_mbooks_id {
     my $arg = shift;
-    return __check_validation($arg);
+    my $id = __check_validation($arg);
+    my ( $namespace, $barcode ) = split_id($id);
+    silent_ASSERT($namespace && $namespace !~ m{^\s*$}, 'malformed id: namespace not parsed');
+    silent_ASSERT($barcode && $barcode !~ m{^\s*$}, 'malformed id: barcode not parsed');
+    return $id;
 }
 
 
