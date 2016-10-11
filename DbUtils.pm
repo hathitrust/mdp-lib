@@ -134,7 +134,7 @@ sub prep_n_execute {
         };
         if ( my $err = $@ ) {
             $dbh->rollback() unless ( $dbh->{AutoCommit} );
-            ASSERT((! $err), qq{DBI error on statement=$statement: $err});
+            ASSERT((! $err), qq{DBI error on statement=$statement: $err : } . __get_df_report('/ram'));
             ASSERT($ct, qq{Could not execute statement=$statement } . ($sth->errstr || ''));
         }
 
@@ -537,6 +537,20 @@ sub _log_message
     # see lament in Auth::Logging
     my $pattern = qr(slip/run-___RUN___|___QUERY___);
     Utils::Logger::__Log_string($C, $s, q{db_statement_logfile}, $pattern, 'db');
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_df_report
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_df_report {
+    my $mount = shift;
+    return "\n" . `df -i $mount` . "\n" . `df -a $mount`;
 }
 
 1;

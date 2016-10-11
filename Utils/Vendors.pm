@@ -34,7 +34,7 @@ sub init {
         open(my $IN, "$Bin/../lib/Config/local.conf");
         my $tmp = <$IN>;
         close($IN);
-        $local_switch = $tmp =~ m/debug_local\s+=\s+1/gsm;
+        $local_switch = $tmp =~ m/^debug_local\s+=\s+1/gsm;
     }
     $local_switch = $local_switch || $ENV{DEBUG_LOCAL} || ($ENV{REQUEST_METHOD} ne 'POST' && CGI::param('debug') && (CGI::param('debug') =~ m,local,));
     if ($local_switch) {
