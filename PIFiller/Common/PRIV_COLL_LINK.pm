@@ -47,7 +47,7 @@ sub handle_PRIV_COLL_LINK_PI
 
     my $priv_coll_url;
     my $auth = $C->get_object('Auth');
-    if ($auth->auth_sys_is_SHIBBOLETH($C)) {
+    if ($auth->auth_sys_is_SHIBBOLETH($C) && $auth->is_cosign_active()) {
         $priv_coll_url = qq{/shcgi/mb?$params};
     }
     else {

@@ -23,8 +23,11 @@ package MdpGlobals;
 
 # Set path to feedback cgi as a function of development state and auth state.
 my $auth_type = $ENV{AUTH_TYPE} || '';
-my $cgi_path_component = ($auth_type eq 'shibboleth') ? '/shcgi' : '/cgi';
-my $protocol  = $auth_type ? 'https://' : 'http://';
+our $is_cosign_active = ( defined $ENV{HT_IS_COSIGN_STILL_HERE} && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes' );
+my $cgi_path_component = ($auth_type eq 'shibboleth' && is_cosign_active) ? '/shcgi' : '/cgi';
+# my $protocol  = $auth_type ? 'https://' : 'http://';
+my $protocol = 'https://';
+
 my $host = $ENV{'HTTP_HOST'} || '';
 
 $gFeedbackCGIUrl = $protocol . $host . $cgi_path_component . q{/feedback};

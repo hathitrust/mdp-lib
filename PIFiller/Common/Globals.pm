@@ -293,6 +293,12 @@ sub handle_LOGGED_IN_PI
 
     my $auth = $C->get_object('Auth');
     my $is_logged_in = $auth->is_logged_in($C) ? 'YES':'NO';
+    if ( $is_logged_in eq 'NO' ) {
+        my $ses = $C->get_object('Session');
+        if ( $ses->get_transient('logged_out') == 1 ) {
+            $is_logged_in = 'EXPIRED';
+        }
+    }
 
     return $is_logged_in;
 
@@ -513,7 +519,7 @@ sub PT_HREF_helper {
     my $pt_script = $config->get($key);
 
     # The Shibboleth Dirty Hack
-    my $shib = $C->get_object('Auth')->auth_sys_is_SHIBBOLETH($C);
+    my $shib = $C->get_object('Auth')->auth_sys_is_SHIBBOLETH($C) && $C->get_object('Auth')->is_cosign_active();
     if ($shib) {
         $pt_script =~ s,/cgi/,/shcgi/,;
     }

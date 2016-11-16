@@ -72,9 +72,31 @@ Always use if (Utils::Get_Remote_User()) {
 =cut
 
 # ---------------------------------------------------------------------
+my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
+
 sub Get_Remote_User {
-    return lc $ENV{REMOTE_USER} if (exists $ENV{REMOTE_USER} && defined $ENV{REMOTE_USER} && $ENV{REMOTE_USER});
-    return '';
+    my $remote_user = '';
+    if ( exists $ENV{REMOTE_USER} && defined $ENV{REMOTE_USER} && $ENV{REMOTE_USER} ) {
+        $remote_user = lc $ENV{REMOTE_USER};
+        if ( $ENV{Shib_Identity_Provider} eq $UMICH_ENTITY_ID ) {
+            $remote_user = Get_Legacy_Remote_User();
+        }
+    }
+    return $remote_user;
+}
+
+sub Get_Legacy_Remote_User {
+    my $remote_user = '';
+    if ( $ENV{Shib_Identity_Provider} eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
+        if ( $ENV{umichCosignFactor} eq 'UMICH.EDU' ) {
+            # remove the @umich.edu
+            $remote_user = substr(lc $ENV{eppn}, 0, -10);
+        } else {
+            # friend
+            $remote_user = lc $ENV{email};
+        }
+    }
+    return $remote_user;
 }
 
 # ---------------------------------------------------------------------

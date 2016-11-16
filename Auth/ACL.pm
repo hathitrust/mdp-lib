@@ -426,7 +426,13 @@ sub __get_user_attributes {
     my $Access_Control_List_ref = ___get_ACL;
 
     my $userid = Utils::Get_Remote_User();
-    my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    my $affiliated = ( defined $ENV{affiliation} && length($ENV{affiliation}) > 0 ) || 0;
+    # my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    my $attrval = $Access_Control_List_ref->{"$userid|$affiliated"}{$requested_attribute} || '';
+    unless ( $attrval ) {
+      $userid = Utils::Get_Legacy_Remote_User();
+      $attrval = $Access_Control_List_ref->{"$userid|$affiliated"}{$requested_attribute} || '';
+    }
 
     # Superuser debugging over-rides
     unless ($unmasked) {

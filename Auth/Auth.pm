@@ -175,7 +175,12 @@ sub _initialize {
             # Not authenticated: THIS MAY BE CONDITION X:
             # See pod (above).
             $self->__debug_auth($C, $ses);
-            $self->handle_possible_redirect($C, $was_logged_in_via);
+            print STDERR "AHOY : COSIGN ACTIVE : $ENV{HT_IS_COSIGN_STILL_HERE}\n";
+            if ( $self->is_cosign_active ) {
+                $self->handle_possible_redirect($C, $was_logged_in_via);
+            } else {
+                $self->handle_possible_auth_expiration($C, $was_logged_in_via);                
+            }
             # POSSIBLY NOTREACHED
         }
     }
@@ -210,6 +215,7 @@ sub handle_possible_redirect {
     my ($C, $was_logged_in_via) = @_;
 
     my $cgi = $C->get_object('CGI');
+    print STDERR "AHOY : POSSIBLE REDIRECT\n";
 
     if ($was_logged_in_via eq COSIGN && $ENV{SERVER_PORT} ne '443') {
         my $redirect_to = $self->get_COSIGN_login_href($cgi);
@@ -220,6 +226,20 @@ sub handle_possible_redirect {
         my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
         print $cgi->redirect($redirect_to);
         exit;
+    }
+}
+
+sub handle_possible_auth_expiration {
+    my $self = shift;
+    my ($C, $was_logged_in_via) = @_;
+
+    # no longer logged in
+    if ( $was_logged_in_via ) {
+        my $cgi = $C->get_object('CGI');
+        my $ses = $C->get_object('Session');
+        $ses->set_transient('logged_out', 1);
+        $ses->set_persistent('authenticated_via', '');
+        my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
     }
 }
 
@@ -237,7 +257,7 @@ sub get_SHIBBOLETH_login_href {
     my $cgi = shift;
 
     my $login_href = CGI::self_url($cgi);
-    $login_href =~ s,/cgi/,/shcgi/,;
+    $login_href =~ s,/cgi/,/shcgi/, if ( $self->is_cosign_active );
     $login_href = Utils::url_over_SSL_to($login_href);
 
     return $login_href;
@@ -489,7 +509,7 @@ sub get_institution_name {
     my $inst_name;
 
     my $entity_id = $self->get_shibboleth_entityID($C);
-    if ($entity_id) {
+    if ($entity_id && $self->__get_prioritized_scoped_affiliation($C)) {
         $inst_name = Institutions::get_institution_entityID_field_val($C, $entity_id, 'name', $mapped);
     }
     else {
@@ -499,6 +519,35 @@ sub get_institution_name {
 
     return $inst_name;
 }
+
+# ---------------------------------------------------------------------
+
+=item get_allowed_affiliations
+
+Get allowed affiliations from ht_institutions.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_allowed_affiliations {
+    my $self = shift;
+    my $C = shift;
+    my $mapped = shift;
+
+    my $allowed_affiliations;
+
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        $allowed_affiliations = Institutions::get_institution_entityID_field_val($C, $entity_id, 'allowed_affiliations', $mapped);
+    }
+    else {
+        my $inst_id = __get_institution_code_by_ip_address();
+        $allowed_affiliations = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'allowed_affiliations', $mapped);
+    }
+
+    return $allowed_affiliations;
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -554,6 +603,9 @@ list.
 # ---------------------------------------------------------------------
 sub __get_prioritized_scoped_affiliation {
     my $self = shift;
+    my $C = shift;
+
+    return $$self{__eduPerson_scoped_affiliation} if ( defined $$self{__eduPerson_scoped_affiliation} );
 
     my $eduPerson_scoped_affiliation = '';
 
@@ -562,33 +614,41 @@ sub __get_prioritized_scoped_affiliation {
     my @affiliation_priorities = qw(member faculty staff student alum affiliate);
 
     my $environment = $ENV{affiliation} || '';
-    my @scoped_affiliations = split(/\s*;\s*/, $environment);
-    @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
-    my %aff_hash = ();
-    if (scalar @scoped_affiliations) {
-        foreach my $scoped_affiliation (@scoped_affiliations) {
-            my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+    my $allowed_affiliations = $self->get_allowed_affiliations($C);
 
-            if ($affiliation && $security_domain) {
-                $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+    if ( $environment && $allowed_affiliations ) {
+        my @scoped_affiliations = split(/\s*;\s*/, lc $environment);
+        @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
-                my $scoped_affiliations_ref = $aff_hash{$affiliation};
-                push( @$scoped_affiliations_ref, $scoped_affiliation );
-                $aff_hash{$affiliation} = $scoped_affiliations_ref;
+        my %aff_hash = ();
+        if (scalar @scoped_affiliations) {
+            foreach my $scoped_affiliation (@scoped_affiliations) {
+                next unless ( $scoped_affiliation =~ m,$allowed_affiliations,i );
+                my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+
+                if ($affiliation && $security_domain) {
+                    $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+
+                    my $scoped_affiliations_ref = $aff_hash{$affiliation};
+                    push( @$scoped_affiliations_ref, $scoped_affiliation );
+                    $aff_hash{$affiliation} = $scoped_affiliations_ref;
+                }
+            }
+
+            foreach my $affiliation (@affiliation_priorities) {
+                my $scoped_affiliations_ref = $aff_hash{$affiliation} || [];
+                if (scalar @$scoped_affiliations_ref) {
+                    $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
+                    last;
+                }
             }
         }
 
-        foreach my $affiliation (@affiliation_priorities) {
-            my $scoped_affiliations_ref = $aff_hash{$affiliation} || [];
-            if (scalar @$scoped_affiliations_ref) {
-                $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
-                last;
-            }
-        }
     }
+    print STDERR "AHOY SCOPED AFFILIATION : $eduPerson_scoped_affiliation\n";        
 
-    return $eduPerson_scoped_affiliation;
+    return ( $$self{__eduPerson_scoped_affiliation} = $eduPerson_scoped_affiliation );
 }
 
 # ---------------------------------------------------------------------
@@ -614,7 +674,7 @@ sub get_eduPersonScopedAffiliation {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $eduPersonScopedAffiliation = $self->__get_prioritized_scoped_affiliation();
+        $eduPersonScopedAffiliation = $self->__get_prioritized_scoped_affiliation($C);
     }
 
     return $eduPersonScopedAffiliation;
@@ -1023,7 +1083,7 @@ sub affiliation_is_hathitrust {
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
         # If there's a scoped affiliation then they're hathitrust
-        $is_hathitrust = $aff;
+        $is_hathitrust = ( $aff ne '' );
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend) {
@@ -1132,11 +1192,7 @@ sub get_legacy_user_name {
     my $C = shift;
     my $user_id;
     if ( $self->is_logged_in() && $self->get_institution_code($C, 1) eq 'umich' ) {
-        if ( $self->login_realm_is_friend ) {
-            $user_id = lc $ENV{mail};
-        } else {
-            $user_id = lc((split(/\@/, $ENV{eppn}))[0]);
-        }
+        return Utils::Get_Legacy_Remote_User();
     }
     return $user_id;
 }
@@ -1174,6 +1230,11 @@ sub set_isa_new_login {
     my $self = shift;
     my $isa = shift;
     $self->{'isa_new_login'} = $isa;
+}
+
+sub is_cosign_active {
+    my $self = shift;
+    return (defined($ENV{HT_IS_COSIGN_STILL_HERE}) && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes');
 }
 
 
