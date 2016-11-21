@@ -278,6 +278,16 @@ sub get_institution_list {
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
+    unless ( defined $ENV{HT_IS_COSIGN_STILL_HERE} && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes' ) {
+        # update the template for umich.edu
+        foreach my $ref ( @$ref_to_arr_of_hashref ) {
+            if ( $$ref{domain} eq 'umich.edu' ) {
+                $$ref{authtype} = 'shibboleth';
+                $$ref{template} = q{https://___HOST___/Shibboleth.sso/umich?target=___TARGET___};
+            }
+        }
+    }
+
     return $ref_to_arr_of_hashref;
 }
 
