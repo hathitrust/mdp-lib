@@ -121,6 +121,7 @@ my $iprestrict_none = '.*';
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
+my $do_restrict_to_identity_provider = 0;
 
 
 # ---------------------------------------------------------------------
@@ -426,12 +427,13 @@ sub __get_user_attributes {
     my $Access_Control_List_ref = ___get_ACL;
 
     my $userid = Utils::Get_Remote_User();
-    my $affiliated = ( defined $ENV{affiliation} && length($ENV{affiliation}) > 0 ) || 0;
-    # my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
-    my $attrval = $Access_Control_List_ref->{"$userid|$affiliated"}{$requested_attribute} || '';
-    unless ( $attrval ) {
+    my $identity_provider = Utils::Get_Identity_Provider();
+    $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
+    my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    unless ( $attrval || Utils::is_cosign_active() ) {
       $userid = Utils::Get_Legacy_Remote_User();
-      $attrval = $Access_Control_List_ref->{"$userid|$affiliated"}{$requested_attribute} || '';
+      $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
+      $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
     }
 
     # Superuser debugging over-rides
@@ -458,7 +460,6 @@ sub __get_user_attributes {
 
     return $attrval;
 }
-
 
 # ---------------------------------------------------------------------
 
@@ -575,7 +576,7 @@ sub __load_access_control_list {
 
     my ($statement, $sth, $ref_to_arr_of_hashref);
 
-    $statement = qq{SELECT * FROM ht_users};
+    $statement = qq{SELECT * FROM ht_users LEFT OUTER JOIN ht_counts ON ht_users.userid = ht_counts.userid};
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
@@ -584,21 +585,11 @@ sub __load_access_control_list {
         ___attribute_mapping($hashref);
 
         my $userid = $hashref->{userid};
+        my $identity_provider = $hashref->{identity_provider} || '';
+        $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
         map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
     }
-
-    $statement = qq{SELECT * FROM ht_counts};
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
-    $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    foreach my $hashref (@$ref_to_arr_of_hashref) {
-
-        my $userid = $hashref->{userid};
-        if ( defined $Access_Control_List_ref->{$userid} ) {
-            map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
-        }
-    }
-
+    
     ___set_ACL($Access_Control_List_ref);
 }
 
