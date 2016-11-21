@@ -99,6 +99,17 @@ sub Get_Legacy_Remote_User {
     return $remote_user;
 }
 
+sub Get_Identity_Provider {
+    return $ENV{Shib_Identity_Provider} if ( defined($ENV{Shib_Identity_Provider}) );
+    return $UMICH_ENTITY_ID if ( defined $ENV{COSIGN_FACTOR} );
+    return '';
+}
+
+sub is_cosign_active {
+    return (defined($ENV{HT_IS_COSIGN_STILL_HERE}) && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes');
+}
+
+
 # ---------------------------------------------------------------------
 
 =item ASSERT_fail
