@@ -175,7 +175,6 @@ sub _initialize {
             # Not authenticated: THIS MAY BE CONDITION X:
             # See pod (above).
             $self->__debug_auth($C, $ses);
-            print STDERR "AHOY : COSIGN ACTIVE : $ENV{HT_IS_COSIGN_STILL_HERE}\n";
             if ( $self->is_cosign_active ) {
                 $self->handle_possible_redirect($C, $was_logged_in_via);
             } else {
@@ -215,7 +214,6 @@ sub handle_possible_redirect {
     my ($C, $was_logged_in_via) = @_;
 
     my $cgi = $C->get_object('CGI');
-    print STDERR "AHOY : POSSIBLE REDIRECT\n";
 
     if ($was_logged_in_via eq COSIGN && $ENV{SERVER_PORT} ne '443') {
         my $redirect_to = $self->get_COSIGN_login_href($cgi);
@@ -234,10 +232,10 @@ sub handle_possible_auth_expiration {
     my ($C, $was_logged_in_via) = @_;
 
     # no longer logged in
-    if ( $was_logged_in_via ) {
+    if ( $was_logged_in_via && $was_logged_in_via ne 'null' ) {
         my $cgi = $C->get_object('CGI');
         my $ses = $C->get_object('Session');
-        $ses->set_transient('logged_out', 1);
+        $ses->set_persistent('logged_out', 1);
         $ses->set_persistent('authenticated_via', '');
         my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
     }
@@ -320,6 +318,7 @@ sub set_auth_sys {
     my $self = shift;
     my $ses = shift;
     $ses->set_persistent('authenticated_via', lc($ENV{AUTH_TYPE} || ''));
+    $ses->set_persistent('logged_out', 0) if ( $ENV{AUTH_TYPE} );
 }
 
 # ---------------------------------------------------------------------
@@ -646,7 +645,6 @@ sub __get_prioritized_scoped_affiliation {
         }
 
     }
-    print STDERR "AHOY SCOPED AFFILIATION : $eduPerson_scoped_affiliation\n";        
 
     return ( $$self{__eduPerson_scoped_affiliation} = $eduPerson_scoped_affiliation );
 }
@@ -1234,7 +1232,7 @@ sub set_isa_new_login {
 
 sub is_cosign_active {
     my $self = shift;
-    return (defined($ENV{HT_IS_COSIGN_STILL_HERE}) && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes');
+    return Utils::is_cosign_active();
 }
 
 
