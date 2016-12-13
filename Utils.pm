@@ -78,7 +78,7 @@ sub Get_Remote_User {
     my $remote_user = '';
     if ( exists $ENV{REMOTE_USER} && defined $ENV{REMOTE_USER} && $ENV{REMOTE_USER} ) {
         $remote_user = lc $ENV{REMOTE_USER};
-        if ( $ENV{Shib_Identity_Provider} eq $UMICH_ENTITY_ID ) {
+        if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq $UMICH_ENTITY_ID ) {
             $remote_user = Get_Legacy_Remote_User();
         }
     }
@@ -87,7 +87,7 @@ sub Get_Remote_User {
 
 sub Get_Legacy_Remote_User {
     my $remote_user = '';
-    if ( $ENV{Shib_Identity_Provider} eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
+    if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
         if ( $ENV{umichCosignFactor} eq 'UMICH.EDU' ) {
             # remove the @umich.edu
             $remote_user = substr(lc $ENV{eppn}, 0, -10);
