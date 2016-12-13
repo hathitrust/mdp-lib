@@ -72,7 +72,7 @@ Always use if (Utils::Get_Remote_User()) {
 =cut
 
 # ---------------------------------------------------------------------
-my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
+our $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
 
 sub Get_Remote_User {
     my $remote_user = '';
