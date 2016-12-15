@@ -349,7 +349,7 @@ sub auth_sys_is_COSIGN {
     my $C = shift;
 
     # for the "gr" cgi
-    my $is = $ENV{SCRIPT_NAME} eq q{/cgi/gr};
+    my $is = defined $ENV{SCRIPT_NAME} && $ENV{SCRIPT_NAME} eq q{/cgi/gr};
 
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
