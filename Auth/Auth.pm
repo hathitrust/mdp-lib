@@ -241,6 +241,39 @@ sub handle_possible_auth_expiration {
     }
 }
 
+sub handle_possible_auth_stepup {
+    my $self = shift;
+    my ( $C, $access_type ) = @_;
+    if ( $access_type == $RightsGlobals::HT_TOTAL_USER ) {
+        my $entityID = $self->get_shibboleth_entityID($C);
+        my $authnContext = {};
+        $$authnContext{'https://shibboleth.umich.edu/idp/shibboleth'} = 'urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken';
+        unless ( defined $ENV{Shib_AuthnContext_Class} && defined $$authnContext{$entityID} && $ENV{Shib_AuthnContext_Class} eq $$authnContext{$entityID} ) {
+            # need to redirect
+            $access_type = $RightsGlobals::ORDINARY_USER;
+            $self->handle_auth_stepup_redirect($C, $$authnContext{$entityID});
+        }
+    }
+    return $access_type;
+}
+sub handle_auth_stepup_redirect {
+    my $self = shift;
+    my ( $C, $authnContextClassRef ) = @_;
+    my $cgi = $C->get_object('CGI');
+    my $target = CGI::self_url($cgi);
+    my $inst_id = $self->get_institution_code($C, 1);
+    my $redirect_to = qq{https://$ENV{SERVER_NAME}/Shibboleth.sso/$inst_id?target=$target&authnContextClassRef=$authnContextClassRef};
+    $self->do_redirect($C, $redirect_to);
+}
+
+sub do_redirect {
+    my $self = shift;
+    my ( $C, $redirect_to ) = @_;
+    my $cgi = $C->get_object('CGI');
+    print $cgi->redirect($redirect_to);
+    exit;
+}
+
 # ---------------------------------------------------------------------
 
 =item get_SHIBBOLETH_login_href
