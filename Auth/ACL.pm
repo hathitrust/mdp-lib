@@ -230,7 +230,7 @@ sub __a_Authorized_core {
             }
         }
     }
-    
+
     return $authorized;
 }
 
@@ -576,7 +576,7 @@ sub __load_access_control_list {
 
     my ($statement, $sth, $ref_to_arr_of_hashref);
 
-    $statement = qq{SELECT * FROM ht_users LEFT OUTER JOIN ht_counts ON ht_users.userid = ht_counts.userid};
+    $statement = qq{SELECT ht_users.*, ht_counts.accesscount, ht_counts.last_access, ht_counts.warned, ht_counts.certified, ht_counts.auth_requested FROM ht_users LEFT OUTER JOIN ht_counts ON ht_users.userid = ht_counts.userid};
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
@@ -589,7 +589,7 @@ sub __load_access_control_list {
         $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
         map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
     }
-    
+
     ___set_ACL($Access_Control_List_ref);
 }
 
