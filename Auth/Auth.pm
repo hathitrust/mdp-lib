@@ -1141,6 +1141,9 @@ sub get_user_display_name {
                         : $self->get_eduPersonScopedAffiliation($C) );
                 }
             }
+            unless ( $user_display_name ) {
+                $user_display_name = $self->__guess_displayName();
+            }
         }
         else {
             # not authenticated
@@ -1148,6 +1151,30 @@ sub get_user_display_name {
         }
     }
 
+    return $user_display_name;
+}
+
+# ---------------------------------------------------------------------
+
+=item __guess_displayName
+
+determines a user display name from the raw $ENV{affiliation}
+(vs. the allowed affiliations from ht_institutions)
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __guess_displayName {
+    my $self = shift;
+    my $user_display_name = q{visitor};
+    my $affiliation = defined $ENV{affiliation} ? lc $ENV{affiliation} : '';
+    if ( $affiliation =~ m,student, ) {
+        $user_display_name = q{student};
+    } elsif ( $affiliation =~ m,faculty, ) {
+        $user_display_name = q{faculty};
+    } elsif ( $affiliation =~ m,staff, ) {
+        $user_display_name = q{staff};
+    }
     return $user_display_name;
 }
 
