@@ -217,13 +217,11 @@ sub handle_possible_redirect {
 
     if ($was_logged_in_via eq COSIGN && $ENV{SERVER_PORT} ne '443') {
         my $redirect_to = $self->get_COSIGN_login_href($cgi);
-        print $cgi->redirect($redirect_to);
-        exit;
+        $self->do_redirect($C, $redirect_to);
     }
     elsif ($was_logged_in_via eq SHIBBOLETH) {
         my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
-        print $cgi->redirect($redirect_to);
-        exit;
+        $self->do_redirect($C, $redirect_to);
     }
 }
 
@@ -241,22 +239,22 @@ sub handle_possible_auth_expiration {
     }
 }
 
-sub handle_possible_auth_stepup {
+sub handle_possible_auth_2fa {
     my $self = shift;
     my ( $C, $access_type ) = @_;
-    if ( $access_type == $RightsGlobals::HT_TOTAL_USER ) {
+    if ( $self->is_possible_auth_stepup($C, $access_type) ) {
         my $entityID = $self->get_shibboleth_entityID($C);
-        my $authnContext = {};
-        $$authnContext{'https://shibboleth.umich.edu/idp/shibboleth'} = 'urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken';
-        unless ( defined $ENV{Shib_AuthnContext_Class} && defined $$authnContext{$entityID} && $ENV{Shib_AuthnContext_Class} eq $$authnContext{$entityID} ) {
+        my $authContextClassRef = $self->get_institution_2fa_authcontext_class_ref($C);
+        if ( defined $ENV{Shib_AuthnContext_Class} && defined $authContextClassRef && $ENV{Shib_AuthnContext_Class} ne $authContextClassRef ) {
             # need to redirect
             $access_type = $RightsGlobals::ORDINARY_USER;
-            $self->handle_auth_stepup_redirect($C, $$authnContext{$entityID});
+            $self->handle_auth_2fa_redirect($C, $authContextClassRef);
         }
     }
     return $access_type;
 }
-sub handle_auth_stepup_redirect {
+
+sub handle_auth_2fa_redirect {
     my $self = shift;
     my ( $C, $authnContextClassRef ) = @_;
     my $cgi = $C->get_object('CGI');
@@ -264,6 +262,28 @@ sub handle_auth_stepup_redirect {
     my $inst_id = $self->get_institution_code($C, 1);
     my $redirect_to = qq{https://$ENV{SERVER_NAME}/Shibboleth.sso/$inst_id?target=$target&authnContextClassRef=$authnContextClassRef};
     $self->do_redirect($C, $redirect_to);
+}
+
+sub is_possible_auth_stepup {
+    my $self = shift;
+    my ( $C, $access_type ) = @_;
+
+    my $retval = 0;
+
+    my $config = {};
+    $$config{$RightsGlobals::HT_TOTAL_USER} = 1;
+    $$config{$RightsGlobals::SSD_PROXY_USER} = 1;
+
+    if ( defined $access_type && defined $$config{$access_type} ) {
+        $retval = $$config{$access_type};
+        if ( ref($retval) ) {
+            # my $value = Auth::ACL::a_GetUserAttributes('usertype');
+            my $value = Auth::ACL::a_GetUserAttributes('role');
+            $retval = defined $value && defined $$config{$access_type}{$value} && $$config{$access_type}{$value};
+        }
+    }
+
+    return $retval;
 }
 
 sub do_redirect {
@@ -578,6 +598,26 @@ sub get_allowed_affiliations {
     }
 
     return $allowed_affiliations;
+}
+
+sub get_institution_2fa_authcontext_class_ref {
+    my $self = shift;
+    my ( $C, $mapped ) = @_;
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ( $entity_id eq $self->get_umich_IdP_entity_id() ) {
+        return undef if ( defined $ENV{umichCosignFactor} && $ENV{umichCosignFactor} eq 'friend' );
+    }
+
+    my $authContextClassRef;
+
+    my $Shib_AuthnContext_Class = {};
+    $$Shib_AuthnContext_Class{'https://shibboleth.umich.edu/idp/shibboleth'} = 'urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken';
+    $authContextClassRef = $$Shib_AuthnContext_Class{$entity_id} if ( defined $$Shib_AuthnContext_Class{$entity_id} );
+
+    ## the future?
+    # $authContextClassRef = Institutions::get_institution_entityID_field_val($C, $entity_id, 'Shib_AuthnContext_Class', $mapped);
+    
+    return $authContextClassRef;
 }
 
 

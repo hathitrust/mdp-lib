@@ -1135,9 +1135,8 @@ sub _determine_access_type {
         $access_type = $RightsGlobals::ORDINARY_USER;
     }
 
-    # this whole bit should be $auth->handle_possible_auth_stepup()
     # we may not return from here
-    $access_type = $auth->handle_possible_auth_stepup($C, $access_type);
+    $access_type = $auth->handle_possible_auth_2fa($C, $access_type);
 
     DEBUG('pt,auth,all',
           sub {
