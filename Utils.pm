@@ -1092,6 +1092,7 @@ sub using_localdataroot {
 
         if ($config->has('localdevelopmentids')) {
             my @development_ids = $config->get('localdevelopmentids');
+
             if (grep(/^$id$/, @development_ids)) {
                 return $ENV{SDRDATAROOT} = $localdataroot;
             }
