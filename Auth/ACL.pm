@@ -118,6 +118,8 @@ my $iprestrict_all = 'notanipaddress';
 # unrestricted (SSD only, after Wed Apr  2 13:42:55 2014)
 my $iprestrict_none = '.*';
 
+# 
+
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
@@ -521,7 +523,7 @@ sub ___attribute_mapping {
 
     # Map these
     my $role = $hashref->{role};
-    my $vpn = $hashref->{vpn};
+    my $mfa = $hashref->{mfa} || 0;
     my $iprestrict = $hashref->{iprestrict};
     my $usertype = $hashref->{usertype};
     my $expires = $hashref->{expires};
@@ -537,21 +539,16 @@ sub ___attribute_mapping {
 
     # Use database IP address(es), if defined, else use the
     # "no access" IP address or some other value in special cases
-    # (SSD) below. Add the VPN range if vpn=1
-    #
-    if (defined $iprestrict) {
-        $iprestrict = $hashref->{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
-    }
-    else {
-        $iprestrict = $hashref->{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
-    }
-
-    # Special cases
+    # (SSD, Multi-Factored Auth) below.
     #
     if ($usertype eq 'student') {
         if ($role eq 'ssd') {
             $iprestrict = $hashref->{iprestrict} = $iprestrict_none;
         }
+    } elsif ($mfa) {
+      $iprestrict = $hashref->{iprestrict} = $iprestrict_none;      
+    } elsif (!defined $iprestrict) {
+      $iprestrict = $hashref->{iprestrict} = $iprestrict_all;
     }
 }
 
@@ -581,6 +578,7 @@ sub __load_access_control_list {
     $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     foreach my $hashref (@$ref_to_arr_of_hashref) {
+
 
         ___attribute_mapping($hashref);
 
