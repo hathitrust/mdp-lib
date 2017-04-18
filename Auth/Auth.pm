@@ -609,13 +609,7 @@ sub get_institution_2fa_authcontext_class_ref {
     }
 
     my $authContextClassRef;
-
-    my $Shib_AuthnContext_Class = {};
-    $$Shib_AuthnContext_Class{'https://shibboleth.umich.edu/idp/shibboleth'} = 'urn:oasis:names:tc:SAML:2.0:ac:classes:TimeSyncToken';
-    $authContextClassRef = $$Shib_AuthnContext_Class{$entity_id} if ( defined $$Shib_AuthnContext_Class{$entity_id} );
-
-    ## the future?
-    # $authContextClassRef = Institutions::get_institution_entityID_field_val($C, $entity_id, 'Shib_AuthnContext_Class', $mapped);
+    $authContextClassRef = Institutions::get_institution_entityID_field_val($C, $entity_id, 'shib_authncontext_class', $mapped);
     
     return $authContextClassRef;
 }
