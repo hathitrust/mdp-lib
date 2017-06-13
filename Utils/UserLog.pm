@@ -54,7 +54,8 @@ sub __ul_log_event {
     
     $s =~ s,__T__,$time,;
     $s =~ s,__E__,$message,;
-    $s =~ s,\n,,g;
+    $s =~ s,\n+,\n,g;
+    $s =~ s,\n, / ,g;
     
     open(my $fh, '>>', $log_filename);
     chmod 0666, $log_filename;

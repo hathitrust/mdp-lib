@@ -23,9 +23,57 @@ Coding example
 use strict;
 use warnings;
 
-use SOAP::Lite;
+# use SOAP::Lite;
 use MdpConfig;
 use Utils::UserLog;
+
+use JSON::XS qw(encode_json decode_json);
+
+{
+    package JIRA::Client;
+    use base qw(LWP::UserAgent);
+
+    use JSON::XS qw(encode_json);
+    use LWP::UserAgent;
+    use HTTP::Request;
+    use Data::Dumper;
+
+    sub new {
+        my $self = LWP::UserAgent::new(@_);
+        $self->agent("lwp-request/$LWP::VERSION ");
+        $self;
+    }
+
+    sub post {
+        my $self = shift;
+        my %options = @_;
+        $options{method} = 'POST';
+        return $self->request(%options);
+    }
+
+    sub request {
+        my $self = shift;
+        my %options = @_;
+
+        my $uri = "$options{service}/issue/";
+        $uri .= "$options{ticket}" if ( $options{ticket} );
+        $uri .= "/$options{action}" if ( $options{action} );
+        my $method = $options{method} || 'GET';
+
+        my $req = HTTP::Request->new($method, $uri);
+        $req->authorization_basic($options{user}, $options{password});
+        $req->header('Content-Type' => 'application/json');
+
+        if ( $options{body} ) {
+            my $json = encode_json($options{body});
+            $req->content($json);
+        }
+
+        my $ua = LWP::UserAgent->new;
+        return $ua->request($req);
+    }
+
+}
 
 # ---------------------------------------------------------------------
 
@@ -38,15 +86,24 @@ Description
 # ---------------------------------------------------------------------
 sub __check_fault {
     my $res = shift;
-    my $service = shift;
     
-    if ( defined $res->fault() ) {
-        my $s = "ERROR: \n" . $service->createIssueResponse . "\n" . $res->faultstring() . "\n";
+    unless ( $res->is_success ) {
+        my $s = "ERROR: " . $res->request->as_string . "\n";
+        if ( $res->code == 401 ) {
+            # unauthorized
+            $s .= "UNAUTHORIZED\n";
+        } elsif ( $res->header('Content-Type') =~ m,application/json, ) {
+            my $content = decode_json($res->decoded_content);
+            $s .= join("\n", @{ $$content{errorMessages} });
+        } else {
+            $s .= $res->as_string  . "\n";
+        }
         __ul_log_event($s);
         die $s;
     }
 
-    return $res->result();
+    # decode the JSON
+    return decode_json($res->decoded_content);
 }
 
 
@@ -92,15 +149,12 @@ Description
 sub __get_JIRA_connection {
     my $config = shift;
     
-    my $endpoint = $config->get('jira_soap_endpoint');
-    my $service = SOAP::Lite->proxy($endpoint);
+    my $endpoint = $config->get('jira_rest_endpoint');
+    my $service = $endpoint;
 
     my ($user, $passwd) = __get_JIRA_user_passwd();
 
-    my $token = __check_fault( $service->login($user, $passwd), $service );
-    # POSSIBLY NOTREACHED
-
-    return ($service, $token);
+    return ( service => $service, user => $user, password => $passwd );
 }
 
 # ---------------------------------------------------------------------
@@ -115,13 +169,14 @@ Description
 sub comment_JIRA_ticket {
     my ($config, $ticket, $comment) = @_;
 
-    my ($service, $token) = __get_JIRA_connection($config);
+    my %config = __get_JIRA_connection($config);
     # POSSIBLY NOTREACHED
 
-    __check_fault( $service->addComment($token, $ticket, SOAP::Data->type( RemoteComment => {body => $comment} )), $service );
-    # POSSIBLY NOTREACHED
+    my $service = JIRA::Client->new();
+    my %options = ( action => 'comment', ticket => $ticket, body => { body => $comment }, %config );
+    __check_fault( $service->post(%options) ) ;
 
-   $service->logout;
+    # POSSIBLY NOTREACHED
 }
 
 # ---------------------------------------------------------------------
@@ -136,13 +191,14 @@ Description
 sub get_JIRA_ticket_info {
     my ($config, $ticket) = @_;
 
-    my ($service, $token) = __get_JIRA_connection($config);
+    my %config = __get_JIRA_connection($config);
     # POSSIBLY NOTREACHED
 
-    __check_fault( $service->getIssue($token, $ticket), $service );
-    # POSSIBLY NOTREACHED
+    my $service = JIRA::Client->new();
+    my %options = ( ticket => $ticket, %config );
 
-   $service->logout;
+    __check_fault( $service->request(%options) ) ;
+    # POSSIBLY NOTREACHED
 }
 
 # ---------------------------------------------------------------------
@@ -157,28 +213,27 @@ Description
 sub create_JIRA_ticket {
     my ($config, $project, $ticket_summary, $description) = @_;
 
-    my ($service, $token) = __get_JIRA_connection($config);
+    my %config = __get_JIRA_connection($config);
     # POSSIBLY NOTREACHED
 
-    # Build JIRA RemoteIssue XML format (as below)
-    use constant TYPE_GENERAL => 12;
-
-    my $issue = {
-                 'project'     => SOAP::Data->type('string' => $project),
-                 'summary'     => SOAP::Data->type('string' => $ticket_summary),
-                 'type'        => SOAP::Data->type('string' => TYPE_GENERAL),
-                 'description' => SOAP::Data->type('string' => $description),
-                };
-
-    # Create issue, catch exceptions and logout
-    my $ticket = __check_fault( $service->createIssue($token, $issue), $service );
-    # POSSIBLY NOTREACHED
-    
-    my $ticket_number = $ticket->{key};
-
-    $service->logout;
-
-    return $ticket_number;
+    my $service = JIRA::Client->new();
+    my %options = ( 
+        body => {
+            fields => {
+                project => {
+                    key => $project
+                },
+                summary => $ticket_summary,
+                description => $description,
+                issuetype => {
+                    name => "General"
+                }
+            }
+        }, 
+        %config 
+    );
+    my $resp = __check_fault( $service->post(%options) ) ;
+    return $$resp{key};
 }
 
 
