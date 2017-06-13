@@ -53,6 +53,16 @@ sub log_incopyright_access  {
         my $attribute = $ar->get_rights_attribute($C, $id) || 0;
         my $access_type = $ar->get_access_type($C, 'as_string');
 
+        {
+            if ( Debug::DUtils::DEBUG('super') ) {
+                my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
+                if ( $usertype ) {
+                    my $role = Auth::ACL::a_GetUserAttributes('role');
+                    Utils::add_header($C, 'X-HathiTrust-User', "usertype=$usertype;role=$role");
+                }
+            }
+        }
+
         if ($in_copyright) {
             # ... that is in-copyright
             my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
