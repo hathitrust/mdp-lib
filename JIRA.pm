@@ -23,7 +23,6 @@ Coding example
 use strict;
 use warnings;
 
-# use SOAP::Lite;
 use MdpConfig;
 use Utils::UserLog;
 
