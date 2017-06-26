@@ -54,7 +54,8 @@ use JSON::XS qw(encode_json decode_json);
         my $self = shift;
         my %options = @_;
 
-        my $uri = "$options{service}/issue/";
+        my $uri = $options{service};
+        $uri .= "/issue/" unless ( $options{action} eq 'search' );
         $uri .= "$options{ticket}" if ( $options{ticket} );
         $uri .= "/$options{action}" if ( $options{action} );
         my $method = $options{method} || 'GET';
@@ -234,6 +235,28 @@ sub create_JIRA_ticket {
     my $resp = __check_fault( $service->post(%options) ) ;
     return $$resp{key};
 }
+
+sub search_JIRA {
+    my ($config, $query, $maxResults) = @_;
+
+    my %config = __get_JIRA_connection($config);
+    # POSSIBLY NOTREACHED
+
+    my $service = JIRA::Client->new();
+    my %options = ( 
+        action => 'search',
+        body => {
+            maxResults => ( $maxResults || 10 ),
+            startAt => 0,
+            fields => [ "id", "key" ],
+            jql => $query
+        }, 
+        %config 
+    );
+    my $resp = __check_fault( $service->post(%options) ) ;
+    return $resp;
+}
+
 
 
 1;
