@@ -167,13 +167,25 @@ Description
 
 # ---------------------------------------------------------------------
 sub comment_JIRA_ticket {
-    my ($config, $ticket, $comment) = @_;
+    my ($config, $ticket, $comment, $is_public) = @_;
 
     my %config = __get_JIRA_connection($config);
     # POSSIBLY NOTREACHED
 
+    my $is_internal = $is_public ? JSON::XS::false : JSON::XS::true;
+
     my $service = JIRA::Client->new();
-    my %options = ( action => 'comment', ticket => $ticket, body => { body => $comment }, %config );
+    my %options = ( 
+        action => 'comment', 
+        ticket => $ticket, 
+        body => { 
+            body => $comment,
+            properties => [
+                { key => "sd.public.comment", value => { internal => $is_internal } }
+            ]
+        }, 
+        %config 
+    );
     __check_fault( $service->post(%options) ) ;
 
     # POSSIBLY NOTREACHED
