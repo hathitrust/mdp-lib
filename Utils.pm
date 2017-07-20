@@ -88,7 +88,7 @@ sub Get_Remote_User {
 sub Get_Legacy_Remote_User {
     my $remote_user = '';
     if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
-        if ( $ENV{umichCosignFactor} eq 'UMICH.EDU' ) {
+        if ( $ENV{umichCosignFactor} =~ m,^UMICH.EDU, ) {
             # remove the @umich.edu
             $remote_user = substr(lc $ENV{eppn}, 0, -10);
         } else {
