@@ -223,7 +223,7 @@ Description
 
 # ---------------------------------------------------------------------
 sub create_JIRA_ticket {
-    my ($config, $project, $ticket_summary, $description) = @_;
+    my ($config, $project, $ticket_summary, $description, $assignee) = @_;
 
     my %config = __get_JIRA_connection($config);
     # POSSIBLY NOTREACHED
@@ -244,6 +244,11 @@ sub create_JIRA_ticket {
         }, 
         %config 
     );
+    if ( $assignee ) {
+        $options{body}{fields}{assignee} = {
+            name => $assignee
+        };
+    }
     my $resp = __check_fault( $service->post(%options) ) ;
     return $$resp{key};
 }
