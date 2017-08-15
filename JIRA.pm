@@ -55,7 +55,7 @@ use JSON::XS qw(encode_json decode_json);
         my %options = @_;
 
         my $uri = $options{service};
-        $uri .= "/issue/" unless ( defined $$options{action} && $options{action} eq 'search' );
+        $uri .= "/issue/" unless ( defined $options{action} && $options{action} eq 'search' );
         $uri .= "$options{ticket}" if ( $options{ticket} );
         $uri .= "/$options{action}" if ( $options{action} );
         my $method = $options{method} || 'GET';
