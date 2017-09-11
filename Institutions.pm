@@ -281,10 +281,11 @@ sub get_institution_list {
     unless ( defined $ENV{HT_IS_COSIGN_STILL_HERE} && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes' ) {
         # update the template for umich.edu
         foreach my $ref ( @$ref_to_arr_of_hashref ) {
-            if ( $$ref{domain} eq 'umich.edu' ) {
+            if ( $$ref{domain} eq 'umich.edu' && $$ref{authtype} ne 'shibboleth' ) {
                 $$ref{authtype} = 'shibboleth';
                 $$ref{template} = q{https://___HOST___/Shibboleth.sso/umich?target=___TARGET___};
             }
+            $$ref{social} = abs($$ref{enabled}) == 3;
         }
     }
 
@@ -316,6 +317,9 @@ sub get_idp_list {
         elsif ( $hash_ref->{enabled} == 1 ) {
             $add_to_list = 1;
         }
+        elsif ( abs($hash_ref->{enabled}) == 3 ) {
+            $add_to_list = 1;
+        }
         elsif ( $hash_ref->{enabled} == 2 ) {
             $add_to_list = 0;
         }
@@ -331,6 +335,7 @@ sub get_idp_list {
             idp_url => $idp_url,
             authtype => $hash_ref->{authtype},
             name => $hash_ref->{name},
+            social => abs($$hash_ref{enabled}) == 3,
             selected => ( $inst eq $hash_ref->{inst_id} ),
         };
 
