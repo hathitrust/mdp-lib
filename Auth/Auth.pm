@@ -260,7 +260,10 @@ sub handle_auth_2fa_redirect {
     my $cgi = $C->get_object('CGI');
     my $target = CGI::self_url($cgi);
     my $inst_id = $self->get_institution_code($C, 1);
-    my $redirect_to = qq{https://$ENV{SERVER_NAME}/Shibboleth.sso/$inst_id?target=$target&authnContextClassRef=$authnContextClassRef};
+    my $redirect_to = $self->get_institution_template($C, 1);
+    $redirect_to =~ s,___HOST___,$ENV{SERVER_NAME},;
+    $redirect_to =~ s,___TARGET___,$target,;
+    $redirect_to .= qq{&authnContextClassRef=$authnContextClassRef};
     $self->do_redirect($C, $redirect_to);
 }
 
@@ -614,6 +617,23 @@ sub get_institution_2fa_authcontext_class_ref {
     return $authContextClassRef;
 }
 
+sub get_institution_template {
+    my $self = shift;
+    my $C = shift;
+    my $mapped = shift;
+
+    my $template;
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        $template = Institutions::get_institution_entityID_field_val($C, $entity_id, 'template', $mapped);
+    }
+    else {
+        my $inst_id = __get_institution_code_by_ip_address();
+        $template = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'template', $mapped);
+    }
+
+    return $template;
+}
 
 # ---------------------------------------------------------------------
 
