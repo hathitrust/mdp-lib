@@ -317,9 +317,6 @@ sub get_idp_list {
         elsif ( $hash_ref->{enabled} == 1 ) {
             $add_to_list = 1;
         }
-        elsif ( abs($hash_ref->{enabled}) == 3 ) {
-            $add_to_list = 1;
-        }
         elsif ( $hash_ref->{enabled} == 2 ) {
             $add_to_list = 0;
         }
