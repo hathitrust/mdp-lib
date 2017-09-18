@@ -40,7 +40,7 @@ sub handle_USER_NAME_PI
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $user_name = $auth->get_user_display_name($C);
+    my $user_name = $auth->get_user_display_name($C, 'unscoped');
     Utils::map_chars_to_cers(\$user_name, [q{"}, q{'}], 1);
 
     return $user_name;
