@@ -560,11 +560,13 @@ sub get_institution_name {
     my $self = shift;
     my $C = shift;
     my $mapped = shift;
+    my $ignore_affiliation = shift;
 
     my $inst_name;
 
     my $entity_id = $self->get_shibboleth_entityID($C);
-    if ($entity_id && $self->__get_prioritized_scoped_affiliation($C)) {
+    my $affiliated = ( $ignore_affiliation ? 1 : $self->__get_prioritized_scoped_affiliation($C) );
+    if ($entity_id && $affiliated) {
         $inst_name = Institutions::get_institution_entityID_field_val($C, $entity_id, 'name', $mapped);
     }
     else {
