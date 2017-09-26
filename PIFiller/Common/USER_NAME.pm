@@ -66,6 +66,17 @@ sub handle_USER_ID_PI
     return $user_id;
 }
 
+sub handle_USER_AFFILIATION_PI
+    : PI_handler(USER_AFFILIATION) {
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+    $affiliation = CGI::escape($affiliation);
+
+    return $affiliation;
+}
+
 
 
 

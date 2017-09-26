@@ -218,6 +218,17 @@ sub handle_INSTITUTION_NAME_PI
     return $institution_name;
 }
 
+sub handle_PROVIDER_NAME_PI
+    : PI_handler(PROVIDER_NAME)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $provider_name = $auth->get_institution_name($C, 'mapped', 1);
+
+    return $provider_name;
+}
+
 # ---------------------------------------------------------------------
 
 =item handle_INSTITUTION_CODE_PI
