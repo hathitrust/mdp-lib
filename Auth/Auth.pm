@@ -574,7 +574,7 @@ sub get_institution_name {
         $inst_name = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'name', $mapped);
     }
 
-    if ( $ignore_affiliation && $inst_name eq 'University of Michigan' && Utils::Get_Remote_User() !~ m,^[a-z]+$, ) {
+    if ( $inst_name && $ignore_affiliation && $inst_name eq 'University of Michigan' && Utils::Get_Remote_User() !~ m,^[a-z]+$, ) {
         # make this obvious you're a friend
         $inst_name .= " - Friend";
     }
