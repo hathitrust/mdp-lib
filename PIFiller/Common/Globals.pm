@@ -213,7 +213,7 @@ sub handle_INSTITUTION_NAME_PI
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $institution_name = $auth->get_institution_name($C, 'mapped');
+    my $institution_name = $auth->get_institution_name($C); # , 'mapped');
 
     return $institution_name;
 }
@@ -224,7 +224,7 @@ sub handle_PROVIDER_NAME_PI
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $provider_name = $auth->get_institution_name($C, 'mapped', 1);
+    my $provider_name = $auth->get_institution_name($C, undef, 1);
 
     return $provider_name;
 }
