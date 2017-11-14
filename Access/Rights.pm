@@ -309,7 +309,7 @@ sub get_access_type {
     my $self = shift;
     my ($C, $as_string) = @_;
 
-    my $access_type = $self->{access_type};
+    my $access_type = $self->{access_type} || get_access_type_determination($C);
     my $at =
       $as_string
         ? $RightsGlobals::g_access_type_names{$access_type}
