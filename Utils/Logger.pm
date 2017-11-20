@@ -32,6 +32,8 @@ use Context;
 use MdpConfig;
 use Semaphore;
 
+use Time::HiRes;
+
 
 # ------- Configuration variables --------
 my $logging_enabled = 1;
@@ -68,6 +70,8 @@ sub __Log_string {
     my $logfile_key = shift;
     my $optional_dir_pattern = shift;
     my $optional_dir_key = shift;
+    my $optional_logfile_pattern = shift;
+    my $optional_logfile_key = shift;
 
     exit 0 if (! $logging_enabled);
 
@@ -81,6 +85,9 @@ sub __Log_string {
     my $logfile = $config->get($logfile_key);
     my $date = Utils::Time::iso_Time('date');
     $logfile =~ s,___DATE___,-$date,;
+    if (defined($optional_logfile_key) && defined($optional_logfile_pattern)) {
+        $logfile =~ s,$optional_logfile_pattern,$optional_logfile_key,;
+    }
     
     Utils::mkdir_path($logdir);
 
@@ -96,7 +103,7 @@ sub __Log_string {
     while (! ($sem = new Semaphore($lock_file))) {
         $tries++;
         return if ($tries > MAX_TRIES);
-        sleep 1;
+        Time::HiRes::sleep(0.5);
     }
 
     if (open(LOG, ">>:encoding(UTF-8)", $logfile_path)) {
