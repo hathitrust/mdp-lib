@@ -34,6 +34,7 @@ package RightsGlobals;
  23	cc-by-nc-4.0	copyright	Creative Commons Attribution-NonCommercial 4.0 International license
  24	cc-by-nc-sa-4.0	copyright	Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license
  25	cc-by-sa-4.0	copyright	Creative Commons Attribution-ShareAlike 4.0 International license
+ 26     pd-pvt          access          public domain but access limited due to privacy concerns
 
  (Orphan works project)
 
@@ -74,6 +75,13 @@ package RightsGlobals;
  pd-us-google
 
 =cut
+
+# For GeoIP address checking we do not want to exclude private network addresses forwarded through routers etc.
+#   10.0.0.0        -   10.255.255.255
+#   172.16.0.0      -   172.31.255.255
+#   192.168.0.0     -   192.168.255.255
+#
+our $private_network_ranges_regexp = q{^10\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))$|^172\.(1[6-9]|2[0-9]|3[0-1])\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))$|^192\.168\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))\.([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))$};
 
 # Bad rights_current.{attr,access_profile} value
 our $NOOP_ATTRIBUTE = 0;
@@ -134,6 +142,8 @@ our $HT_AFFILIATE        = 7;
    '23' => 'Creative Commons Attribution-NonCommercial 4.0 International license',
    '24' => 'Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license',
    '25' => 'Creative Commons Attribution-ShareAlike 4.0 International license',
+   '26' => 'public domain but access limited due to privacy concerns',
+   '27' => 'suppressed from view',
   );
 
 %g_source_names =
@@ -161,6 +171,21 @@ our $HT_AFFILIATE        = 7;
    21 => 'ku',
    22 => 'mcgill',
    23 => 'bc',
+   24 => 'nnc',
+   25 => 'geu',
+   26 => 'borndigital',
+   27 => 'yale2',
+   28 => 'mou',
+   29 => 'chtanc',
+   30 => 'bentley-umich',
+   31 => 'clements-umich',
+   32 => 'wau',
+   33 => 'cornell',
+   34 => 'cornell-ms',
+   35 => 'umd',
+   36 => 'frick',
+   37 => 'northwestern',
+   38 => 'umn',
   );
 
 %g_attribute_keys =
@@ -190,6 +215,8 @@ our $HT_AFFILIATE        = 7;
    23 => 'cc-by-nc-4.0',
    24 => 'cc-by-nc-sa-4.0',
    25 => 'cc-by-sa-4.0',
+   26 => 'pd-pvt',
+   27 => 'supp',
   );
 
 %g_access_profile_names =
@@ -212,6 +239,8 @@ our $HT_AFFILIATE        = 7;
    );
 
 
+ # As of Mon Mar 21 15:51:00 2016 SSD_PROXY_USER has access to any in-copyright
+ # materials, regardless of holdings state.
 %g_rights_matrix =
   (
    # public domain
@@ -229,7 +258,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -246,7 +275,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings', # US implied
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -256,7 +285,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
            $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
            $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
@@ -266,7 +295,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'deny',
            $SSD_USER              => 'allow_ssd_by_holdings',
-           $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
@@ -309,7 +338,7 @@ our $HT_AFFILIATE        = 7;
            $HT_TOTAL_USER         => 'allow',
            $ORDINARY_USER         => 'allow_by_us_geo_ipaddr', # US IP only
            $SSD_USER              => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
-           $SSD_PROXY_USER        => 'allow_us_aff_by_ipaddr',
+           $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
            $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
@@ -379,7 +408,7 @@ our $HT_AFFILIATE        = 7;
             $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'deny',
             $SSD_USER              => 'allow_ssd_by_holdings',
-            $SSD_PROXY_USER        => 'allow_ssd_by_holdings',
+            $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'deny',
             $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
@@ -410,7 +439,7 @@ our $HT_AFFILIATE        = 7;
             $HT_TOTAL_USER         => 'allow',
             $ORDINARY_USER         => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
-            $SSD_PROXY_USER        => 'allow_ssd_by_holdings_by_geo_ipaddr',
+            $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
             $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
@@ -475,6 +504,26 @@ our $HT_AFFILIATE        = 7;
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
            },
+   # not available to view but searchable, more restrictive than ic(2) but less than nobody(8)
+   '26' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'deny',
+            $SSD_USER              => 'deny',
+            $SSD_PROXY_USER        => 'deny',
+            $LIBRARY_IPADDR_USER   => 'deny',
+            $UM_AFFILIATE          => 'deny',
+            $HT_AFFILIATE          => 'deny',
+           },
+   # not available to view, not searchable, more restrictive than nobody(8)
+   '27' => {
+            $HT_TOTAL_USER         => 'allow',
+            $ORDINARY_USER         => 'deny',
+            $SSD_USER              => 'deny',
+            $SSD_PROXY_USER        => 'deny',
+            $LIBRARY_IPADDR_USER   => 'deny',
+            $UM_AFFILIATE          => 'deny',
+            $HT_AFFILIATE          => 'deny',
+           },
   );
 
 # ---------------------------------------------------------------------
@@ -491,6 +540,7 @@ $g_public_domain_US_attribute_value = 9;
 $g_public_domain_non_US_attribute_value = 19;
 $g_orphan_attribute_value = 4;
 $g_orphan_candidate_attribute_value = 16;
+$g_suppressed_attribute_value = 27;
 
 # ------------------------------------------------------------------------
 # rights_current.access_profile values that allow full book PDF download.
@@ -517,7 +567,14 @@ $g_orphan_candidate_attribute_value = 16;
      'US', # United States
      'UM', # United States Minor Outlying Islands
      'VI', # Virgin Islands, U.S.
+     'PR', # Puerto Rico
+     'MH', # Marshall Islands,
+     'GU', # Guam
+     'MP', # Northern Mariana Islands
+     # 'AS', # America Samoa - not as of 2015-10-22
     );
+
+%g_pdus_country_codes_hash = map { $_ => 1 } @g_pdus_country_codes;
 
 1;
 
@@ -527,7 +584,7 @@ Phillip Farber, University of Michigan, pfarber@umich.edu
 
 =head1 COPYRIGHT
 
-Copyright 2007-14 ©, The Regents of The University of Michigan, All Rights Reserved
+Copyright 2007-15 ©, The Regents of The University of Michigan, All Rights Reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

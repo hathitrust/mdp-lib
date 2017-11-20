@@ -54,7 +54,7 @@ sub  handle_COLLECTION_SIZES_JS_PI
     my %hash;
     foreach my $row (@$coll_arr_of_hashref) {
         my $coll_id = $row->{'MColl_ID'};
-        my $coll_num_items = $co->count_all_items_for_coll($coll_id);
+        my $coll_num_items = $row->{'num_items'};
 
         $hash{$coll_id} = $coll_num_items; 
     }

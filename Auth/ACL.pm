@@ -63,7 +63,7 @@ from within the Auth::ACL package.
 
 'normal' access excludes attr=8 (nobody)
 
-Counting user in-copyright access activity 
+Counting user in-copyright access activity
 
  DESCRIBE ht_counts;
  +----------------+--------------+------+-----+---------------------+-------+
@@ -103,12 +103,14 @@ use warnings;
 
 use Context;
 use Utils;
-use Debug::DUtils;
 use Utils::Time;
+use Debug::DUtils;
 use Database;
 use DbUtils;
 
-my $library_vpn_range = q{^(141\.211\.84\.(1(29|[3-9][0-9])|2([0-4][0-9]|5[0-4])))$};
+# 141.213.171.72-141.213.171.87
+# 141.213.175.72-141.213.175.87
+my $library_vpn_range = q{^141\.213\.17[15]\.(7[2-9]|8[0-7])$};
 
 # blocked
 my $iprestrict_all = 'notanipaddress';
@@ -116,9 +118,12 @@ my $iprestrict_all = 'notanipaddress';
 # unrestricted (SSD only, after Wed Apr  2 13:42:55 2014)
 my $iprestrict_none = '.*';
 
+# 
+
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
+my $do_restrict_to_identity_provider = 0;
 
 
 # ---------------------------------------------------------------------
@@ -181,8 +186,9 @@ line) and is not incremented if access expires.
 
 # ---------------------------------------------------------------------
 sub a_Increment_accesscount {
+    my $id = shift;
     __load_access_control_list();
-    __update_accesscount();
+    __update_accesscount($id);
 }
 
 # ---------------------------------------------------------------------
@@ -339,23 +345,6 @@ sub S___total_access {
 
 # ---------------------------------------------------------------------
 
-=item __get_remote_user
-
-Description
-
-=cut
-
-# ---------------------------------------------------------------------
-sub __get_remote_user {
-    my $remote_user = '';
-    if ( exists($ENV{REMOTE_USER}) ) {
-        $remote_user = lc $ENV{REMOTE_USER};
-    }
-    return $remote_user;
-}
-
-# ---------------------------------------------------------------------
-
 =item __debug_acl
 
 Description
@@ -371,13 +360,14 @@ sub __debug_acl {
     my $test_case = shift;
 
     my $Access_Control_List_ref = ___get_ACL;
+    my $remote_user = Utils::Get_Remote_User();
 
     # masked data to reflect effect of debugging switches.
     DEBUG('auth,all',
           sub {
               return '' if $__a_debug_printed;
               my $ipaddr = $ENV{REMOTE_ADDR} || '';
-              my $userid = __get_remote_user();
+              my $userid = $remote_user;
               my $usertype = __get_user_attributes('usertype');
               my $role = __get_user_attributes('role');
               my $access = __get_user_attributes('access');
@@ -438,8 +428,15 @@ sub __get_user_attributes {
 
     my $Access_Control_List_ref = ___get_ACL;
 
-    my $userid = __get_remote_user();
+    my $userid = Utils::Get_Remote_User();
+    my $identity_provider = Utils::Get_Identity_Provider();
+    $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
     my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    unless ( $attrval || Utils::is_cosign_active() ) {
+      $userid = Utils::Get_Legacy_Remote_User();
+      $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
+      $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    }
 
     # Superuser debugging over-rides
     unless ($unmasked) {
@@ -466,7 +463,6 @@ sub __get_user_attributes {
     return $attrval;
 }
 
-
 # ---------------------------------------------------------------------
 
 =item __update_accesscount
@@ -479,6 +475,7 @@ Counts are not deleted from this table.
 
 # ---------------------------------------------------------------------
 sub __update_accesscount {
+    my $id = shift;
 
     my $usertype = __get_user_attributes('usertype', 'unmasked');
 
@@ -492,8 +489,14 @@ sub __update_accesscount {
 
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH;
+    my $attr = $C->get_object('Access::Rights')->get_rights_attribute($C, $id);
 
     my $userid = $C->get_object('Auth')->get_user_name($C);
+    my $ipaddr = $ENV{REMOTE_ADDR} || '';
+    my $role = __get_user_attributes('role');
+    my $access = __get_user_attributes('access');
+    my $expires = __get_user_attributes('expires');
+    my $s = $userid ? "userid=$userid" : "NULL userid";
 
     my ($sth, $statement);
     eval {
@@ -520,7 +523,7 @@ sub ___attribute_mapping {
 
     # Map these
     my $role = $hashref->{role};
-    my $vpn = $hashref->{vpn};
+    my $mfa = $hashref->{mfa} || 0;
     my $iprestrict = $hashref->{iprestrict};
     my $usertype = $hashref->{usertype};
     my $expires = $hashref->{expires};
@@ -536,21 +539,16 @@ sub ___attribute_mapping {
 
     # Use database IP address(es), if defined, else use the
     # "no access" IP address or some other value in special cases
-    # (SSD) below. Add the VPN range if vpn=1
-    #
-    if (defined $iprestrict) {
-        $iprestrict = $hashref->{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
-    }
-    else {
-        $iprestrict = $hashref->{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
-    }
-
-    # Special cases
+    # (SSD, Multi-Factored Auth) below.
     #
     if ($usertype eq 'student') {
         if ($role eq 'ssd') {
             $iprestrict = $hashref->{iprestrict} = $iprestrict_none;
         }
+    } elsif ($mfa) {
+      $iprestrict = $hashref->{iprestrict} = $iprestrict_none;      
+    } elsif (!defined $iprestrict) {
+      $iprestrict = $hashref->{iprestrict} = $iprestrict_all;
     }
 }
 
@@ -575,28 +573,19 @@ sub __load_access_control_list {
 
     my ($statement, $sth, $ref_to_arr_of_hashref);
 
-    $statement = qq{SELECT * FROM ht_users};
+    $statement = qq{SELECT ht_users.*, ht_counts.accesscount, ht_counts.last_access, ht_counts.warned, ht_counts.certified, ht_counts.auth_requested FROM ht_users LEFT OUTER JOIN ht_counts ON ht_users.userid = ht_counts.userid};
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     foreach my $hashref (@$ref_to_arr_of_hashref) {
+
 
         ___attribute_mapping($hashref);
 
         my $userid = $hashref->{userid};
+        my $identity_provider = $hashref->{identity_provider} || '';
+        $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
         map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
-    }
-
-    $statement = qq{SELECT * FROM ht_counts};
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
-    $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    foreach my $hashref (@$ref_to_arr_of_hashref) {
-
-        my $userid = $hashref->{userid};
-        if ( defined $Access_Control_List_ref->{$userid} ) {
-            map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
-        }
     }
 
     ___set_ACL($Access_Control_List_ref);

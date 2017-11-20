@@ -95,7 +95,7 @@ sub get_stmt_by_rights_values {
     $attr_key = 'nobody' unless ($attr_key);
     $access_profile_key = 'google' unless ($access_profile_key);
     
-    my $key_SELECT_clause = qq{(SELECT stmt_key FROM test_access_stmts_map WHERE a_attr=? AND a_access_profile=?)};
+    my $key_SELECT_clause = qq{(SELECT stmt_key FROM access_stmts_map WHERE a_attr=? AND a_access_profile=?)};
     $sth = DbUtils::prep_n_execute($_dbh, $key_SELECT_clause, $attr_key, $access_profile_key);
     my $key = $sth->fetchrow_array();
     $req_ref->{stmt_key} = $key;
@@ -174,7 +174,7 @@ sub get_all_mappings {
 
     my $_dbh = defined($C) ? $C->get_object('Database')->get_DBH($C) : $dbh;
 
-    my $statement = qq{SELECT * FROM test_access_stmts_map };
+    my $statement = qq{SELECT * FROM access_stmts_map };
     my $sth = DbUtils::prep_n_execute($_dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 

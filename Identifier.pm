@@ -80,6 +80,7 @@ my %g_default_debug_ids =
    '18g'   => 'umn.31951d00814843v',
    '19'    => 'uc2.ark:/13960/t02z16p6s',
    '19g'   => 'mdp.39015000579790',
+   '26'    => 'mdp.39015081946249',
 
    'islam' => 'mdp.39015079124874',
    'mongo' => 'mdp.39015035951055',
@@ -97,7 +98,11 @@ consistent with the value in the CGI object.
 # ---------------------------------------------------------------------
 sub validate_mbooks_id {
     my $arg = shift;
-    return __check_validation($arg);
+    my $id = __check_validation($arg);
+    my ( $namespace, $barcode ) = split_id($id);
+    silent_ASSERT($namespace && $namespace !~ m{^\s*$}, 'malformed id: namespace not parsed');
+    silent_ASSERT($barcode && $barcode !~ m{^\s*$}, 'malformed id: barcode not parsed');
+    return $id;
 }
 
 

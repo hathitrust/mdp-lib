@@ -126,12 +126,12 @@ sub __debug_auth {
 
               my $auth_str =
                 q{<h1>AUTH:</h1> userid=} . $self->get_user_name($C) . q{ displayname=} . $self->get_user_display_name($C)
-                  . q{ loggedin=} . $self->is_logged_in() . q{ in-library=} . $self->is_in_library()
-                    . q{ authsys=} . __get_auth_sys($ses)
+                  . q{ loggedin=} . ($self->is_logged_in() || '') . q{ in-library=} . $self->is_in_library()
+                    . q{ authsys=} . (__get_auth_sys($ses) || '')
                       . q{ newlogin=} . $self->isa_new_login()
-                        . q{ entityID=} . $self->get_shibboleth_entityID($C)
+                        . q{ entityID=} . ($self->get_shibboleth_entityID($C) || '')
                           . q{ parsed-persistent_id=} . $self->get_eduPersonTargetedID()
-                            . q{ eppn=} . $self->get_eduPersonPrincipalName($C)
+                            . q{ eppn=} . ($self->get_eduPersonPrincipalName($C) || '')
                               . q{ prioritized-scoped-affiliation=} . $self->get_eduPersonScopedAffiliation($C)
                                 . q{ institution code=} . $self->get_institution_code($C) . q{ institution-code (mapped)=} . $self->get_institution_code($C, 1)
                                   . q{ institution name=} . $self->get_institution_name($C) . q{ institution-name (mapped)=} . $self->get_institution_name($C, 1)
@@ -141,6 +141,7 @@ sub __debug_auth {
                                           . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
                                             . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
                                               . q{ print-disabled=} . $self->user_is_print_disabled($C);
+
               $self->{__debug_auth_printed} = 1;
               return $auth_str;
           });
@@ -174,7 +175,11 @@ sub _initialize {
             # Not authenticated: THIS MAY BE CONDITION X:
             # See pod (above).
             $self->__debug_auth($C, $ses);
-            $self->handle_possible_redirect($C, $was_logged_in_via);
+            if ( $self->is_cosign_active ) {
+                $self->handle_possible_redirect($C, $was_logged_in_via);
+            } else {
+                $self->handle_possible_auth_expiration($C, $was_logged_in_via);                
+            }
             # POSSIBLY NOTREACHED
         }
     }
@@ -210,16 +215,86 @@ sub handle_possible_redirect {
 
     my $cgi = $C->get_object('CGI');
 
-    if ($was_logged_in_via eq COSIGN) {
+    if ($was_logged_in_via eq COSIGN && $ENV{SERVER_PORT} ne '443') {
         my $redirect_to = $self->get_COSIGN_login_href($cgi);
-        print $cgi->redirect($redirect_to);
-        exit;
+        $self->do_redirect($C, $redirect_to);
     }
     elsif ($was_logged_in_via eq SHIBBOLETH) {
         my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
-        print $cgi->redirect($redirect_to);
-        exit;
+        $self->do_redirect($C, $redirect_to);
     }
+}
+
+sub handle_possible_auth_expiration {
+    my $self = shift;
+    my ($C, $was_logged_in_via) = @_;
+
+    # no longer logged in
+    if ( $was_logged_in_via && $was_logged_in_via ne 'null' ) {
+        my $cgi = $C->get_object('CGI');
+        my $ses = $C->get_object('Session');
+        $ses->set_persistent('logged_out', 1);
+        $ses->set_persistent('authenticated_via', '');
+        my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
+    }
+}
+
+sub handle_possible_auth_2fa {
+    my $self = shift;
+    my ( $C, $access_type ) = @_;
+    if ( $self->is_possible_auth_stepup($C, $access_type) ) {
+        my $entityID = $self->get_shibboleth_entityID($C);
+        my $authContextClassRef = $self->get_institution_2fa_authcontext_class_ref($C);
+        if ( defined $ENV{Shib_AuthnContext_Class} && defined $authContextClassRef && $ENV{Shib_AuthnContext_Class} ne $authContextClassRef ) {
+            # need to redirect
+            $access_type = $RightsGlobals::ORDINARY_USER;
+            $self->handle_auth_2fa_redirect($C, $authContextClassRef);
+        }
+    }
+    return $access_type;
+}
+
+sub handle_auth_2fa_redirect {
+    my $self = shift;
+    my ( $C, $authnContextClassRef ) = @_;
+    my $cgi = $C->get_object('CGI');
+    my $target = CGI::self_url($cgi);
+    my $inst_id = $self->get_institution_code($C, 1);
+    my $redirect_to = $self->get_institution_template($C, 1);
+    $redirect_to =~ s,___HOST___,$ENV{SERVER_NAME},;
+    $redirect_to =~ s,___TARGET___,$target,;
+    $redirect_to .= qq{&authnContextClassRef=$authnContextClassRef};
+    $self->do_redirect($C, $redirect_to);
+}
+
+sub is_possible_auth_stepup {
+    my $self = shift;
+    my ( $C, $access_type ) = @_;
+
+    my $retval = 0;
+
+    my $config = {};
+    $$config{$RightsGlobals::HT_TOTAL_USER} = 1;
+    $$config{$RightsGlobals::SSD_PROXY_USER} = 1;
+
+    if ( defined $access_type && defined $$config{$access_type} ) {
+        $retval = $$config{$access_type};
+        if ( ref($retval) ) {
+            # my $value = Auth::ACL::a_GetUserAttributes('usertype');
+            my $value = Auth::ACL::a_GetUserAttributes('role');
+            $retval = defined $value && defined $$config{$access_type}{$value} && $$config{$access_type}{$value};
+        }
+    }
+
+    return $retval;
+}
+
+sub do_redirect {
+    my $self = shift;
+    my ( $C, $redirect_to ) = @_;
+    my $cgi = $C->get_object('CGI');
+    print $cgi->redirect($redirect_to);
+    exit;
 }
 
 # ---------------------------------------------------------------------
@@ -236,7 +311,7 @@ sub get_SHIBBOLETH_login_href {
     my $cgi = shift;
 
     my $login_href = CGI::self_url($cgi);
-    $login_href =~ s,/cgi/,/shcgi/,;
+    $login_href =~ s,/cgi/,/shcgi/, if ( $self->is_cosign_active );
     $login_href = Utils::url_over_SSL_to($login_href);
 
     return $login_href;
@@ -299,6 +374,7 @@ sub set_auth_sys {
     my $self = shift;
     my $ses = shift;
     $ses->set_persistent('authenticated_via', lc($ENV{AUTH_TYPE} || ''));
+    $ses->set_persistent('logged_out', 0) if ( $ENV{AUTH_TYPE} );
 }
 
 # ---------------------------------------------------------------------
@@ -329,7 +405,7 @@ sub auth_sys_is_COSIGN {
     my $C = shift;
 
     # for the "gr" cgi
-    my $is = 1;
+    my $is = defined $ENV{SCRIPT_NAME} && $ENV{SCRIPT_NAME} eq q{/cgi/gr};
 
     if ($C->has_object('Session')) {
         my $ses = $C->get_object('Session');
@@ -381,8 +457,7 @@ sub is_logged_in {
     my $self = shift;
 
     return 0 if (DEBUG('notlogged'));
-
-    return exists $ENV{REMOTE_USER};
+    return Utils::Get_Remote_User();
 }
 
 # ---------------------------------------------------------------------
@@ -437,11 +512,11 @@ sub get_institution_code {
 
     my $entity_id = $self->get_shibboleth_entityID($C);
     if ($entity_id) {
-        $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'sdrinst', $mapped);
+        $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'inst_id', $mapped);
     }
     else {
-        my $sdrinst = __get_institution_code_by_ip_address();
-        $inst_code = Institutions::get_institution_sdrinst_field_val($C, $sdrinst, 'sdrinst', $mapped);
+        my $inst_id = __get_institution_code_by_ip_address();
+        $inst_code = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'inst_id', $mapped);
     }
 
     return $inst_code;
@@ -485,19 +560,87 @@ sub get_institution_name {
     my $self = shift;
     my $C = shift;
     my $mapped = shift;
+    my $ignore_affiliation = shift;
 
     my $inst_name;
 
     my $entity_id = $self->get_shibboleth_entityID($C);
-    if ($entity_id) {
+    my $affiliated = ( $ignore_affiliation ? 1 : $self->__get_prioritized_scoped_affiliation($C) );
+    if ($entity_id && $affiliated) {
         $inst_name = Institutions::get_institution_entityID_field_val($C, $entity_id, 'name', $mapped);
     }
     else {
-        my $sdrinst = __get_institution_code_by_ip_address();
-        $inst_name = Institutions::get_institution_sdrinst_field_val($C, $sdrinst, 'name', $mapped);
+        my $inst_id = __get_institution_code_by_ip_address();
+        $inst_name = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'name', $mapped);
     }
 
+    if ( $inst_name && $ignore_affiliation && $inst_name eq 'University of Michigan' && Utils::Get_Remote_User() !~ m,^[a-z]+$, ) {
+        # make this obvious you're a friend
+        $inst_name .= " - Friend";
+    }
+
+
     return $inst_name;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_allowed_affiliations
+
+Get allowed affiliations from ht_institutions.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_allowed_affiliations {
+    my $self = shift;
+    my $C = shift;
+    my $mapped = shift;
+
+    my $allowed_affiliations;
+
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        $allowed_affiliations = Institutions::get_institution_entityID_field_val($C, $entity_id, 'allowed_affiliations', $mapped);
+    }
+    else {
+        my $inst_id = __get_institution_code_by_ip_address();
+        $allowed_affiliations = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'allowed_affiliations', $mapped);
+    }
+
+    return $allowed_affiliations;
+}
+
+sub get_institution_2fa_authcontext_class_ref {
+    my $self = shift;
+    my ( $C, $mapped ) = @_;
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ( $entity_id eq $self->get_umich_IdP_entity_id() ) {
+        return undef if ( defined $ENV{umichCosignFactor} && $ENV{umichCosignFactor} eq 'friend' );
+    }
+
+    my $authContextClassRef;
+    $authContextClassRef = Institutions::get_institution_entityID_field_val($C, $entity_id, 'shib_authncontext_class', $mapped);
+    
+    return $authContextClassRef;
+}
+
+sub get_institution_template {
+    my $self = shift;
+    my $C = shift;
+    my $mapped = shift;
+
+    my $template;
+    my $entity_id = $self->get_shibboleth_entityID($C);
+    if ($entity_id) {
+        $template = Institutions::get_institution_entityID_field_val($C, $entity_id, 'template', $mapped);
+    }
+    else {
+        my $inst_id = __get_institution_code_by_ip_address();
+        $template = Institutions::get_institution_inst_id_field_val($C, $inst_id, 'template', $mapped);
+    }
+
+    return $template;
 }
 
 # ---------------------------------------------------------------------
@@ -554,6 +697,9 @@ list.
 # ---------------------------------------------------------------------
 sub __get_prioritized_scoped_affiliation {
     my $self = shift;
+    my $C = shift;
+
+    return $$self{__eduPerson_scoped_affiliation} if ( defined $$self{__eduPerson_scoped_affiliation} );
 
     my $eduPerson_scoped_affiliation = '';
 
@@ -562,33 +708,40 @@ sub __get_prioritized_scoped_affiliation {
     my @affiliation_priorities = qw(member faculty staff student alum affiliate);
 
     my $environment = $ENV{affiliation} || '';
-    my @scoped_affiliations = split(/\s*;\s*/, $environment);
-    @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
-    my %aff_hash = ();
-    if (scalar @scoped_affiliations) {
-        foreach my $scoped_affiliation (@scoped_affiliations) {
-            my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+    my $allowed_affiliations = $self->get_allowed_affiliations($C);
 
-            if ($affiliation && $security_domain) {
-                $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+    if ( $environment && $allowed_affiliations ) {
+        my @scoped_affiliations = split(/\s*;\s*/, lc $environment);
+        @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
-                my $scoped_affiliations_ref = $aff_hash{$affiliation};
-                push( @$scoped_affiliations_ref, $scoped_affiliation );
-                $aff_hash{$affiliation} = $scoped_affiliations_ref;
+        my %aff_hash = ();
+        if (scalar @scoped_affiliations) {
+            foreach my $scoped_affiliation (@scoped_affiliations) {
+                next unless ( $scoped_affiliation =~ m,$allowed_affiliations,i );
+                my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+
+                if ($affiliation && $security_domain) {
+                    $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+
+                    my $scoped_affiliations_ref = $aff_hash{$affiliation};
+                    push( @$scoped_affiliations_ref, $scoped_affiliation );
+                    $aff_hash{$affiliation} = $scoped_affiliations_ref;
+                }
+            }
+
+            foreach my $affiliation (@affiliation_priorities) {
+                my $scoped_affiliations_ref = $aff_hash{$affiliation} || [];
+                if (scalar @$scoped_affiliations_ref) {
+                    $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
+                    last;
+                }
             }
         }
 
-        foreach my $affiliation (@affiliation_priorities) {
-            my $scoped_affiliations_ref = $aff_hash{$affiliation} || [];
-            if (scalar @$scoped_affiliations_ref) {
-                $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
-                last;
-            }
-        }
     }
 
-    return $eduPerson_scoped_affiliation;
+    return ( $$self{__eduPerson_scoped_affiliation} = $eduPerson_scoped_affiliation );
 }
 
 # ---------------------------------------------------------------------
@@ -614,7 +767,7 @@ sub get_eduPersonScopedAffiliation {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $eduPersonScopedAffiliation = $self->__get_prioritized_scoped_affiliation();
+        $eduPersonScopedAffiliation = $self->__get_prioritized_scoped_affiliation($C);
     }
 
     return $eduPersonScopedAffiliation;
@@ -665,10 +818,11 @@ sub get_eduPersonPrincipalName {
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if ($self->login_realm_is_friend) {
-            $eduPersonPrincipalName = $ENV{REMOTE_USER} || '';
+            $eduPersonPrincipalName = Utils::Get_Remote_User();
         }
         else {
-            $eduPersonPrincipalName = (exists $ENV{REMOTE_USER} ? $ENV{REMOTE_USER} . '@umich.edu' : '');
+            my $remote_user = Utils::Get_Remote_User();
+            $eduPersonPrincipalName = ($remote_user ? $remote_user . '@umich.edu' : '');
         }
     }
 
@@ -959,7 +1113,7 @@ sub __get_displayName {
         $displayName = $self->__get_parsed_displayName();
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
-        $displayName = $ENV{REMOTE_USER} || '';
+        $displayName = Utils::Get_Remote_User();
     }
 
     return $displayName;
@@ -1022,7 +1176,7 @@ sub affiliation_is_hathitrust {
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
         # If there's a scoped affiliation then they're hathitrust
-        $is_hathitrust = $aff;
+        $is_hathitrust = ( $aff ne '' );
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend) {
@@ -1065,7 +1219,7 @@ sub get_user_display_name {
                 $user_display_name = Auth::ACL::a_GetUserAttributes('displayname');
             }
             elsif ($self->auth_sys_is_COSIGN($C)) {
-                $user_display_name = $ENV{REMOTE_USER} || '';
+                $user_display_name = Utils::Get_Remote_User();
             }
             elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
                 $user_display_name = $self->__get_displayName($C);
@@ -1082,6 +1236,9 @@ sub get_user_display_name {
                         : $self->get_eduPersonScopedAffiliation($C) );
                 }
             }
+            unless ( $user_display_name ) {
+                $user_display_name = $self->__guess_displayName();
+            }
         }
         else {
             # not authenticated
@@ -1089,6 +1246,30 @@ sub get_user_display_name {
         }
     }
 
+    return $user_display_name;
+}
+
+# ---------------------------------------------------------------------
+
+=item __guess_displayName
+
+determines a user display name from the raw $ENV{affiliation}
+(vs. the allowed affiliations from ht_institutions)
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __guess_displayName {
+    my $self = shift;
+    my $user_display_name = q{visitor};
+    my $affiliation = defined $ENV{affiliation} ? lc $ENV{affiliation} : '';
+    if ( $affiliation =~ m,student, ) {
+        $user_display_name = q{student};
+    } elsif ( $affiliation =~ m,faculty, ) {
+        $user_display_name = q{faculty};
+    } elsif ( $affiliation =~ m,staff, ) {
+        $user_display_name = q{staff};
+    }
     return $user_display_name;
 }
 
@@ -1111,7 +1292,7 @@ sub get_user_name {
     my $user_id;
 
     if ($self->is_logged_in()) {
-        $user_id = $ENV{REMOTE_USER} || '';
+        $user_id = Utils::Get_Remote_User();
     }
     else {
         if ($C->has_object('Session')) {
@@ -1123,6 +1304,16 @@ sub get_user_name {
         }
     }
 
+    return $user_id;
+}
+
+sub get_legacy_user_name {
+    my $self = shift;
+    my $C = shift;
+    my $user_id;
+    if ( $self->is_logged_in() && $self->get_institution_code($C, 1) eq 'umich' ) {
+        return Utils::Get_Legacy_Remote_User();
+    }
     return $user_id;
 }
 
@@ -1138,6 +1329,11 @@ True if the user's session was not logged in until now.
 # ---------------------------------------------------------------------
 sub isa_new_login {
     my $self = shift;
+    my $C = shift;
+    if ( defined $C && $C->get_object('Session')->get_persistent('_isa_new_login_via_pong') ) {
+        $C->get_object('Session')->set_persistent('_isa_new_login_via_pong', 0);
+        return 1;
+    }
     return $self->{'isa_new_login'} ? 1 : 0;
 }
 
@@ -1154,6 +1350,11 @@ sub set_isa_new_login {
     my $self = shift;
     my $isa = shift;
     $self->{'isa_new_login'} = $isa;
+}
+
+sub is_cosign_active {
+    my $self = shift;
+    return Utils::is_cosign_active();
 }
 
 

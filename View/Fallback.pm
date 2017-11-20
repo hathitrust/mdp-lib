@@ -163,6 +163,14 @@ sub get_fallback_path
     # Skin
     my $skin = new View::Skin($C);
     my $skin_name = $skin->get_skin_name($C);
+
+    # Local configuration
+    my $config = $C->get_object('MdpConfig');
+    if ( $config->has('skin_map') ) {
+        my %tmp = split(/[\|=]/, $config->get('skin_map'));
+        @g_skin_map{ keys %tmp } = values %tmp;
+    }
+
     ASSERT(grep(/$skin_name/, keys %g_skin_map), qq{Skin=$skin_name not found in skin map});
 
     my $skin_path = $g_skin_map{$skin_name};

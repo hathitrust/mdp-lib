@@ -91,8 +91,10 @@ sub authorize {
         my $fail_msg =
             qq{[FATAL] Could not open $auth_file. }
                 . qq{Create this file to set SDRINST, SDRLIB for your development environment};
+        my $inst = $ENV{'SDRINST'} || '';
+        my $lib = $ENV{'SDRLIB'} || '';
         my $succ_msg =
-            qq{[INFO] SDRINST=$ENV{'SDRINST'}, SDRLIB=$ENV{'SDRLIB'} } .
+            qq{[INFO] SDRINST=$inst, SDRLIB=$lib } .
                 qq{environment variables were set from values in file="$auth_file"};
 
         # Must read file to supply these values at command line or debugger

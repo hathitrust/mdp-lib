@@ -52,6 +52,63 @@ use Debug::DUtils;
 
 use JSON::XS;
 
+# ---------------------------------------------------------------------
+
+=item Get_Remote_User
+
+ALL ACCESS to $ENV{REMOTE_USER} should be via this routine because
+friend account access depends on case insensitive matching,
+i.e. MarySmith@foo.edu must match marysmith@foo.edu.
+
+Returning '' rather than undef so the subroutine call can be
+interpolated into strings without generating Perl warnings.
+
+So do not use "defined Utils::Get_Remote_User"
+
+Always use if (Utils::Get_Remote_User()) {
+ ...
+}
+
+=cut
+
+# ---------------------------------------------------------------------
+our $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
+
+sub Get_Remote_User {
+    my $remote_user = '';
+    if ( exists $ENV{REMOTE_USER} && defined $ENV{REMOTE_USER} && $ENV{REMOTE_USER} ) {
+        $remote_user = lc $ENV{REMOTE_USER};
+        if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq $UMICH_ENTITY_ID ) {
+            $remote_user = Get_Legacy_Remote_User();
+        }
+    }
+    return $remote_user;
+}
+
+sub Get_Legacy_Remote_User {
+    my $remote_user = '';
+    if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
+        if ( $ENV{umichCosignFactor} =~ m,^UMICH.EDU, ) {
+            # remove the @umich.edu
+            $remote_user = substr(lc $ENV{eppn}, 0, -10);
+        } else {
+            # friend
+            $remote_user = lc $ENV{email};
+        }
+    }
+    return $remote_user;
+}
+
+sub Get_Identity_Provider {
+    return $ENV{Shib_Identity_Provider} if ( defined($ENV{Shib_Identity_Provider}) );
+    return $UMICH_ENTITY_ID if ( defined $ENV{COSIGN_FACTOR} );
+    return '';
+}
+
+sub is_cosign_active {
+    return (defined($ENV{HT_IS_COSIGN_STILL_HERE}) && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes');
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -97,8 +154,12 @@ sub ASSERT_core
         # route around weird conflict between Plack and HTML::Template
         unless ( exists($ENV{'psgi.version'}) ) {
             Debug::DUtils::set_error_template($msg);
+        } else {
+            $ENV{'psgix.message'} = $msg;
         }
         croak('ASSERT_FAIL: '. $msg)
+    } elsif ( $development ) {
+        warn('ASSERT FAIL: '. $msg);
     }
 }
 
@@ -557,7 +618,7 @@ sub clean_cgi_params
 
     foreach my $p ($cgi->param)
     {
-        my @vals = $cgi->param($p);
+        my @vals = $cgi->multi_param($p);
         my @newvals = ();
         foreach my $v (@vals)
         {
@@ -640,9 +701,9 @@ sub url_to
 
     my $temp_cgi = new CGI($cgi);
 
-    foreach my $p ($temp_cgi->param())
+    foreach my $p ($temp_cgi->multi_param())
     {
-        my @vals = $temp_cgi->param($p);
+        my @vals = $temp_cgi->multi_param($p);
         my @newvals = ();
         foreach my $v (@vals)
         {
@@ -789,7 +850,7 @@ sub build_hidden_var_XML
 {
     my ($cgi, $var) = @_;
 
-    my @a = ($cgi->param( $var ));
+    my @a = ($cgi->multi_param( $var ));
 
     my $toReturn = '';
     if (@a)

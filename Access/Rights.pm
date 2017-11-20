@@ -59,6 +59,8 @@ equate to fulltext access.
 =over 8
 
 =cut
+use strict;
+use warnings;
 
 use CGI;
 use Context;
@@ -119,9 +121,9 @@ sub get_rights_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
 
-    return $rights_attribute;
+    return $rights_hashref->{attr};
 }
 
 
@@ -139,9 +141,9 @@ sub get_source_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
 
-    return $source_attribute;
+    return $rights_hashref->{source};
 }
 
 # ---------------------------------------------------------------------
@@ -158,9 +160,28 @@ sub get_access_profile_attribute {
     my ($C, $id) = @_;
 
     $self->_validate_id($id);
-    my ($rights_attribute, $source_attribute, $access_profile_attribute) = $self->_determine_rights_values($C, $id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
 
-    return $access_profile_attribute;
+    return $rights_hashref->{access_profile};
+}
+
+# ---------------------------------------------------------------------
+
+=item PUBLIC: get_all_rights_values
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_all_rights_values {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+    my $rights_hashref = $self->_determine_rights_values($C, $id);
+
+    return $rights_hashref;
 }
 
 
@@ -288,7 +309,7 @@ sub get_access_type {
     my $self = shift;
     my ($C, $as_string) = @_;
 
-    my $access_type = $self->{access_type};
+    my $access_type = $self->{access_type} || get_access_type_determination($C);
     my $at =
       $as_string
         ? $RightsGlobals::g_access_type_names{$access_type}
@@ -498,12 +519,15 @@ sub get_full_PDF_access_status {
     }
 
     # Apr 2103 ssdproxy can generate full PDF when item is held
+    # Apr 2016 ssdproxy can generate full PDF regardless - 
+    # - 2013 code left here in case this decision is reversed
     if ($auth->user_is_print_disabled_proxy($C)) {
-        my $institution = $auth->get_institution_code($C, 'mapped');
-        my $held = Access::Holdings::id_is_held($C, $id, $institution);
-        if ($held) {
-            $status = 'allow';
-        }
+        # my $institution = $auth->get_institution_code($C, 'mapped');
+        # my $held = Access::Holdings::id_is_held($C, $id, $institution);
+        # if ($held) {
+        #     $status = 'allow';
+        # }
+        $status = 'allow'; # allow for everyone
     }
 
     # clear the error message if $status eq 'allow'
@@ -663,6 +687,29 @@ sub creative_commons {
     }
 }
 
+# ---------------------------------------------------------------------
+
+=item PUBLIC: suppressed
+
+Description: is this id suppressed?
+
+=cut
+
+# ---------------------------------------------------------------------
+sub suppressed {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    return 0 if Auth::ACL::S___total_access_using_DEBUG_super;
+
+    my $attribute = $self->get_rights_attribute($C, $id);
+    if ($attribute == $RightsGlobals::g_suppressed_attribute_value) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
 
 # ----------------------------------------------------------------------
 #
@@ -691,7 +738,15 @@ sub _validate_id {
 
 =item CLASS PRIVATE: __read_rights_database
 
-Description
+  `attr` tinyint(4) NOT NULL,
+  `reason` tinyint(4) NOT NULL,
+  `source` tinyint(4) NOT NULL, (DEPRECATED)
+  `access_profile` tinyint(4) NOT NULL,
+  `user` varchar(32) NOT NULL DEFAULT '',
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `note` text,
+
+
 
 =cut
 
@@ -704,26 +759,15 @@ sub __read_rights_database {
     my $stripped_id = Identifier::get_id_wo_namespace($id);
     my $namespace = Identifier::the_namespace($id);
 
-    my $row_hashref;
-    my $statement = qq{SELECT id, attr, source, access_profile FROM rights_current WHERE id=? AND namespace=?};
+    my $statement = qq{SELECT attr, reason, source, access_profile, user, time, note FROM rights_current WHERE id=? AND namespace=?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $stripped_id, $namespace);
 
-    $row_hashref = $sth->fetchrow_hashref();
+    my $rights_hashref = $sth->fetchrow_hashref();
     $sth->finish;
 
-    my $attr = $$row_hashref{attr};
-    my $source = $$row_hashref{source};
-    my $access_profile = $$row_hashref{access_profile};
-    my $db_id = $$row_hashref{id};
+    my $rc = defined($rights_hashref) ? $OK_ID : $BAD_ID;
 
-    my $rc = defined($db_id) ? $OK_ID : $BAD_ID;
-    unless ($rc == $OK_ID) {
-        $attr = $RightsGlobals::NOOP_ATTRIBUTE;
-        $source = $RightsGlobals::NOOP_ATTRIBUTE;
-        $access_profile = $RightsGlobals::NOOP_ATTRIBUTE;
-    }
-
-    return ($attr, $source, $access_profile, $rc);
+    return ($rights_hashref, $rc);
 }
 
 
@@ -736,52 +780,65 @@ Description
 =cut
 
 # ---------------------------------------------------------------------
+sub __default_rights_values {
+    my $rights_fail = shift;
+
+    my $rights_hashref = {};
+    my $noop_arrtibute = $RightsGlobals::NOOP_ATTRIBUTE;
+
+    # (pd, dlps, open)
+    $rights_hashref->{attr}           = $rights_fail ? $noop_arrtibute : 1;
+    $rights_hashref->{source}         = $rights_fail ? $noop_arrtibute : 2;
+    $rights_hashref->{access_profile} = $rights_fail ? $noop_arrtibute : 1;
+    $rights_hashref->{reason}         = $rights_fail ? $noop_arrtibute : 1;
+    $rights_hashref->{user}           = 'foobar';
+    $rights_hashref->{time}           = '0000-00-00 00:00:00';
+    $rights_hashref->{note}           = 'none';
+
+    return $rights_hashref;
+}
+
 sub _determine_rights_values {
     my $self = shift;
     my ($C, $id) = @_;
 
     my $rc = $OK_ID;
 
-    my $attr = $self->{rights_attribute};
-    my $source = $self->{source_attribute};
-    my $access_profie = $self->{access_profile_attribute};
-
-    if (defined($attr) && defined($source) && defined($access_profile)) {
-        return ($attr, $source, $access_profile);
-    }
+    my $rights_hashref = $self->{_rights_hashref};
+    return $rights_hashref if (defined $rights_hashref);
 
     # local.conf over-ride only for superusers. Note HT_DEV is useless
     # here because it is set on the beta-* hosts which could possibly
     # be exposed to the outside world.
-    my $local_dataroot = Utils::using_localdataroot($C, $id);
+    my $local_dataroot = Utils::using_localdataroot($C, $id) || 0;
     my $superuser_set_rights = 0;
 
-    if (defined $local_dataroot) {
+    if ($local_dataroot) {
         # (pd, dlps, open)
-        ($attr, $source, $access_profile) = (1,2,1);
+        $rights_hashref = __default_rights_values();
     }
     elsif (Auth::ACL::S___superuser_role) {
-        my $config = $C->get_object('MdpConfig', $config);
+        my $config = $C->get_object('MdpConfig');
         if ($config->has('debug_attr_source')) {
-            ($attr, $source, $access_profile) = $config->get('debug_attr_source');
-            $superuser_set_rights = 1 if ($attr && $source && access_profile);
+            $rights_hashref = __default_rights_values();
+            ($rights_hashref->{attr}, $rights_hashref->{source}, $rights_hashref->{access_profile}) = $config->get('debug_attr_source');
+            $superuser_set_rights = 1 if ($rights_hashref->{attr} && $rights_hashref->{source} && $rights_hashref->{access_profile});
         }
     }
 
     # unless attr and source defined and > 0, skip and read database
-    unless ($attr && $source && $access_profile) {
-        ($attr, $source, $access_profile, $rc) = __read_rights_database($C, $id);
+    unless (defined $rights_hashref) {
+        ($rights_hashref, $rc) = __read_rights_database($C, $id);
     }
 
-    if ($rc == $OK_ID) {
-        $self->{rights_attribute} = $attr;
-        $self->{source_attribute} = $source;
-        $self->{access_profile_attribute} = $access_profile;
+    unless ($rc == $OK_ID) {
+        $rights_hashref = __default_rights_values('rights_fail');
     }
+    $self->{_rights_hashref} = $rights_hashref;
 
-    DEBUG('db,auth,all', qq{<h4>id="$id", attr=$attr desc=$RightsGlobals::g_attribute_names{$attr} source=$source desc=$RightsGlobals::g_source_names{$source} access_profile=$access_profile desc=$RightsGlobals::g_access_profile_names{$access_profile} local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>});
+    DEBUG('db,auth,all', sub { qq{<h4>_determine_rights_values: id="$id", attr=$rights_hashref->{attr}($RightsGlobals::g_attribute_names{$rights_hashref->{attr}}) source=$rights_hashref->{source}($RightsGlobals::g_source_names{$rights_hashref->{source}}) access_profile=$rights_hashref->{access_profile}($RightsGlobals::g_access_profile_names{$rights_hashref->{access_profile}}) local_SDRDATAROOT="$local_dataroot" superuser_set_rights=$superuser_set_rights</h4>} });
 
-    return ($attr, $source, $access_profile);
+    return $rights_hashref;
 }
 
 # ----------------------------------------------------------------------
@@ -869,7 +926,7 @@ sub ___final_access_status_check {
            ($final_access_status eq 'deny'),
            qq{Invalid final access status value="$final_access_status"});
 
-    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="$ENV{REMOTE_USER}"</h4>});
+    DEBUG('pt,auth,all', qq{<h4>FinalAccessStatus="<span style="color:blue;">$final_access_status</span>" REMOTE_USER="} . Utils::Get_Remote_User() . qq{"</h4>});
 }
 
 
@@ -1078,6 +1135,9 @@ sub _determine_access_type {
         $access_type = $RightsGlobals::ORDINARY_USER;
     }
 
+    # we may not return from here
+    $access_type = $auth->handle_possible_auth_2fa($C, $access_type);
+
     DEBUG('pt,auth,all',
           sub {
               my $a = $RightsGlobals::g_access_type_names{$access_type};
@@ -1146,7 +1206,7 @@ sub _resolve_nonus_aff_access_by_GeoIP {
     my $status = 'deny';
 
     my $inst_status = $C->get_object('Auth')->get_institution_us_status($C);
-    if ($us_status eq 'affnonus') {
+    if ($inst_status eq 'affnonus') {
         $status = 'allow';
     }
     elsif ($inst_status eq 'affus') {
@@ -1157,12 +1217,61 @@ sub _resolve_nonus_aff_access_by_GeoIP {
     return $status;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_proxied_address_data
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_proxied_address_data {
+    my $client_hash = {};
+
+    my @env_keys = ( qw/HTTP_X_FORWARDED_FOR HTTP_X_FORWARDED HTTP_FORWARDED_FOR HTTP_CLIENT_IP/ );
+    foreach my $key (@env_keys) {
+        my $ipaddr = $ENV{$key};
+        if ($ipaddr) {
+            if ($ipaddr !~ m/$RightsGlobals::private_network_ranges_regexp/) {
+                $client_hash->{$key} = $ipaddr;
+            }
+        }
+    }
+
+    return $client_hash;
+}
+
+# ---------------------------------------------------------------------
+
+=item proxied_address
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub proxied_address {
+    my $client_hash = get_proxied_address_data();
+
+    foreach my $key (keys %$client_hash) {
+        my $ipaddr = $ENV{$key};
+        if ($ipaddr) {
+            return $ipaddr;
+        }
+    }
+
+    return undef;
+}
 
 # ---------------------------------------------------------------------
 
 =item CLASS PRIVATE: _resolve_access_by_GeoIP
 
-First check IP for US/NONUS origin then test for proxies.
+First check IP for US/NONUS origin then test for proxies. Require both
+proxy and client to be either both inside or both outside the US to
+attempt to prevent illicit PDUS or ICUS access, respectively.  We
+still can't win vs. determined users.
 
 =cut
 
@@ -1173,31 +1282,58 @@ sub _resolve_access_by_GeoIP {
 
     my $status = 'deny';
 
-    # Use forwarded IP address if proxied, else UA IP addr
-    my $IPADDR = $ENV{HTTP_X_FORWARDED_FOR} || $ENV{REMOTE_ADDR};
-
     require "Geo/IP.pm";
     my $geoIP = Geo::IP->new();
-    my $country_code = $geoIP->country_code_by_addr($IPADDR);
 
-    my $correct_location = 0;
-    if ($required_location eq 'US') {
-        $correct_location = (grep(/^$country_code$/, @RightsGlobals::g_pdus_country_codes));
-    }
-    elsif ($required_location eq 'NONUS') {
-        $correct_location = (! grep(/^$country_code$/, @RightsGlobals::g_pdus_country_codes));
+    # If there's a proxy involved force both proxy and client to be
+    # coterminous geographically.  It's the best we can do since all
+    # these addresses can be spoofed.
+    my $PROXIED_ADDR = proxied_address() || 0;
+    my $proxy_detected = $PROXIED_ADDR;
+
+    my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
+
+    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR );
+    my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
+    my $remote_addr_is_nonUS = (! $remote_addr_is_US);
+
+    my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
+    my $proxied_addr_is_US = $proxied_addr_country_code ? ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) ) : undef;
+    my $proxied_addr_is_nonUS = ! $proxied_addr_is_US;
+
+    my $IPADDR = 0;
+    my $address_location = 'notalocation';
+
+    if ($PROXIED_ADDR) {
+        if ( ($proxied_addr_is_US && $remote_addr_is_US) || ($proxied_addr_is_nonUS && $remote_addr_is_nonUS) ) {
+            $IPADDR = $PROXIED_ADDR;
+            if ($proxied_addr_is_US && $remote_addr_is_US) {
+                $address_location = 'US';
+            }
+            else {
+                $address_location = 'NONUS';
+            }
+        }
     }
     else {
-        ASSERT(0, qq{Invalid required_location value="$required_location"});
+        $IPADDR = $REMOTE_ADDR;
+        if ($remote_addr_is_US) {
+            $address_location = 'US';
+        }
+        else {
+            $address_location = 'NONUS';
+        }
     }
 
+    my $correct_location = ($required_location eq $address_location) || 0;
+
     if ($correct_location) {
-        # veryify this is not a blacklisted US(NONUS) proxy that does not set
-        # HTTP_X_FORWARDED_FOR for a non-US(US) request
+        # veryify this is not a blacklisted proxy that does not
+        # forward the address of its client
         require "Access/Proxy.pm";
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
-        if (Access::Proxy::blacklisted($dbh, $IPADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})) {
+        if (Access::Proxy::blacklisted($dbh, $REMOTE_ADDR, $ENV{SERVER_ADDR}, $ENV{SERVER_PORT})) {
             $status = 'deny';
         }
         else {
@@ -1207,6 +1343,12 @@ sub _resolve_access_by_GeoIP {
     else {
         $status = 'deny';
     }
+
+    DEBUG('auth',
+          sub { my $s = qq{_resolve_access_by_GeoIP: status=$status remote_addr_country_code=$remote_addr_country_code required_location=$required_location correct_location=$correct_location};
+                $s .= qq{ proxy_detected=$proxy_detected forwarded_addr_country_code=$proxied_addr_country_code} if ($proxy_detected);
+                return $s;
+            });
 
     return $status;
 }

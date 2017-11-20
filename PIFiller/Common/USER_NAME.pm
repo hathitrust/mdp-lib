@@ -34,12 +34,14 @@ Handler for USER_NAME
 =cut
 
 # ---------------------------------------------------------------------
+use Utils;
 sub handle_USER_NAME_PI
     : PI_handler(USER_NAME) {
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $user_name = $auth->get_user_display_name($C);
+    my $user_name = $auth->get_user_display_name($C, 'unscoped');
+    Utils::map_chars_to_cers(\$user_name, [q{"}, q{'}], 1);
 
     return $user_name;
 }
@@ -59,9 +61,20 @@ sub handle_USER_ID_PI
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $user_id = $auth->get_user_name($C);
+    my $user_id = CGI::escape($auth->get_user_name($C));
 
     return $user_id;
+}
+
+sub handle_USER_AFFILIATION_PI
+    : PI_handler(USER_AFFILIATION) {
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+    $affiliation = CGI::escape($affiliation);
+
+    return $affiliation;
 }
 
 
