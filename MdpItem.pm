@@ -78,6 +78,44 @@ sub GetMetsXmlModTime {
     return $mets_mtime;
 }
 
+our @watermark_config;
+sub GetSources
+{
+    my ( $self ) = @_;
+
+    my $digitization_source = lc $self->Get('digitization_source');
+    my $collection_source = lc $self->Get('collection_source');
+
+    return ( $digitization_source, $collection_source );
+}
+
+sub _ComputeSourcesFromId {
+    my ( $self ) = @_;
+
+    # no collection source in METS, punt to using namespace + source attribute lookup
+    # NOTE: REMOVE AFTER METS UPLIFT - ROGER
+    my $C = new Context;
+    my $id = $self->GetId();
+    my $rights = $C->get_object('Access::Rights',1);
+    my $source_attribute;
+    if (ref $rights){
+        $source_attribute = $rights->get_source_attribute($C, $id);
+    }
+    my $namespace = Identifier::the_namespace( $id );
+    # get the data from the config file
+    unless ( scalar @watermark_config ) {
+        my $tmp = Utils::read_file(qq{$ENV{SDRROOT}/watermarks/config.txt});
+        @watermark_config = split(/\n/, $$tmp);
+    }
+    my ( $line ) = grep(/^$namespace\|$source_attribute\|/, @watermark_config); chomp $line;
+    return () unless ( $line ); # no watermark found
+    my @config = split(/\|/, $line);
+    my $digitization_source = $config[2];
+    my $collection_source = $config[3];
+
+    return ( $digitization_source, $collection_source );
+}
+
 # ---------------------------------------------------------------------
 
 sub GetLanguage {
@@ -345,6 +383,11 @@ sub SetSources {
     my $collection_source = $root->findvalue(q{//HT:contentProvider[@display='yes']});
     my $digitization_source = $root->findvalue(q{//HT:digitizationAgent[@display="yes"]});
     
+    unless ( ! $collection_source ) {
+        ( $digitization_source, $collection_source ) = $self->_ComputeSourcesFromId();
+        $self->Set('computed_source', 1);
+    }
+
     $self->Set('collection_source', $collection_source);
     $self->Set('digitization_source', $digitization_source);
 }
