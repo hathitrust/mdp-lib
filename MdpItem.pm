@@ -382,8 +382,8 @@ sub SetSources {
     my $root = $self->_GetMetsRoot();
     my $collection_source = $root->findvalue(q{//HT:contentProvider[@display='yes']});
     my $digitization_source = $root->findvalue(q{//HT:digitizationAgent[@display="yes"]});
-    
-    unless ( ! $collection_source ) {
+
+    unless ( $collection_source ) {
         ( $digitization_source, $collection_source ) = $self->_ComputeSourcesFromId();
         $self->Set('computed_source', 1);
     }
