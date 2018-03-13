@@ -404,13 +404,14 @@ sub SetItemType {
     my $item_sub_type = DataTypes::getDataSubType($root);
     $self->Set('item_sub_type', $item_sub_type) unless ( $item_sub_type eq $item_type );
 
-    # intiaizlie subclass...
+    # initialize subclass...
     my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
     if ( $item_type ne $item_sub_type ) {
         if ( $item_sub_type eq lc $item_sub_type ) { $item_sub_type = uc(substr($item_sub_type, 0, 1)) . substr($item_sub_type, 1);}
         $subclass .= "::$item_sub_type";
     }
-    if ( eval "require MdpItem::$subclass" ) {
+    my $err;
+    if ( $err = eval "require MdpItem::$subclass" ) {
         bless $self, "MdpItem::$subclass";
         $self->Set('item_subclass', $subclass);
     }
@@ -1193,6 +1194,8 @@ in the structMap
 sub ParseStructMap {
     my $self = shift;
     my ($root, $fileGrpHashRef, $pageInfoHashRef, $seq2PageNumberHashRef, $featureRecordRef) = @_;
+
+    print STDERR "AHOY ParseStructMap OG : " . ref($self) . "\n";
 
     # tombstone objects have an empty structMap
     my $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
