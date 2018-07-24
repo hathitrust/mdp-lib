@@ -277,7 +277,9 @@ sub is_possible_auth_stepup {
     $$config{$RightsGlobals::HT_TOTAL_USER} = 1;
     $$config{$RightsGlobals::SSD_PROXY_USER} = 1;
 
-    if ( defined $access_type && defined $$config{$access_type} ) {
+    my $is_mfa = Auth::ACL::a_GetUserAttributes('mfa') || 0;
+
+    if ( $is_mfa && defined $access_type && defined $$config{$access_type} ) {
         $retval = $$config{$access_type};
         if ( ref($retval) ) {
             # my $value = Auth::ACL::a_GetUserAttributes('usertype');
