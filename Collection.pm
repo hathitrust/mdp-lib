@@ -402,7 +402,8 @@ sub create_or_update_item_metadata {
         else {
             # item not in item_metadata table so create new item and
             # return extern_item_id do sql insert.  Generate a new unique item_id.
-            DbUtils::insert_new_row($dbh, $item_table_name, $metadata_ref);
+            ### DbUtils::insert_new_row($dbh, $item_table_name, $metadata_ref);
+            DbUtils::insert_or_update_row($dbh, $item_table_name, $metadata_ref, 'extern_item_id');
         }
 
         DbUtils::commit($dbh);
@@ -735,6 +736,9 @@ sub get_shared_status {
     elsif ($status == 1) {
         $status_string = 'public'
     }
+    elsif ($status == -1) {
+        $status_string = 'draft';
+    }
     else {
         ASSERT(0, qq{get_shared_status returned $status. It should be one or zero});
     }
@@ -856,11 +860,13 @@ sub edit_status {
     # default of 1 is public
     my $value = 1;
 
-    ASSERT(scalar($status =~ m,^(public|private)$,),
+    ASSERT(scalar($status =~ m,^(public|private|draft)$,),
            qq{argument to edit_status must be either 'public' or 'private'});
 
     if ($status =~ /^private$/i) {
         $value = 0;
+    } elsif ($status =~ /^draft$/i) {
+        $value = -1;
     }
 
     $self->_edit_metadata($coll_id, 'shared', $value);
