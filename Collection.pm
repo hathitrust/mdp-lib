@@ -786,6 +786,12 @@ sub get_coll_featured {
     return $self->get_coll_record($coll_id)->{featured};
 }
 
+sub get_coll_branding {
+    my $self = shift;
+    my $coll_id = shift;
+    return $self->get_coll_record($coll_id)->{branding};
+}
+
 sub get_coll_contact_info {
     my $self = shift;
     my $coll_id = shift;
