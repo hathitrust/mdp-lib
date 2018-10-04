@@ -545,6 +545,38 @@ sub get_full_PDF_access_status {
     return ($message, $status);
 }
 
+sub get_single_page_PDF_access_status {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+
+    my ($message, $status)= ('RESTRICTED_SOURCE', 'deny');
+    my $auth = $C->get_object('Auth');
+
+    if ( $self->check_final_access_status($C, $id) eq 'allow' ) {
+        # you can read the book, so you can download single page PDFs
+        $status = 'allow';
+        my $access_type = $self->get_access_type($C);
+        if ( $access_type == $RightsGlobals::ENHANCED_TEXT_USER ) {
+            # but ENHANCED_TEXT_USER affiliations can only single-page download 
+            # what ordinary users can download
+            my $rights_attribute = $self->get_rights_attribute($C, $id);
+            my $initial_access_status =
+                _determine_initial_access_status($rights_attribute, $RightsGlobals::ORDINARY_USER);
+
+            $status =
+                _Check_final_access_status($C, $initial_access_status, $id);
+
+        }
+    }
+
+    # clear the error message if $status eq 'allow'
+    $message = '' if ( $status eq 'allow' );
+
+    return ($message, $status);
+}
+
 # ---------------------------------------------------------------------
 
 =item PUBLIC: public_domain_world_creative_commons
@@ -1106,6 +1138,10 @@ sub _determine_access_type {
         # coordinate with Auth::ACL
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
+    elsif (DEBUG('nfb', 'NFB affiliated user-type access forced') || DEBUG('enhanced', 'Enhanced book user-type access forced')) {
+        # coordinate with Auth::ACL
+        $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
+    }
     elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
         # access=total user with access enabled via debug=super,
         # e.g. users with role=crms
@@ -1131,12 +1167,16 @@ sub _determine_access_type {
         # full pd PDF
         $access_type = $RightsGlobals::HT_AFFILIATE;
     }
+    elsif ($auth->affiliation_is_enhanced_text_user($C)) {
+        $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
+    }
     else {
         $access_type = $RightsGlobals::ORDINARY_USER;
     }
 
     # we may not return from here
     $access_type = $auth->handle_possible_auth_2fa($C, $access_type);
+    print STDERR "AHOY DETERMINE ACCESS TYPE : $access_type\n";
 
     DEBUG('pt,auth,all',
           sub {

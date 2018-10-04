@@ -1195,6 +1195,36 @@ sub affiliation_is_hathitrust {
     return $is_hathitrust;
 }
 
+# ---------------------------------------------------------------------
+
+=item affiliation_is_enhanced_text_user
+
+This affiliation allows for greater access in reading,
+but more limited download options.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub affiliation_is_enhanced_text_user {
+    my $self = shift;
+    my $C = shift;
+
+    return 1 if (DEBUG('nfb'));
+    return 1 if (DEBUG('marrakesh'));
+
+    my $is_marrakesh = 0;
+
+    if ($self->auth_sys_is_SHIBBOLETH($C)) {
+        my $aff = lc($self->get_eduPersonScopedAffiliation($C));
+        # If there's a scoped affiliation then they're hathitrust
+        $is_marrakesh = ( $aff eq 'member@nfb.org' );
+    }
+    else {
+        $is_marrakesh = 0;
+    }
+
+    return $is_marrakesh;
+}
 
 # ---------------------------------------------------------------------
 
