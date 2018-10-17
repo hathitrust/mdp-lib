@@ -68,6 +68,7 @@ sub GetFilePathMaybeExtract {
         my $C = new Context;
         my $input_cache_dir = Utils::get_true_cache_dir($C, 'epub_cache_dir');
         $input_cache_dir .= '/' . Identifier::id_to_mdp_path($self->GetId()) . "_" . $self->get_modtime();
+        $input_cache_dir .= '_' . $ENV{HT_DEV} if ( $ENV{HT_DEV} );
 
         if ( -f "$input_cache_dir/$fileName" ) {
             return ( $fileName, "$input_cache_dir/$fileName" );
