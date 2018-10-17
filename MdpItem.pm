@@ -123,6 +123,11 @@ sub GetLanguage {
     return $self->{_mmdo}->get_language();
 }
 
+sub GetLanguageCode {
+    my $self = shift;
+    return $self->{_mmdo}->get_language_code();
+}
+
 =item GetMetadata
 
 Description
@@ -1051,6 +1056,11 @@ sub GetVolumeData {
 sub GetFormat {
     my $self = shift;
     return $self->{_mmdo}->get_format(@_);
+}
+
+sub GetPublicationDate {
+    my $self = shift;
+    return $self->{_mmdo}->get_publication_date(@_);
 }
 
 # ---------------------------------------------------------------------

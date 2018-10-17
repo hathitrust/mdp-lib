@@ -90,6 +90,8 @@ sub __initialize {
             my $language = $self->__get_language($marcxml_ref);
             $self->{_language} = $language;
 
+            $self->{_language_code} = $self->__get_language_code($marcxml_ref);
+
             my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
                 $self->{_root} = $root;
@@ -124,7 +126,7 @@ sub __get_solr_result {
     my $rs = new Search::Result::SLIP_Raw;
 
     my $safe_id = Identifier::get_safe_Solr_id($id);
-    my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord,language};
+    my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord,language,language008};
     $rs = $searcher->get_Solr_raw_internal_query_result($C, $query_string, $rs);
 
     my $responseOk = $rs->http_status_ok;
@@ -158,6 +160,18 @@ sub __get_language {
     # <arr name="language"><str>English</str></arr>
     ( $language = $$marcxml_ref ) =~ s,.*?<arr name="language">(.*)</arr>.*,$1,;
     $language =~ s,<str>,,; $language =~ s,</str>,,;
+    return $language;
+}
+
+sub __get_language_code {
+    my $self = shift;
+    my $marcxml_ref = shift;
+
+    # get the language out of the results first
+    my $language;
+    # <arr name="language008"><str>eng</str></arr>
+    ( $language = $$marcxml_ref ) =~ s,.*?<str name="language008">(.*)</str>.*,$1,;
+    # $language =~ s,<str>,,; $language =~ s,</str>,,;
     return $language;
 }
 
@@ -314,6 +328,12 @@ sub get_language {
     my $self = shift;
     return undef if ($self->{_metadatafailure});
     return $self->{_language};
+}
+
+sub get_language_code {
+    my $self = shift;
+    return undef if ($self->{_metadatafailure});
+    return $self->{_language_code};
 }
 
 # ---------------------------------------------------------------------
@@ -592,6 +612,30 @@ sub get_format {
     return $self->{_format} = $format;
 }
 
+# ---------------------------------------------------------------------
+
+=item get_publication_date
+
+PUBLIC 
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_publication_date {
+    my $self = shift;
+
+    return '' if ($self->{_metadatafailure});    
+    return $self->{_publication_date} if (defined $self->{_publication_date});
+
+    my $root = $self->__get_document_root;
+    return '' unless($root);
+
+    my ($node) = $root->findnodes(qq{//datafield[\@tag='260']/subfield[\@code='c']});
+
+    my $publication_date = $node->textContent if ($node);
+
+    return $self->{_publication_date} = $publication_date;
+}
 
 1;
 
