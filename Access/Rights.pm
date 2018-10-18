@@ -1163,12 +1163,12 @@ sub _determine_access_type {
         # full pd PDF on or off-campus + some DLPS ic works
         $access_type = $RightsGlobals::UM_AFFILIATE;
     }
+    elsif ($auth->affiliation_is_enhanced_text_user($C)) {
+        $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
+    }
     elsif ($auth->affiliation_is_hathitrust($C)) {
         # full pd PDF
         $access_type = $RightsGlobals::HT_AFFILIATE;
-    }
-    elsif ($auth->affiliation_is_enhanced_text_user($C)) {
-        $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
     }
     else {
         $access_type = $RightsGlobals::ORDINARY_USER;
