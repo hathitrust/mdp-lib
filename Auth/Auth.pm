@@ -91,6 +91,9 @@ my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
 my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
 my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
 
+my $NON_HT_AFFILIATED_ENTITY_IDS = {};
+$$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
+
 # eduPersonScopedAffiliation attribute values that can be considered
 # for print disabled status
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
@@ -1177,8 +1180,9 @@ sub affiliation_is_hathitrust {
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
+        my $entity_id = lc($self->get_shibboleth_entityID($C));
         # If there's a scoped affiliation then they're hathitrust
-        $is_hathitrust = ( $aff ne '' );
+        $is_hathitrust = ( $aff ne '' ) && ( ! defined $$NON_HT_AFFILIATED_ENTITY_IDS{$entity_id} );
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend) {
@@ -1212,18 +1216,17 @@ sub affiliation_is_enhanced_text_user {
     return 1 if (DEBUG('nfb'));
     return 1 if (DEBUG('marrakesh'));
 
-    my $is_marrakesh = 0;
+    my $is_enhanced_text_user = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
-        # If there's a scoped affiliation then they're hathitrust
-        $is_marrakesh = ( $aff eq 'member@nfb.org' );
+        $is_enhanced_text_user = ( $aff eq 'member@nfb.org' );
     }
     else {
-        $is_marrakesh = 0;
+        $is_enhanced_text_user = 0;
     }
 
-    return $is_marrakesh;
+    return $is_enhanced_text_user;
 }
 
 # ---------------------------------------------------------------------
