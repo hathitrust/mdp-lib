@@ -1205,8 +1205,6 @@ sub ParseStructMap {
     my $self = shift;
     my ($root, $fileGrpHashRef, $pageInfoHashRef, $seq2PageNumberHashRef, $featureRecordRef) = @_;
 
-    print STDERR "AHOY ParseStructMap OG : " . ref($self) . "\n";
-
     # tombstone objects have an empty structMap
     my $xpath = q{/METS:mets/METS:structMap//METS:div[@ORDER]};
     my $structMap = $root->findnodes($xpath);

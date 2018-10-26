@@ -1176,7 +1176,6 @@ sub _determine_access_type {
 
     # we may not return from here
     $access_type = $auth->handle_possible_auth_2fa($C, $access_type);
-    print STDERR "AHOY DETERMINE ACCESS TYPE : $access_type\n";
 
     DEBUG('pt,auth,all',
           sub {
