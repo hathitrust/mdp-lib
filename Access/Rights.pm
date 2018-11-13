@@ -1319,6 +1319,8 @@ sub _resolve_access_by_GeoIP {
     my $C = shift;
     my $required_location = shift;
 
+    return 'allow' if ( ! defined $ENV{REMOTE_USER} && ! defined $ENV{HTTP_HOST} );
+
     my $status = 'deny';
 
     require "Geo/IP.pm";
