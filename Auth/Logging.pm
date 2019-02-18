@@ -170,8 +170,12 @@ sub _log_access {
         my $affiliation = $ENV{affiliation} || 'notset';
         my $eppn = $ENV{eppn} || 'notset';
         my $display_name = $ENV{displayName} || 'notset';
-        my $entityID = $ENV{Shib_Identity_Provider} || 'notset';
-        my $persistent_id = $ENV{persistent_id} || 'notset';
+        my $entityID = 'notset';
+        $entityID = $ENV{Shib_Identity_Provider} if ( defined($ENV{Shib_Identity_Provider}) );
+        $entityID = $ENV{'Shib-Identity-Provider'} if ( defined($ENV{'Shib-Identity-Provider'}) );
+        my $persistent_id = 'notset';
+        $persistent_id = $ENV{persistent_id} if ( defined($ENV{persistent_id}) );
+        $persistent_id = $ENV{'persistent-id'} if ( defined($ENV{'persistent-id'}) );
 
         $s .= qq{|eduPersonScopedAffiliation=$affiliation|eduPersonPrincipalName=$eppn|displayName=$display_name|persistent_id=$persistent_id|Shib_Identity_Provider=$entityID};
     }
@@ -189,8 +193,12 @@ sub _log_access {
         my $affiliation = $ENV{affiliation} || 'notset';
         my $eppn = $ENV{eppn} || 'notset';
         my $display_name = $ENV{displayName} || 'notset';
-        my $entityID = $ENV{Shib_Identity_Provider} || 'notset';
-        my $persistent_id = $ENV{persistent_id} || 'notset';
+        my $entityID = 'notset';
+        $entityID = $ENV{Shib_Identity_Provider} if ( defined($ENV{Shib_Identity_Provider}) );
+        $entityID = $ENV{'Shib-Identity-Provider'} if ( defined($ENV{'Shib-Identity-Provider'}) );
+        my $persistent_id = 'notset';
+        $persistent_id = $ENV{persistent_id} if ( defined($ENV{persistent_id}) );
+        $persistent_id = $ENV{'persistent-id'} if ( defined($ENV{'persistent-id'}) );
 
         $s .= qq{eduPersonScopedAffiliation=$affiliation eduPersonPrincipalName=$eppn displayName=$display_name persistent_id=$persistent_id Shib_Identity_Provider=$entityID};
     }
@@ -241,8 +249,16 @@ sub log_access {
     my $affiliation           = $ENV{affiliation} || undef;
     my $eppn                  = $ENV{eppn} || undef;
     my $display_name          = $ENV{displayName} || undef;
-    my $entityID              = $ENV{Shib_Identity_Provider} || undef;
-    my $persistent_id         = $ENV{persistent_id} || undef;
+    # my $entityID              = $ENV{Shib_Identity_Provider} || undef;
+    # my $persistent_id         = $ENV{persistent_id} || undef;
+
+    my $entityID = 'notset';
+    $entityID = $ENV{Shib_Identity_Provider} if ( defined($ENV{Shib_Identity_Provider}) );
+    $entityID = $ENV{'Shib-Identity-Provider'} if ( defined($ENV{'Shib-Identity-Provider'}) );
+    my $persistent_id = 'notset';
+    $persistent_id = $ENV{persistent_id} if ( defined($ENV{persistent_id}) );
+    $persistent_id = $ENV{'persistent-id'} if ( defined($ENV{'persistent-id'}) );
+
     my ($usertype, $role) = (
                              Auth::ACL::a_GetUserAttributes('usertype') || undef,
                              Auth::ACL::a_GetUserAttributes('role') || undef,

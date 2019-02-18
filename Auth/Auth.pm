@@ -252,6 +252,9 @@ sub handle_possible_auth_2fa {
             # need to redirect
             $access_type = $RightsGlobals::ORDINARY_USER;
             $self->handle_auth_2fa_redirect($C, $authContextClassRef);
+        } elsif ( defined $ENV{'Shib-AuthnContext-Class'} && defined $authContextClassRef && $ENV{'Shib-AuthnContext-Class'} ne $authContextClassRef ) {
+            $access_type = $RightsGlobals::ORDINARY_USER;
+            $self->handle_auth_2fa_redirect($C, $authContextClassRef);
         }
     }
     return $access_type;
@@ -1032,7 +1035,7 @@ sub get_shibboleth_entityID {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $entity_id = $ENV{Shib_Identity_Provider};
+        $entity_id = $ENV{Shib_Identity_Provider} || $ENV{'Shib-Identity-Provider'}
     }
 
     return $entity_id;
@@ -1065,7 +1068,9 @@ OID: 1.3.6.1.4.1.5923.1.1.1.10 values to persistent_id. We parse just one out.
 sub get_eduPersonTargetedID {
     my $self = shift;
 
-    my $targeted_id = $ENV{persistent_id} || '';
+    my $targeted_id = '';
+    $targeted_id = $ENV{persistent_id} if ( defined $ENV{persistent_id} );
+    $targeted_id = $ENV{'persistent-id'} if ( defined $ENV{'persistent-id'} );
     return ( split(/;/, $targeted_id) )[0] || '';
 }
 
