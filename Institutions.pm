@@ -278,15 +278,8 @@ sub get_institution_list {
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
-    unless ( defined $ENV{HT_IS_COSIGN_STILL_HERE} && $ENV{HT_IS_COSIGN_STILL_HERE} eq 'yes' ) {
-        # update the template for umich.edu
-        foreach my $ref ( @$ref_to_arr_of_hashref ) {
-            if ( $$ref{domain} eq 'umich.edu' && $$ref{authtype} ne 'shibboleth' ) {
-                $$ref{authtype} = 'shibboleth';
-                $$ref{template} = q{https://___HOST___/Shibboleth.sso/umich?target=___TARGET___};
-            }
-            $$ref{social} = abs($$ref{enabled}) == 3;
-        }
+    foreach my $ref ( @$ref_to_arr_of_hashref ) {
+        $$ref{template} = qq{https://___HOST___/Shibboleth.sso/Login?entityID=$$ref{entityID}&amp;target=___TARGET___};
     }
 
     return $ref_to_arr_of_hashref;
@@ -325,9 +318,10 @@ sub get_idp_list {
         }
         next unless ($add_to_list);
 
-        my $idp_url = $hash_ref->{template};
         my $host = $ENV{'HTTP_HOST'} || 'localhost';
+        my $idp_url = $hash_ref->{template};
         $idp_url =~ s,___HOST___,$host,;
+        $idp_url =~ s,&amp;,&,;
 
         push @$results, {
             enabled => $hash_ref->{enabled},
