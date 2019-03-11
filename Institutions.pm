@@ -278,6 +278,10 @@ sub get_institution_list {
     my $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
+    foreach my $ref ( @$ref_to_arr_of_hashref ) {
+        $$ref{template} = qq{https://___HOST___/Shibboleth.sso/Login?entityID=$$ref{entityID}&amp;target=___TARGET___};
+    }
+
     return $ref_to_arr_of_hashref;
 }
 
@@ -306,14 +310,18 @@ sub get_idp_list {
         elsif ( $hash_ref->{enabled} == 1 ) {
             $add_to_list = 1;
         }
+        elsif ( abs($hash_ref->{enabled}) == 3 ) {
+            $add_to_list = ( $$hash_ref{enabled} > 0 || defined $ENV{HT_DEV} );
+        }
         elsif ( $hash_ref->{enabled} == 2 ) {
             $add_to_list = 0;
         }
         next unless ($add_to_list);
 
-        my $idp_url = $hash_ref->{template};
         my $host = $ENV{'HTTP_HOST'} || 'localhost';
+        my $idp_url = $hash_ref->{template};
         $idp_url =~ s,___HOST___,$host,;
+        $idp_url =~ s,&amp;,&,;
 
         push @$results, {
             enabled => $hash_ref->{enabled},
@@ -321,6 +329,7 @@ sub get_idp_list {
             idp_url => $idp_url,
             authtype => $hash_ref->{authtype},
             name => $hash_ref->{name},
+            social => abs($$hash_ref{enabled}) == 3,
             selected => ( $inst eq $hash_ref->{inst_id} ),
         };
 

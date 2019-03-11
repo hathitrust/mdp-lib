@@ -78,11 +78,54 @@ sub GetMetsXmlModTime {
     return $mets_mtime;
 }
 
+our @watermark_config;
+sub GetSources
+{
+    my ( $self ) = @_;
+
+    my $digitization_source = lc $self->Get('digitization_source');
+    my $collection_source = lc $self->Get('collection_source');
+
+    return ( $digitization_source, $collection_source );
+}
+
+sub _ComputeSourcesFromId {
+    my ( $self ) = @_;
+
+    # no collection source in METS, punt to using namespace + source attribute lookup
+    # NOTE: REMOVE AFTER METS UPLIFT - ROGER
+    my $C = new Context;
+    my $id = $self->GetId();
+    my $rights = $C->get_object('Access::Rights',1);
+    my $source_attribute;
+    if (ref $rights){
+        $source_attribute = $rights->get_source_attribute($C, $id);
+    }
+    my $namespace = Identifier::the_namespace( $id );
+    # get the data from the config file
+    unless ( scalar @watermark_config ) {
+        my $tmp = Utils::read_file(qq{$ENV{SDRROOT}/watermarks/config.txt});
+        @watermark_config = split(/\n/, $$tmp);
+    }
+    my ( $line ) = grep(/^$namespace\|$source_attribute\|/, @watermark_config); chomp $line;
+    return () unless ( $line ); # no watermark found
+    my @config = split(/\|/, $line);
+    my $digitization_source = $config[2];
+    my $collection_source = $config[3];
+
+    return ( $digitization_source, $collection_source );
+}
+
 # ---------------------------------------------------------------------
 
 sub GetLanguage {
     my $self = shift;
     return $self->{_mmdo}->get_language();
+}
+
+sub GetLanguageCode {
+    my $self = shift;
+    return $self->{_mmdo}->get_language_code();
 }
 
 =item GetMetadata
@@ -284,6 +327,7 @@ sub _initialize {
 
     my $itemFileSystemLocation = Identifier::get_item_location($id);
     $self->Set( 'filesystemlocation', $itemFileSystemLocation );
+    silent_ASSERT( -d $itemFileSystemLocation, qq{Invalid document id provided.});
 
     my $stripped_id = Identifier::get_pairtree_id_wo_namespace($id);
 
@@ -343,7 +387,12 @@ sub SetSources {
     my $root = $self->_GetMetsRoot();
     my $collection_source = $root->findvalue(q{//HT:contentProvider[@display='yes']});
     my $digitization_source = $root->findvalue(q{//HT:digitizationAgent[@display="yes"]});
-    
+
+    unless ( $collection_source ) {
+        ( $digitization_source, $collection_source ) = $self->_ComputeSourcesFromId();
+        $self->Set('computed_source', 1);
+    }
+
     $self->Set('collection_source', $collection_source);
     $self->Set('digitization_source', $digitization_source);
 }
@@ -357,11 +406,19 @@ sub SetItemType {
 
     $self->Set('item_type', $item_type);
 
-    # intiaizlie subclass...
-    if ( $item_type ne 'volume' ) {
-        my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
-        eval "require MdpItem::$subclass";
+    my $item_sub_type = DataTypes::getDataSubType($root);
+    $self->Set('item_sub_type', $item_sub_type) unless ( $item_sub_type eq $item_type );
+
+    # initialize subclass...
+    my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
+    if ( $item_type ne $item_sub_type ) {
+        if ( $item_sub_type eq lc $item_sub_type ) { $item_sub_type = uc(substr($item_sub_type, 0, 1)) . substr($item_sub_type, 1);}
+        $subclass .= "::$item_sub_type";
+    }
+    my $err;
+    if ( $err = eval "require MdpItem::$subclass" ) {
         bless $self, "MdpItem::$subclass";
+        $self->Set('item_subclass', $subclass);
     }
 }
 
@@ -382,6 +439,16 @@ sub GetItemType {
     return $self->Get('item_type');
 }
 
+sub GetItemSubType {
+    my $self = shift;
+    return $self->Get('item_sub_type');
+}
+
+sub GetItemSubClass {
+    my $self = shift;
+    return $self->Get('item_subclass');
+}
+
 sub GetMarkupLanguage {
     my $self = shift;
     return $self->Get('markup_language');
@@ -395,6 +462,12 @@ sub ItemIsZipped {
 sub SetItemZipped {
     my $self = shift;
     $self->{'itemiszipped'} = 1;
+}
+
+sub HasServeablePDF {
+    my $self = shift;
+    # 2016-03-30 roger - eventually this will be something real
+    return ( $$self{id} =~ m,^ku01, );
 }
 
 sub GetId {
@@ -608,7 +681,14 @@ sub StoreMETS {
 
     # Replace child of dmdSec/ID=DMD1 with actual metadata
     my ($dmdSec1) = $root->findnodes("//METS:dmdSec[\@ID='DMD1']");
-    $dmdSec1->removeChildNodes() if ($dmdSec1);
+    if ( $dmdSec1 ) {
+        $dmdSec1->removeChildNodes() if ($dmdSec1);
+    } else {
+        # um, create a dmdSec1?
+        $dmdSec1 = $root->ownerDocument->createElementNS( $root->lookupNamespaceURI('METS'), 'dmdSec' );
+        $dmdSec1 = $root->appendChild($dmdSec1);
+        $dmdSec1->setAttribute('ID', 'DMD1');
+    }
 
     my $metadataRef = $self->GetMetadata();
     if ($metadataRef) {
@@ -659,7 +739,7 @@ sub SetCurrentRequestInfo {
 
     # check that the requested sequence is within the range of
     # available pages
-    my $validSeq = $self->GetValidSequence( $cgi->param( 'seq' ) );
+    my $validSeq = $self->GetValidSequence( scalar $cgi->param( 'seq' ) );
     $cgi->param( 'seq', $validSeq );
 
     my $id     = $cgi->param( 'id' );
@@ -978,6 +1058,11 @@ sub GetFormat {
     return $self->{_mmdo}->get_format(@_);
 }
 
+sub GetPublicationDate {
+    my $self = shift;
+    return $self->{_mmdo}->get_publication_date(@_);
+}
+
 # ---------------------------------------------------------------------
 
 =item add_to_feature_table
@@ -1086,7 +1171,8 @@ sub BuildFileGrpHash {
             foreach my $node ( $fileNodes->get_nodelist ) {
                 my $id = $node->getAttribute('ID');
                 my $filesize = $node->getAttribute('SIZE');
-                my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+                # my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+                my $filename = $node->findvalue('./METS:FLocat/@xlink:href');
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
@@ -1712,6 +1798,9 @@ sub DumpPageInfoToHtml {
 
     my $basename = $self->Get( 'filesystemlocation' );
     $s .= qq{<h4>Base directory="$basename"</h4>\n};
+
+    $s .= qq{<h4>File Groups</h4>\n};
+    $s .= qq{<pre>} . Data::Dumper::Dumper($self->GetFileGroupMap) . q{</pre>};
 
     $s .= qq{<h4>Volume information</h4>\n};
     my $vol = $self->GetVolumeData();

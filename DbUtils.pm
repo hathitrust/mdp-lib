@@ -46,7 +46,6 @@ sub begin_work {
         $dbh->{AutoCommit} = 0;
     }
     $__transaction += 1;
-    # print STDERR "DBUTILS : BEGIN_WORK : " . _get_callers() . "\n";
     if ( LOG_QUERIES ) {
         _log_message(time(), qq{BEGIN WORK : $__transaction}, []);
     }
@@ -56,9 +55,7 @@ sub commit {
     my ( $dbh ) = @_;
     if ( $dbh->{AutoCommit} == 0 && $__transaction == 1 ) {
         $dbh->{AutoCommit} = 1;
-        # print STDERR "DBUTILS : COMMIT : " . $__transaction  . " :: " . _get_callers() . "\n";
     } else {
-        # print STDERR "DBUTILS : COUNTING DOWN COMMIT : " . $__transaction  . " :: " . _get_callers() . "\n";
     }
     if ( LOG_QUERIES ) {
         _log_message(time(), qq{COMMIT : $__transaction}, []);
@@ -137,7 +134,7 @@ sub prep_n_execute {
         };
         if ( my $err = $@ ) {
             $dbh->rollback() unless ( $dbh->{AutoCommit} );
-            ASSERT((! $err), qq{DBI error on statement=$statement: $err});
+            ASSERT((! $err), qq{DBI error on statement=$statement: $err : } . __get_df_report('/ram'));
             ASSERT($ct, qq{Could not execute statement=$statement } . ($sth->errstr || ''));
         }
 
@@ -540,6 +537,20 @@ sub _log_message
     # see lament in Auth::Logging
     my $pattern = qr(slip/run-___RUN___|___QUERY___);
     Utils::Logger::__Log_string($C, $s, q{db_statement_logfile}, $pattern, 'db');
+}
+
+# ---------------------------------------------------------------------
+
+=item __get_df_report
+
+Description
+
+=cut
+
+# ---------------------------------------------------------------------
+sub __get_df_report {
+    my $mount = shift;
+    return "\n" . `df -i $mount` . "\n" . `df -a $mount`;
 }
 
 1;

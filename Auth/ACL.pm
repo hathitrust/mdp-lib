@@ -110,7 +110,7 @@ use DbUtils;
 
 # 141.213.171.72-141.213.171.87
 # 141.213.175.72-141.213.175.87
-my $library_vpn_range = q{^(141\.213\.17[15]\.(7[2-9]|8[0-7])$};
+my $library_vpn_range = q{^141\.213\.17[15]\.(7[2-9]|8[0-7])$};
 
 # blocked
 my $iprestrict_all = 'notanipaddress';
@@ -118,9 +118,12 @@ my $iprestrict_all = 'notanipaddress';
 # unrestricted (SSD only, after Wed Apr  2 13:42:55 2014)
 my $iprestrict_none = '.*';
 
+# 
+
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
+my $do_restrict_to_identity_provider = 0;
 
 
 # ---------------------------------------------------------------------
@@ -229,7 +232,7 @@ sub __a_Authorized_core {
             }
         }
     }
-    
+
     return $authorized;
 }
 
@@ -426,7 +429,14 @@ sub __get_user_attributes {
     my $Access_Control_List_ref = ___get_ACL;
 
     my $userid = Utils::Get_Remote_User();
+    my $identity_provider = Utils::Get_Identity_Provider();
+    $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
     my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    unless ( $attrval || Utils::is_cosign_active() ) {
+      $userid = Utils::Get_Legacy_Remote_User();
+      $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
+      $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+    }
 
     # Superuser debugging over-rides
     unless ($unmasked) {
@@ -452,7 +462,6 @@ sub __get_user_attributes {
 
     return $attrval;
 }
-
 
 # ---------------------------------------------------------------------
 
@@ -514,7 +523,7 @@ sub ___attribute_mapping {
 
     # Map these
     my $role = $hashref->{role};
-    my $vpn = $hashref->{vpn};
+    my $mfa = $hashref->{mfa} || 0;
     my $iprestrict = $hashref->{iprestrict};
     my $usertype = $hashref->{usertype};
     my $expires = $hashref->{expires};
@@ -530,21 +539,16 @@ sub ___attribute_mapping {
 
     # Use database IP address(es), if defined, else use the
     # "no access" IP address or some other value in special cases
-    # (SSD) below. Add the VPN range if vpn=1
-    #
-    if (defined $iprestrict) {
-        $iprestrict = $hashref->{iprestrict} = ($vpn ? join( '|', ($iprestrict, $library_vpn_range) ) : $iprestrict);
-    }
-    else {
-        $iprestrict = $hashref->{iprestrict} = ($vpn ? $library_vpn_range : $iprestrict_all);
-    }
-
-    # Special cases
+    # (SSD, Multi-Factored Auth) below.
     #
     if ($usertype eq 'student') {
         if ($role eq 'ssd') {
             $iprestrict = $hashref->{iprestrict} = $iprestrict_none;
         }
+    } elsif ($mfa) {
+      $iprestrict = $hashref->{iprestrict} = $iprestrict_none;      
+    } elsif (!defined $iprestrict) {
+      $iprestrict = $hashref->{iprestrict} = $iprestrict_all;
     }
 }
 
@@ -569,28 +573,19 @@ sub __load_access_control_list {
 
     my ($statement, $sth, $ref_to_arr_of_hashref);
 
-    $statement = qq{SELECT * FROM ht_users};
+    $statement = qq{SELECT ht_users.*, ht_counts.accesscount, ht_counts.last_access, ht_counts.warned, ht_counts.certified, ht_counts.auth_requested FROM ht_users LEFT OUTER JOIN ht_counts ON ht_users.userid = ht_counts.userid};
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     foreach my $hashref (@$ref_to_arr_of_hashref) {
+
 
         ___attribute_mapping($hashref);
 
         my $userid = $hashref->{userid};
+        my $identity_provider = $hashref->{identity_provider} || '';
+        $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
         map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
-    }
-
-    $statement = qq{SELECT * FROM ht_counts};
-    $sth = DbUtils::prep_n_execute($dbh, $statement);
-    $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
-
-    foreach my $hashref (@$ref_to_arr_of_hashref) {
-
-        my $userid = $hashref->{userid};
-        if ( defined $Access_Control_List_ref->{$userid} ) {
-            map { $Access_Control_List_ref->{$userid}{$_} = $hashref->{$_} } keys %{ $hashref };
-        }
     }
 
     ___set_ACL($Access_Control_List_ref);

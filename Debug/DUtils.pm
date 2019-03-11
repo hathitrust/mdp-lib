@@ -270,7 +270,7 @@ sub handle_template_file {
         process_availability_file_msg($template_ref, $msg);
     }
     else {
-        my $filename = $ENV{'SDRROOT'} . '/$appname/common-web/production_error.html';
+        my $filename = $ENV{'SDRROOT'} . '/$appname/common-web/production_500.html';
         $template_ref = Utils::read_file($filename, 1);
     }
 

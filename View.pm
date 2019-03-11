@@ -537,7 +537,7 @@ Description: Procedural interface to output data
 
 # ---------------------------------------------------------------------
 sub P_output_data_HTTP {
-    my ($C, $data_ref, $content_type) = @_ ;
+    my ($C, $data_ref, $content_type, $status) = @_ ;
 
     if (Debug::DUtils::xml_debugging_enabled()) {
         Utils::remove_PI($data_ref, 'xml');
@@ -546,52 +546,42 @@ sub P_output_data_HTTP {
     $content_type = 'text/html'
         if (! $content_type);
 
+    $status = 200 unless ( $status );
+
     my $charset = 'UTF-8';
     
     Utils::add_header($C, 'Content-type' => qq{$content_type; charset=$charset});
     
-    my $ses = $C->get_object('Session', 1);
-    if ($ses) {
-        my $cookie = $ses->get_cookie();
-        Utils::add_header($C, 'Cookie' => $cookie);
-    }    
-    
-    my $auth = $C->get_object('Auth', 1);
-    if ($auth && $auth->isa_new_login()) {
-        my $cookie = Utils::get_user_status_cookie($C, $auth);
-        Utils::add_header($C, 'Cookie' => $cookie);
+    unless ( $status == 404 ) {
+        my $ses = $C->get_object('Session', 1);
+        if ($ses) {
+            my $cookie = $ses->get_cookie();
+            Utils::add_header($C, 'Cookie' => $cookie);
+        }    
+        
+        my $auth = $C->get_object('Auth', 1);
+        if ($auth && $auth->isa_new_login()) {
+            my $cookie = Utils::get_user_status_cookie($C, $auth);
+            Utils::add_header($C, 'Cookie' => $cookie);
+        }        
     }
-    
+
     my $headers_ref = $C->get_object('HTTP::Headers');
     
-    print STDOUT "Status: 200" . $CGI::CRLF;
+    print STDOUT "Status: $status" . $CGI::CRLF;
     print STDOUT $headers_ref->as_string($CGI::CRLF);
     print STDOUT $CGI::CRLF;
-    $$data_ref =~ s,^<!DOCTYPE [^>]+>,<!DOCTYPE html>,;
-    _add_ie_specific_code($data_ref);
-    print STDOUT $$data_ref;
+    if ( ref $data_ref ) {
+        $$data_ref =~ s,^<!DOCTYPE [^>]+>,<!DOCTYPE html>,;
+        _add_ie_specific_code($data_ref);
+        print STDOUT $$data_ref;
+    }
 }
 
+# backward compatibility 
 sub P_output_none_HTTP {
     my ($C) = @_ ;
-
-    my $ses = $C->get_object('Session', 1);
-    if ($ses) {
-        my $cookie = $ses->get_cookie();
-        Utils::add_header($C, 'Cookie' => $cookie);
-    }    
-    
-    my $auth = $C->get_object('Auth', 1);
-    if ($auth && $auth->isa_new_login()) {
-        my $cookie = Utils::get_user_status_cookie($C, $auth);
-        Utils::add_header($C, 'Cookie' => $cookie);
-    }
-    
-    my $headers_ref = $C->get_object('HTTP::Headers');
-    
-    print STDOUT "Status: 204" . $CGI::CRLF;
-    print STDOUT $headers_ref->as_string($CGI::CRLF);
-    print STDOUT $CGI::CRLF;
+    P_output_data_HTTP($C, undef, undef, 204);
 }
 
 sub IF_LT_IE9 {

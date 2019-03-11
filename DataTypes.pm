@@ -45,6 +45,14 @@ our %dataTypeMatrix =
      _subtype => q{volume},
     }],
 
+   q{http://www.hathitrust.org/documents/hathitrust-epub-mets-profile1.0.xml} =>
+   [{
+     _xpath   => q{},
+     _value   => q{},
+     _type    => q{volume},
+     _subtype => q{EPUB},
+    }],
+
    q{http://www.hathitrust.org/documents/hathitrust-structured-mets-profile1.0.xml} =>
    [{
      _xpath   => q{normalize-space(/METS:mets/METS:amdSec/METS:techMD[@ID='textMD1']/METS:mdWrap[@MDTYPE='TEXTMD']/METS:xmlData/textMD:textMD/textMD:markup_language)},

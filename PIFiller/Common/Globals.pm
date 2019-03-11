@@ -48,7 +48,7 @@ sub handle_CGI_GLOBALS_PI
     my $output;
     foreach my $param_name ($cgi->param())
     {
-        my @param_values = $cgi->param($param_name);
+        my @param_values = $cgi->multi_param($param_name);
         foreach my $val (@param_values)
         {
             $output .= wrap_string_in_tag($val, 'Param', [['name', $param_name]]);
@@ -138,7 +138,12 @@ sub handle_ACCESS_USE_PI
     my $id = $C->get_object('CGI')->param('id');
 
     my $ar = $C->get_object('Access::Rights');
+
     my $attr = $ar->get_rights_attribute($C, $id);
+    if ($attr == $RightsGlobals::g_suppressed_attribute_value) {
+        return wrap_string_in_tag('This item is suppressed', 'Header');
+    }
+
     my $access_profile = $ar->get_access_profile_attribute($C, $id);
 
     my $ref_to_arr_of_hashref =
@@ -208,9 +213,20 @@ sub handle_INSTITUTION_NAME_PI
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $institution_name = $auth->get_institution_name($C, 'mapped');
+    my $institution_name = $auth->get_institution_name($C); # , 'mapped');
 
     return $institution_name;
+}
+
+sub handle_PROVIDER_NAME_PI
+    : PI_handler(PROVIDER_NAME)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $auth = $C->get_object('Auth');
+    my $provider_name = $auth->get_institution_name($C, undef, 1);
+
+    return $provider_name;
 }
 
 # ---------------------------------------------------------------------
@@ -288,6 +304,12 @@ sub handle_LOGGED_IN_PI
 
     my $auth = $C->get_object('Auth');
     my $is_logged_in = $auth->is_logged_in($C) ? 'YES':'NO';
+    if ( $is_logged_in eq 'NO' ) {
+        my $ses = $C->get_object('Session');
+        if ( $ses->get_transient('logged_out') == 1 ) {
+            $is_logged_in = 'EXPIRED';
+        }
+    }
 
     return $is_logged_in;
 
@@ -490,7 +512,7 @@ sub PT_HREF_helper {
 
     my $temp_cgi = new CGI('');
     $temp_cgi->param('id', $extern_id);
-    $temp_cgi->param('debug', CGI::param('debug'));
+    $temp_cgi->param('debug', scalar CGI::param('debug'));
 
     my $cgi = $C->get_object('CGI');
     my $q1 = $cgi->param('q1');
@@ -508,7 +530,7 @@ sub PT_HREF_helper {
     my $pt_script = $config->get($key);
 
     # The Shibboleth Dirty Hack
-    my $shib = $C->get_object('Auth')->auth_sys_is_SHIBBOLETH($C);
+    my $shib = $C->get_object('Auth')->auth_sys_is_SHIBBOLETH($C) && $C->get_object('Auth')->is_cosign_active();
     if ($shib) {
         $pt_script =~ s,/cgi/,/shcgi/,;
     }

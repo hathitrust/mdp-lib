@@ -189,10 +189,11 @@ sub extract_file_to_temp_cache {
     my $file_sys_location = shift;
     my $filename = shift;
     my $suffix = shift;
+    my $input_cache_dir = shift;
 
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
-    my $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix);
+    $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix) unless ( $input_cache_dir );
 
     my @yes;
     my @unzip;
