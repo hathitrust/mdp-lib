@@ -279,6 +279,7 @@ sub get_institution_list {
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     foreach my $ref ( @$ref_to_arr_of_hashref ) {
+        next unless ( defined $$ref{template} && defined $$ref{entityID} );
         $$ref{template} = qq{https://___HOST___/Shibboleth.sso/Login?entityID=$$ref{entityID}&amp;target=___TARGET___};
     }
 
