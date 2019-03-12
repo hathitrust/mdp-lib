@@ -81,9 +81,16 @@ sub __Load_Institution_Hash {
 
     $Institution_Hash->{$selector}{$value} = $ref_to_arr_of_hashref->[0];
 
+    __munge_template($Institution_Hash->{$selector}{$value});
+    
     ___set_I_ref($C, $Institution_Hash);
 
     return $Institution_Hash;
+}
+
+sub __munge_template {
+    my ( $ref ) = @_;
+    $$ref{template} = qq{https://___HOST___/Shibboleth.sso/Login?entityID=$$ref{entityID}&amp;target=___TARGET___};
 }
 
 
@@ -280,7 +287,7 @@ sub get_institution_list {
 
     foreach my $ref ( @$ref_to_arr_of_hashref ) {
         next unless ( defined $$ref{template} && defined $$ref{entityID} );
-        $$ref{template} = qq{https://___HOST___/Shibboleth.sso/Login?entityID=$$ref{entityID}&amp;target=___TARGET___};
+        __munge_template($ref);
     }
 
     return $ref_to_arr_of_hashref;
