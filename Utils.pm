@@ -93,8 +93,6 @@ sub Get_Legacy_Remote_User {
         if ( $ENV{umichCosignFactor} =~ m,^UMICH.EDU, ) {
             # remove the @umich.edu
             $remote_user = substr(lc $ENV{eppn}, 0, -10);
-        } elsif ( $ENV{eppn} =~ m,\@umich.edu, ) {
-            $remote_user = substr(lc $ENV{eppn}, 0, -10);
         } else {
             # friend
             $remote_user = lc $ENV{email};
