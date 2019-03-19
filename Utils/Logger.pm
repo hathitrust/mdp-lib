@@ -88,6 +88,7 @@ sub __Log_string {
     if (defined($optional_logfile_key) && defined($optional_logfile_pattern)) {
         $logfile =~ s,$optional_logfile_pattern,$optional_logfile_key,;
     }
+    $logfile .= qq{.$ENV{SERVER_ADDR}};
     
     Utils::mkdir_path($logdir);
 
@@ -132,7 +133,7 @@ sub __Log_simple {
 
     my $date = Utils::Time::iso_Time('date');
     my $time = Utils::Time::iso_Time('time');
-    my $logfile = qq{MDP-generic-$date.log};
+    my $logfile = qq{MDP-generic-$date.log.$ENV{SERVER_ADDR}};
 
     my $logfile_path = Utils::get_tmp_logdir() . "/$logfile";
     if (open(LOG, ">>:encoding(UTF-8)", $logfile_path)) {

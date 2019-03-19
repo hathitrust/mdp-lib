@@ -37,6 +37,8 @@ BEGIN
                              min
                              max
                             );
+
+    $ENV{'SERVER_ADDR'} = '127.0.0.1' unless ( defined $ENV{'SERVER_ADDR'} );
 }
 
 use Carp;
@@ -1142,7 +1144,6 @@ sub HTTP_hostname
 {
     return $ENV{'HTTP_HOST'} ? $ENV{'HTTP_HOST'} : 'localhost';
 }
-
 
 # ---------------------------------------------------------------------
 
