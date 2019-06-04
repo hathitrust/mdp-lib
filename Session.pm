@@ -121,6 +121,7 @@ sub start_session
                         -value   => $sid,
                         -path    => '/',
                         -domain  => Utils::get_cookie_domain($cgi),
+                        -httponly => 1,
                       );
 
     $ses->set_cookie($session_cookie);

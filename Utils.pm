@@ -80,6 +80,8 @@ sub Get_Remote_User {
         $remote_user = lc $ENV{REMOTE_USER};
         if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq $UMICH_ENTITY_ID ) {
             $remote_user = Get_Legacy_Remote_User();
+        } elsif ( defined $ENV{'Shib-Identity-Provider'} && $ENV{'Shib-Identity-Provider'} eq $UMICH_ENTITY_ID ) {
+            $remote_user = Get_Legacy_Remote_User();
         }
     }
     return $remote_user;
@@ -87,7 +89,7 @@ sub Get_Remote_User {
 
 sub Get_Legacy_Remote_User {
     my $remote_user = '';
-    if ( defined $ENV{Shib_Identity_Provider} && $ENV{Shib_Identity_Provider} eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
+    if ( Get_Identity_Provider() eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
         if ( $ENV{umichCosignFactor} =~ m,^UMICH.EDU, ) {
             # remove the @umich.edu
             $remote_user = substr(lc $ENV{eppn}, 0, -10);
@@ -101,6 +103,7 @@ sub Get_Legacy_Remote_User {
 
 sub Get_Identity_Provider {
     return $ENV{Shib_Identity_Provider} if ( defined($ENV{Shib_Identity_Provider}) );
+    return $ENV{'Shib-Identity-Provider'} if ( defined($ENV{'Shib-Identity-Provider'}) );
     return $UMICH_ENTITY_ID if ( defined $ENV{COSIGN_FACTOR} );
     return '';
 }
@@ -1092,6 +1095,7 @@ sub using_localdataroot {
 
         if ($config->has('localdevelopmentids')) {
             my @development_ids = $config->get('localdevelopmentids');
+
             if (grep(/^$id$/, @development_ids)) {
                 return $ENV{SDRDATAROOT} = $localdataroot;
             }

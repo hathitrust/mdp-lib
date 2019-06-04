@@ -91,6 +91,9 @@ my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
 my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
 my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
 
+my $NON_HT_AFFILIATED_ENTITY_IDS = {};
+$$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
+
 # eduPersonScopedAffiliation attribute values that can be considered
 # for print disabled status
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
@@ -249,6 +252,9 @@ sub handle_possible_auth_2fa {
             # need to redirect
             $access_type = $RightsGlobals::ORDINARY_USER;
             $self->handle_auth_2fa_redirect($C, $authContextClassRef);
+        } elsif ( defined $ENV{'Shib-AuthnContext-Class'} && defined $authContextClassRef && $ENV{'Shib-AuthnContext-Class'} ne $authContextClassRef ) {
+            $access_type = $RightsGlobals::ORDINARY_USER;
+            $self->handle_auth_2fa_redirect($C, $authContextClassRef);
         }
     }
     return $access_type;
@@ -277,7 +283,9 @@ sub is_possible_auth_stepup {
     $$config{$RightsGlobals::HT_TOTAL_USER} = 1;
     $$config{$RightsGlobals::SSD_PROXY_USER} = 1;
 
-    if ( defined $access_type && defined $$config{$access_type} ) {
+    my $is_mfa = Auth::ACL::a_GetUserAttributes('mfa') || 0;
+
+    if ( $is_mfa && defined $access_type && defined $$config{$access_type} ) {
         $retval = $$config{$access_type};
         if ( ref($retval) ) {
             # my $value = Auth::ACL::a_GetUserAttributes('usertype');
@@ -1027,7 +1035,7 @@ sub get_shibboleth_entityID {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $entity_id = $ENV{Shib_Identity_Provider};
+        $entity_id = $ENV{Shib_Identity_Provider} || $ENV{'Shib-Identity-Provider'}
     }
 
     return $entity_id;
@@ -1060,7 +1068,9 @@ OID: 1.3.6.1.4.1.5923.1.1.1.10 values to persistent_id. We parse just one out.
 sub get_eduPersonTargetedID {
     my $self = shift;
 
-    my $targeted_id = $ENV{persistent_id} || '';
+    my $targeted_id = '';
+    $targeted_id = $ENV{persistent_id} if ( defined $ENV{persistent_id} );
+    $targeted_id = $ENV{'persistent-id'} if ( defined $ENV{'persistent-id'} );
     return ( split(/;/, $targeted_id) )[0] || '';
 }
 
@@ -1175,8 +1185,9 @@ sub affiliation_is_hathitrust {
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
+        my $entity_id = lc($self->get_shibboleth_entityID($C));
         # If there's a scoped affiliation then they're hathitrust
-        $is_hathitrust = ( $aff ne '' );
+        $is_hathitrust = ( $aff ne '' ) && ( ! defined $$NON_HT_AFFILIATED_ENTITY_IDS{$entity_id} );
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend) {
@@ -1193,6 +1204,35 @@ sub affiliation_is_hathitrust {
     return $is_hathitrust;
 }
 
+# ---------------------------------------------------------------------
+
+=item affiliation_is_enhanced_text_user
+
+This affiliation allows for greater access in reading,
+but more limited download options.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub affiliation_is_enhanced_text_user {
+    my $self = shift;
+    my $C = shift;
+
+    return 1 if (DEBUG('nfb'));
+    return 1 if (DEBUG('marrakesh'));
+
+    my $is_enhanced_text_user = 0;
+
+    if ($self->auth_sys_is_SHIBBOLETH($C)) {
+        my $aff = lc($self->get_eduPersonScopedAffiliation($C));
+        $is_enhanced_text_user = ( $aff eq 'member@nfb.org' );
+    }
+    else {
+        $is_enhanced_text_user = 0;
+    }
+
+    return $is_enhanced_text_user;
+}
 
 # ---------------------------------------------------------------------
 

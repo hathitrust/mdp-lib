@@ -101,8 +101,9 @@ our $SSD_PROXY_USER      = 4;
 our $LIBRARY_IPADDR_USER = 5;
 our $UM_AFFILIATE        = 6;
 our $HT_AFFILIATE        = 7;
+our $ENHANCED_TEXT_USER  = 8;
 
-@g_access_types = ($HT_TOTAL_USER .. $HT_AFFILIATE);
+@g_access_types = ($HT_TOTAL_USER .. $ENHANCED_TEXT_USER);
 
 %g_access_type_names =
     (
@@ -113,6 +114,7 @@ our $HT_AFFILIATE        = 7;
      $LIBRARY_IPADDR_USER    => 'in_library_user',
      $UM_AFFILIATE           => 'um_affiliate',
      $HT_AFFILIATE           => 'ht_affiliate',
+     $ENHANCED_TEXT_USER     => 'enhanced_text_user',
     );
 
 %g_attribute_names =
@@ -252,6 +254,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'allow',
            $UM_AFFILIATE          => 'allow',
            $HT_AFFILIATE          => 'allow',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # in-copyright
    '2' => {
@@ -262,6 +265,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # OP out-of-print (implies in-copyright). (Was OPB out-of-print, brittle) @OPB
    # ----------------------------------------------------------------------------
@@ -279,6 +283,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # copyright-orphaned (implies in-copyright)
    '4' => {
@@ -289,6 +294,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
            $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
            $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # undetermined copyright status
    '5' => {
@@ -299,6 +305,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # available to UM affiliates and UM walk-in patrons (all
    # campuses), these moved to 7 (world) so then are equivalent to 7
@@ -311,6 +318,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'allow',
            $UM_AFFILIATE          => 'allow',
            $HT_AFFILIATE          => 'allow',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # available to everyone in the world
    '7' => {
@@ -321,6 +329,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'allow',
            $UM_AFFILIATE          => 'allow',
            $HT_AFFILIATE          => 'allow',
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # available to no one in the world
    '8' => {
@@ -331,6 +340,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'deny',
            $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
+           $ENHANCED_TEXT_USER    => 'deny',
           },
    # available if IP is US or affiliated with a US partner at any
    # IP address
@@ -342,6 +352,7 @@ our $HT_AFFILIATE        = 7;
            $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
            $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
+           $ENHANCED_TEXT_USER    => 'allow',
           },
    # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
    '10' => {
@@ -352,6 +363,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nd/3.0/
    '11' => {
@@ -362,6 +374,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/3.0/
    '12' => {
@@ -372,6 +385,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc/3.0/
    '13' => {
@@ -382,6 +396,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/3.0/
    '14' => {
@@ -392,6 +407,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-sa/3.0/
    '15' => {
@@ -402,6 +418,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # orphan candidate (implied in-copyright)
    '16' => {
@@ -412,6 +429,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'deny',
             $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/publicdomain/zero/1.0/
    '17' => {
@@ -422,6 +440,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world
    '18' => {
@@ -432,6 +451,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available if IP is non-US or affiliated with non-US partner at
    # any IP address
@@ -443,6 +463,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
             $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by/4.0/
    '20' => {
@@ -453,6 +474,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nd/4.0/
    '21' => {
@@ -463,6 +485,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/4.0/
    '22' => {
@@ -473,6 +496,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc/4.0/
    '23' => {
@@ -483,6 +507,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/4.0/
    '24' => {
@@ -493,6 +518,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-sa/4.0/
    '25' => {
@@ -503,6 +529,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'allow',
             $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
+            $ENHANCED_TEXT_USER    => 'allow',
            },
    # not available to view but searchable, more restrictive than ic(2) but less than nobody(8)
    '26' => {
@@ -513,6 +540,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'deny',
             $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
+            $ENHANCED_TEXT_USER    => 'deny',
            },
    # not available to view, not searchable, more restrictive than nobody(8)
    '27' => {
@@ -523,6 +551,7 @@ our $HT_AFFILIATE        = 7;
             $LIBRARY_IPADDR_USER   => 'deny',
             $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
+            $ENHANCED_TEXT_USER    => 'deny',
            },
   );
 

@@ -187,7 +187,7 @@ sub add_coll
     my $shared = $coll_hash_ref->{'shared'};
     my $description = $coll_hash_ref->{'description'};
 
-    ASSERT(($shared == 0 || $shared == 1), qq{shared must be 0 or 1. It is $shared});
+    ASSERT(($shared == 0 || $shared == 1 || $shared == -1), qq{shared must be 0 or 1. It is $shared});
     ASSERT(($coll_name ne "" && defined($coll_name)),
            qq{CollectionSet::add_coll must have Collection name});
 

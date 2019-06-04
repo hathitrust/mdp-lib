@@ -67,7 +67,8 @@ my %g_skin_map =
      'crms'      => '/pt/web/crms',
      'crmsworld' => '/pt/web/crms',
      'mobile'   =>  '/pt/web/mobile',
-     'mobilewayf' => '/wayf/web/mobile',  
+     'mobilewayf' => '/wayf/web/mobile',
+     'alicorn'   => '/pt/web/alicorn',
     );
 
 # Map internal coll_ids to a permanent collection name '0000000000' is

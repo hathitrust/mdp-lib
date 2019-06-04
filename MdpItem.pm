@@ -123,6 +123,11 @@ sub GetLanguage {
     return $self->{_mmdo}->get_language();
 }
 
+sub GetLanguageCode {
+    my $self = shift;
+    return $self->{_mmdo}->get_language_code();
+}
+
 =item GetMetadata
 
 Description
@@ -401,12 +406,19 @@ sub SetItemType {
 
     $self->Set('item_type', $item_type);
 
-    # intiaizlie subclass...
-    if ( $item_type ne 'volume' ) {
-        my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
-        if ( eval "require MdpItem::$subclass" ) {
-            bless $self, "MdpItem::$subclass";
-        }
+    my $item_sub_type = DataTypes::getDataSubType($root);
+    $self->Set('item_sub_type', $item_sub_type) unless ( $item_sub_type eq $item_type );
+
+    # initialize subclass...
+    my $subclass = uc(substr($item_type, 0, 1)) . substr($item_type, 1);
+    if ( $item_type ne $item_sub_type ) {
+        if ( $item_sub_type eq lc $item_sub_type ) { $item_sub_type = uc(substr($item_sub_type, 0, 1)) . substr($item_sub_type, 1);}
+        $subclass .= "::$item_sub_type";
+    }
+    my $err;
+    if ( $err = eval "require MdpItem::$subclass" ) {
+        bless $self, "MdpItem::$subclass";
+        $self->Set('item_subclass', $subclass);
     }
 }
 
@@ -425,6 +437,16 @@ sub GetFullMetsRef {
 sub GetItemType {
     my $self = shift;
     return $self->Get('item_type');
+}
+
+sub GetItemSubType {
+    my $self = shift;
+    return $self->Get('item_sub_type');
+}
+
+sub GetItemSubClass {
+    my $self = shift;
+    return $self->Get('item_subclass');
 }
 
 sub GetMarkupLanguage {
@@ -1036,6 +1058,11 @@ sub GetFormat {
     return $self->{_mmdo}->get_format(@_);
 }
 
+sub GetPublicationDate {
+    my $self = shift;
+    return $self->{_mmdo}->get_publication_date(@_);
+}
+
 # ---------------------------------------------------------------------
 
 =item add_to_feature_table
@@ -1144,7 +1171,8 @@ sub BuildFileGrpHash {
             foreach my $node ( $fileNodes->get_nodelist ) {
                 my $id = $node->getAttribute('ID');
                 my $filesize = $node->getAttribute('SIZE');
-                my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+                # my $filename = ($node->childNodes)[1]->getAttribute('xlink:href');
+                my $filename = $node->findvalue('./METS:FLocat/@xlink:href');
                 my ($filetype) = ($filename =~ m,^.*?\.(.*?)$,ios);
                 my $filemimetype = $node->getAttribute('MIMETYPE');
 
