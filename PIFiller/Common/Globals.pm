@@ -419,7 +419,7 @@ sub handle_SUPPRESS_ACCESS_BANNER
 
     # Correctly model certain debug behaviors
     if ($suppress eq 'true') {
-        if (DEBUG('ord,ssd,hathi')) {
+        if (DEBUG('ord,ssd,hathi,nfb,enhanced')) {
             $suppress = 'false';
         }
     }

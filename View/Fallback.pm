@@ -69,6 +69,7 @@ my %g_skin_map =
      'mobile'   =>  '/pt/web/mobile',
      'mobilewayf' => '/wayf/web/mobile',
      'alicorn'   => '/pt/web/alicorn',
+     'unicorn'   => '/pt/web/unicorn',
     );
 
 # Map internal coll_ids to a permanent collection name '0000000000' is
