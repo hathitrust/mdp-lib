@@ -80,6 +80,8 @@ use Auth::ACL;
 use Auth::Exclusive;
 use Institutions;
 
+use Context;
+
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
@@ -1327,7 +1329,7 @@ shibboleth2.xml) if logged in or the session id if not
 # ---------------------------------------------------------------------
 sub get_user_name {
     my $self = shift;
-    my $C = shift;
+    my $C = shift || new Context;
 
     my $user_id;
 
@@ -1355,6 +1357,30 @@ sub get_legacy_user_name {
         return Utils::Get_Legacy_Remote_User();
     }
     return $user_id;
+}
+
+sub get_user_names {
+    my $self = shift;
+    my $C = shift || new Context();
+
+    my @user_ids = ();
+    if ($self->is_logged_in()) {
+        my $user_id = Utils::Get_Remote_User();
+        push @user_ids, $user_id;
+        if ( $ENV{eppn} && lc $ENV{eppn} ne $user_id ) {
+            push @user_ids, lc $ENV{eppn};
+        }
+    }
+    else {
+        if ($C->has_object('Session')) {
+            my $ses = $C->get_object('Session');
+            push @user_ids, $ses->get_session_id();
+        }
+        else {
+             #$user_id = '0';
+        }
+    }
+    return @user_ids;
 }
 
 

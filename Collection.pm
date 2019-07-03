@@ -130,7 +130,7 @@ sub _initialize {
     my $self = shift;
     $self->{'dbh'} = shift;
     my $config = shift;
-    $self->{'user_id'} = shift;
+    $self->{'user_id'} = CollectionUser->new(shift);
 
     $self->{'config'} = $config;
     my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
@@ -201,6 +201,11 @@ sub get_user_id
     return $self->{'user_id'};
 }
 
+sub get_user
+{
+    my $self = shift;
+    return $self->{'user_id'};
+}
 
 
 # ---------------------------------------------------------------------
@@ -290,6 +295,40 @@ Description
 
 # ---------------------------------------------------------------------
 sub coll_owned_by_user
+{
+    my $self = shift;
+    my $coll_id = shift;
+    my $user = CollectionUser->new(shift);
+
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
+
+    # Utils::trim_spaces(\$username);
+
+    my $dbh = $self->get_dbh();
+    my $coll_table_name = $self->get_coll_table_name;
+
+    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id = ? AND owner IN ( $owner_expr )};
+
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$owner_names);
+    my @ary = $sth->fetchrow_array;
+
+    return scalar @ary == 1;
+
+    # my $owner = $ary[0];
+
+    # DEBUG('dbcoll', qq{username = $username collection $coll_id owned by $owner"});
+
+    # # When owner is an email address, compare case in-sensitively to avoid stuff like
+    # # Mary.Smith@some.edu vs. Mary.smith@some.edu (both legit)
+    # my ($test_username, $test_owner) = ($username, $owner);
+    # if ($test_owner =~ m,@,) {
+    #     ($test_username, $test_owner) = (lc($username), lc($owner));
+    # }
+
+    # return ($test_username eq $test_owner);
+}
+
+sub coll_owned_by_user_XXX
 {
     my $self = shift;
     my $coll_id = shift;
@@ -457,11 +496,12 @@ sub copy_items {
     my $coll_item_table_name = $self->get_coll_item_table_name;
     my $row_array_ref = [];
     my $col_names_array_ref = ['extern_item_id','MColl_ID'];
-    my $user_id = $self->get_user_id;
+    # my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
 
     unless ($force_ownership) {
-        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-               qq{Collection $coll_id not owned by user $user_id});
+        ASSERT($self->coll_owned_by_user($coll_id, $user),
+               qq{Collection $coll_id not owned by user $user});
     }
 
     foreach my $id (@$id_arr_ref) {
@@ -512,9 +552,9 @@ sub delete_items {
     my $coll_item_table_name = $self->get_coll_item_table_name;
 
     unless ($force_ownership) {
-        my $user_id = $self->get_user_id;
-        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-               qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
+        my $user = $self->get_user;
+        ASSERT($self->coll_owned_by_user($coll_id, $user),
+               qq{Can not delete items:  Collection $coll_id not owned by user $user});
     }
 
     my $id_string = $self->arr_ref2SQL_in_string($id_arr_ref);
@@ -552,11 +592,11 @@ sub delete_coll {
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_item_table_name = $self->get_coll_item_table_name;
-    my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
 
     unless ($force_ownership) {
-        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-               qq{Collection $coll_id not owned by user $user_id});
+        ASSERT($self->coll_owned_by_user($coll_id, $user),
+               qq{Collection $coll_id not owned by user $user});
     }
 
     DbUtils::begin_work($dbh);
@@ -814,13 +854,13 @@ sub _edit_metadata {
     my $value = shift;
     my $max_length = shift;
 
-    my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_name = $self->get_coll_name($coll_id);
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Can not edit this collection: Collection $coll_name id = $coll_id not owned by user $user_id});
+    ASSERT($self->coll_owned_by_user($coll_id, $user),
+           qq{Can not edit this collection: Collection $coll_name id = $coll_id not owned by user $user});
 
     if (defined($max_length)) {
         if (length($value) > $max_length) {

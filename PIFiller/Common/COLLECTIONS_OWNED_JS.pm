@@ -15,7 +15,7 @@ sub  handle_COLLECTIONS_OWNED_JS_PI
 {
     my ($C, $act, $piParamHashRef) = @_;
     my $cs = $act->get_transient_facade_member_data($C, 'collection_set_object');
-    my $owner = $C->get_object('Auth')->get_user_name($C);
+    my $owner = $C->get_object('Auth'); # ->get_user_name($C);
     my $coll_hashref = $cs->get_coll_data_from_user_id($owner);
     
     my @coll_names;
@@ -48,7 +48,7 @@ sub  handle_COLLECTION_SIZES_JS_PI
     my ($C, $act, $piParamHashRef) = @_;
     my $cs = $act->get_transient_facade_member_data($C, 'collection_set_object');
     my $co = $act->get_transient_facade_member_data($C, 'collection_object');
-    my $owner = $C->get_object('Auth')->get_user_name($C);
+    my $owner = $C->get_object('Auth'); # ->get_user_name($C);
     my $coll_arr_of_hashref = $cs->get_coll_data_from_user_id($owner);
     
     my %hash;

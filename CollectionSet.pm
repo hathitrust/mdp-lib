@@ -1,3 +1,28 @@
+package CollectionUser;
+use overload '""' => 'get_user_name';
+
+sub new
+{
+    my $class = shift;
+    my ( $user ) = @_;
+    if ( ref($user) eq 'Auth::Auth' ) { return $user; }
+    if ( ref($user) eq $class ) { return $user; }
+    my $self = {};
+    bless $self, $class;
+    $$self{user_id} = $user;
+    return $self;
+}
+
+sub get_user_names {
+    my $self = shift;
+    return ( $$self{user_id} );
+}
+
+sub get_user_name {
+    my $self = shift;
+    return $$self{user_id};
+}
+
 package CollectionSet;
 use Collection;
 
@@ -108,7 +133,7 @@ sub _initialize {
 
     $self->{'dbh'} = shift;
     my $config = shift;
-    $self->{'user_id'} = shift;
+    $self->{'user_id'} = CollectionUser->new(shift);
 
     my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
     
@@ -133,6 +158,11 @@ sub get_user_id
 {
     my $self=shift;
     return $self->{'user_id'};
+}
+
+sub get_user {
+    my $self = shift;
+    return $self->{'user_id'}; # ->get_user_names;
 }
 
 #----------------------------------------------------------------------
@@ -182,23 +212,28 @@ sub add_coll
     my $dbh = $self->{'dbh'};
 
     my $coll_name = $coll_hash_ref->{'collname'};
-    my $owner = $coll_hash_ref->{'owner'};
     my $owner_name = $coll_hash_ref->{'owner_name'};
     my $shared = $coll_hash_ref->{'shared'};
     my $description = $coll_hash_ref->{'description'};
+
+    my $user = CollectionUser->new($coll_hash_ref->{'owner'});
+
 
     ASSERT(($shared == 0 || $shared == 1 || $shared == -1), qq{shared must be 0 or 1. It is $shared});
     ASSERT(($coll_name ne "" && defined($coll_name)),
            qq{CollectionSet::add_coll must have Collection name});
 
-    ASSERT(($owner ne "" && defined($owner)),
+    # ASSERT(($owner ne "" && defined($owner)),
+    #        qq{CollectionSet::add_coll must have owner identifier});
+
+    ASSERT(($user ne "" && defined($user)),
            qq{CollectionSet::add_coll must have owner identifier});
 
     ASSERT(($owner_name ne "" && defined($owner_name)),
            qq{CollectionSet::add_coll must have owner_name for display});
 
-    ASSERT(! $self->exists_coll_name_for_owner($coll_name, $owner),
-           qq{CollectionSet::add_coll Collection name $coll_name for $owner is already in table $coll_table_name});
+    ASSERT(! $self->exists_coll_name_for_owner($coll_name, $user),
+           qq{CollectionSet::add_coll Collection name $coll_name for $user is already in table $coll_table_name});
 
     if (length($coll_name) > 50) {
         $coll_name = substr($coll_name, 0, 50);
@@ -206,6 +241,18 @@ sub add_coll
     if (length($description) > 150) {
         $description = substr($description, 0, 150);
     }
+
+    # find the right owner to use
+    my $owner; my $count;
+    foreach my $user_id ( $user->get_user_names ) {
+        ( $count ) = $dbh->selectrow_array(qq{SELECT COUNT(owner) FROM $coll_table_name WHERE owner = ?}, undef, $user_id);
+        print STDERR "AHOY CHECKING $user_id : $count\n";
+        if ( $count > 0 ) {
+            $owner = $user_id;
+            last;
+        }
+    }
+    $$coll_hash_ref{owner} = $owner;
 
     my $MColl_ID;
     DbUtils::begin_work($dbh);
@@ -277,13 +324,16 @@ collname returns undef if bad user_id
 sub get_coll_data_from_user_id
 {
     my $self = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
 
-    my $statement = qq{SELECT collname, MColl_ID, num_items FROM $coll_table WHERE owner=? ORDER BY collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
+    my @owner_names = $user->get_user_names;
+    my $owner_expr = join(',', map { '?' } @owner_names);
+
+    my $statement = qq{SELECT collname, MColl_ID, num_items FROM $coll_table WHERE owner IN ($owner_expr) ORDER BY collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @owner_names);
     my $coll_data_ref = $sth->fetchall_arrayref({});
 
     # array of hashrefs
@@ -305,7 +355,9 @@ sub exists_coll_name_for_owner
 {
     my $self = shift;
     my $coll_name = shift;
-    my $owner = shift;
+    my $user = CollectionUser->new(shift);
+
+    my ( $owner_names, $owner_expr ) = $self->_get_owner_expr($user);
 
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_item_table_name = $self->get_coll_item_table_name;
@@ -314,16 +366,16 @@ sub exists_coll_name_for_owner
     # my $quoted_coll_name = DbUtils::quote($dbh, $coll_name);
 
     my $statement = qq{SELECT count(*) FROM $coll_table_name WHERE collname=?};
-    $statement .= qq{ AND owner=?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_name, $owner);
+    $statement .= qq{ AND owner IN ($owner_expr)};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_name, @$owner_names);
     my $result = scalar($sth->fetchrow_array);
     # check for case changes
     if ($result > 0)
     {
         # get collname and compare
         $statement = qq{SELECT collname FROM $coll_table_name WHERE collname=?};
-        $statement .= qq{ AND owner=?};
-        $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_name, $owner);
+        $statement .= qq{ AND owner IN ($owner_expr)};
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_name, @$owner_names);
         my $name_in_db=$sth->fetchrow_array;
         return ($coll_name eq $name_in_db);
         
@@ -377,12 +429,14 @@ delete_all_colls_for_user($user_id)
 sub delete_all_colls_for_user
 {
     my $self = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
     my $dbh = $self->{'dbh'};
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     
     my ($statement, $sth);
+
+    my ( $owner_names, $owner_expr ) = $self->_get_owner_expr($user);
 
     DbUtils::begin_work($dbh);
     eval {
@@ -390,13 +444,13 @@ sub delete_all_colls_for_user
         $statement  = qq{ DELETE $coll_item_table };
         $statement .= qq{from $coll_item_table,$coll_table};
         $statement .= qq{  WHERE $coll_item_table.MColl_ID = $coll_table.MColl_ID};
-        $statement .= qq{ and $coll_table.owner = ? };
+        $statement .= qq{ and $coll_table.owner IN ($owner_expr) };
 
-        $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
+        $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names);
 
         # XXX check for errors ?
-        $statement = qq{DELETE from $coll_table WHERE owner = ?\;};
-        $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id);
+        $statement = qq{DELETE from $coll_table WHERE owner IN ($owner_expr)\;};
+        $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names);
         # XXX check for errors ?
 
         DbUtils::commit($dbh);
@@ -491,8 +545,11 @@ sub _get_where
     my $self = shift;
     my $coll_type = shift;
     my $where = "WHERE ";
-    my $user_id = $self->get_user_id;
+    # my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
     my @params;
+
+    my ( $owner_names, $owner_expr ) = $self->_get_owner_expr($user);
 
     ASSERT(($coll_type eq 'my_colls') || ( $coll_type eq 'my-collections') || ($coll_type eq 'pub_colls') || ($coll_type eq 'all_colls') || ($coll_type eq 'featured_colls'),
            qq{CollectionSet::list_colls(coll_type) is $coll_type.  Should be my_colls or pub_colls});
@@ -504,8 +561,10 @@ sub _get_where
     }
     elsif ($coll_type eq "all_colls")
     {
-        $where .= qq{(shared = 1 AND num_items > 0) OR (owner = ?)};
-        push @params, $user_id;
+        # $where .= qq{(shared = 1 AND num_items > 0) OR (owner = ?)};
+        # push @params, $user_id;
+        push @params, @$owner_names;
+        $where .= qq{( shared = 1 AND num_items > 0 ) OR ( owner IN ($owner_expr) )};
     }
     elsif ($coll_type eq "featured_colls")
     {
@@ -513,11 +572,22 @@ sub _get_where
     }
     else
     {
-        $where .= qq{owner = ?};
-        push @params, $user_id;
+        $where .= qq{owner IN ($owner_expr)};
+        push @params, @$owner_names;
     }
 
     return ($where, @params);
+}
+
+sub _get_owner_expr
+{
+    my $self = shift;
+    my ( $user ) = @_;
+
+    my @owner_names = $user->get_user_names;
+    my $owner_expr = join(',', map { '?' } @owner_names);
+
+    return ( \@owner_names, $owner_expr );
 }
 
 

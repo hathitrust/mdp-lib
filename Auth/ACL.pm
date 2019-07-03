@@ -428,12 +428,14 @@ sub __get_user_attributes {
 
     my $Access_Control_List_ref = ___get_ACL;
 
-    my $userid = Utils::Get_Remote_User();
+    # my $userid = Utils::Get_Remote_User();
+    my @userids = Utils::Get_Remote_User_Names();
+    my $userid = shift @userids; # the first one
     my $identity_provider = Utils::Get_Identity_Provider();
     $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
     my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
-    unless ( $attrval || Utils::is_cosign_active() ) {
-      $userid = Utils::Get_Legacy_Remote_User();
+    unless ( $attrval || ! scalar @userids ) {
+      $userid = shift @userids;
       $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
       $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
     }
