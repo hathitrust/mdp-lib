@@ -246,7 +246,6 @@ sub add_coll
     my $owner; my $count;
     foreach my $user_id ( $user->get_user_names ) {
         ( $count ) = $dbh->selectrow_array(qq{SELECT COUNT(owner) FROM $coll_table_name WHERE owner = ?}, undef, $user_id);
-        print STDERR "AHOY CHECKING $user_id : $count\n";
         if ( $count > 0 ) {
             $owner = $user_id;
             last;
@@ -329,11 +328,10 @@ sub get_coll_data_from_user_id
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->{'dbh'};
 
-    my @owner_names = $user->get_user_names;
-    my $owner_expr = join(',', map { '?' } @owner_names);
+    my ( $owner_names, $owner_expr ) = $self->_get_owner_expr($user);
 
     my $statement = qq{SELECT collname, MColl_ID, num_items FROM $coll_table WHERE owner IN ($owner_expr) ORDER BY collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, @owner_names);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names);
     my $coll_data_ref = $sth->fetchall_arrayref({});
 
     # array of hashrefs
