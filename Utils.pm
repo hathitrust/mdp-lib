@@ -103,7 +103,7 @@ sub Get_Legacy_Remote_User {
 
 sub Get_Remote_User_Names {
     my @usernames = ( Get_Remote_User() );
-    if ( $ENV{eppn} && lc $ENV{eppn} ne $usernames[0] ) {
+    if ( defined $ENV{eppn} && $ENV{eppn} && lc $ENV{eppn} ne $usernames[0] ) {
         push @usernames, lc $ENV{eppn};
     }
     return @usernames;

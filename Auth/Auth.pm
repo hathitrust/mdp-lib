@@ -1365,11 +1365,7 @@ sub get_user_names {
 
     my @user_ids = ();
     if ($self->is_logged_in()) {
-        my $user_id = Utils::Get_Remote_User();
-        push @user_ids, $user_id;
-        if ( $ENV{eppn} && lc $ENV{eppn} ne $user_id ) {
-            push @user_ids, lc $ENV{eppn};
-        }
+        push @user_ids, Utils::Get_Remote_User_Names();
     }
     else {
         if ($C->has_object('Session')) {
