@@ -430,14 +430,12 @@ sub __get_user_attributes {
 
     # my $userid = Utils::Get_Remote_User();
     my @userids = Utils::Get_Remote_User_Names();
-    my $userid = shift @userids; # the first one
+    my $userid; my $attrval;
     my $identity_provider = Utils::Get_Identity_Provider();
-    $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
-    my $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
-    unless ( $attrval || ! scalar @userids ) {
-      $userid = shift @userids;
+    foreach $userid ( @userids ) {
       $userid .= "|$identity_provider" if ( $do_restrict_to_identity_provider );
       $attrval = $Access_Control_List_ref->{$userid}{$requested_attribute} || '';
+      last if ( $attrval );
     }
 
     # Superuser debugging over-rides
