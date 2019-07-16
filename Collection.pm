@@ -329,34 +329,6 @@ sub coll_owned_by_user
     # return ($test_username eq $test_owner);
 }
 
-sub coll_owned_by_user_XXX
-{
-    my $self = shift;
-    my $coll_id = shift;
-    my $username = shift;
-
-    Utils::trim_spaces(\$username);
-
-    my $dbh = $self->get_dbh();
-    my $coll_table_name = $self->get_coll_table_name;
-
-    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id = ?};
-
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
-    my @ary = $sth->fetchrow_array;
-    my $owner = $ary[0];
-
-    DEBUG('dbcoll', qq{username = $username collection $coll_id owned by $owner"});
-
-    # When owner is an email address, compare case in-sensitively to avoid stuff like
-    # Mary.Smith@some.edu vs. Mary.smith@some.edu (both legit)
-    my ($test_username, $test_owner) = ($username, $owner);
-    if ($test_owner =~ m,@,) {
-        ($test_username, $test_owner) = (lc($username), lc($owner));
-    }
-
-    return ($test_username eq $test_owner);
-}
 
 # ---------------------------------------------------------------------
 
