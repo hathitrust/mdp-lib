@@ -219,7 +219,8 @@ sub add_coll
     }
 
     # find the right owner to use
-    my $owner; my $count;
+    my $owner = $user->get_user_name;
+    my $count;
     foreach my $user_id ( $user->get_user_names ) {
         ( $count ) = $dbh->selectrow_array(qq{SELECT COUNT(owner) FROM $coll_table_name WHERE owner = ?}, undef, $user_id);
         if ( $count > 0 ) {
