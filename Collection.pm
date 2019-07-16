@@ -101,6 +101,7 @@ BEGIN
     }
 }
 
+use CollectionUser;
 
 # Perl MBooks modules
 use Utils;
