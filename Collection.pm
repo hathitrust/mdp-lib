@@ -1063,16 +1063,18 @@ Description
 sub get_collnames_for_item_and_user {
     my $self = shift;
     my $id = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
     # my $q_id = $dbh->quote($id);
 
-    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
+    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner IN ($owner_expr) AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, $id);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
     my $collnames_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
 
@@ -1091,14 +1093,16 @@ Description
 sub get_coll_id_for_collname_and_user {
     my $self = shift;
     my $collname = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->get_dbh;
 
-    my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner_name=? AND collname=?};
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $collname);
+    my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner IN ($owner_expr) AND collname=?};
+
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, $collname);
     my $MColl_ID = $sth->fetchrow_array();
 
     return $MColl_ID;
@@ -1117,14 +1121,16 @@ owned by the user containing the item
 sub get_coll_data_for_item_and_user {
     my $self = shift;
     my $id = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
 
-    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
+
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner IN ($owner_expr) AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, $id);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_ary_of_hashref;
@@ -1133,13 +1139,15 @@ sub get_coll_data_for_item_and_user {
 sub get_coll_data_for_items_and_user {
     my $self = shift;
     my $idlist = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     return {} unless ( scalar @$idlist );
 
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
+
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
 
     my $expr = []; my $params = [];
     foreach my $item_hashref ( @$idlist ) {
@@ -1149,8 +1157,8 @@ sub get_coll_data_for_items_and_user {
 
     $expr = join(',', @$expr);
 
-    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname, $coll_item_table.extern_item_id FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id IN ( $expr ) ORDER BY $coll_table.collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, @$params);
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname, $coll_item_table.extern_item_id FROM $coll_table, $coll_item_table WHERE $coll_table.owner IN ($owner_expr) AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id IN ( $expr ) ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, @$params);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
     my $result = {};
     foreach my $ref ( @$ref_to_ary_of_hashref ) {
