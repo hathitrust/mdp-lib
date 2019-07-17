@@ -101,6 +101,7 @@ BEGIN
     }
 }
 
+use CollectionUser;
 
 # Perl MBooks modules
 use Utils;
@@ -130,7 +131,7 @@ sub _initialize {
     my $self = shift;
     $self->{'dbh'} = shift;
     my $config = shift;
-    $self->{'user_id'} = shift;
+    $self->{'user_id'} = CollectionUser->new(shift);
 
     $self->{'config'} = $config;
     my $use_test_tables = DEBUG('usetesttbl') || $config->get('use_test_tables');
@@ -201,6 +202,11 @@ sub get_user_id
     return $self->{'user_id'};
 }
 
+sub get_user
+{
+    my $self = shift;
+    return $self->{'user_id'};
+}
 
 
 # ---------------------------------------------------------------------
@@ -293,30 +299,36 @@ sub coll_owned_by_user
 {
     my $self = shift;
     my $coll_id = shift;
-    my $username = shift;
+    my $user = CollectionUser->new(shift);
 
-    Utils::trim_spaces(\$username);
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
+
+    # Utils::trim_spaces(\$username);
 
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
 
-    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id = ?};
+    my $statement = qq{SELECT owner FROM $coll_table_name WHERE MColl_id = ? AND owner IN ( $owner_expr )};
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id);
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $coll_id, @$owner_names);
     my @ary = $sth->fetchrow_array;
-    my $owner = $ary[0];
 
-    DEBUG('dbcoll', qq{username = $username collection $coll_id owned by $owner"});
+    return scalar @ary == 1;
 
-    # When owner is an email address, compare case in-sensitively to avoid stuff like
-    # Mary.Smith@some.edu vs. Mary.smith@some.edu (both legit)
-    my ($test_username, $test_owner) = ($username, $owner);
-    if ($test_owner =~ m,@,) {
-        ($test_username, $test_owner) = (lc($username), lc($owner));
-    }
+    # my $owner = $ary[0];
 
-    return ($test_username eq $test_owner);
+    # DEBUG('dbcoll', qq{username = $username collection $coll_id owned by $owner"});
+
+    # # When owner is an email address, compare case in-sensitively to avoid stuff like
+    # # Mary.Smith@some.edu vs. Mary.smith@some.edu (both legit)
+    # my ($test_username, $test_owner) = ($username, $owner);
+    # if ($test_owner =~ m,@,) {
+    #     ($test_username, $test_owner) = (lc($username), lc($owner));
+    # }
+
+    # return ($test_username eq $test_owner);
 }
+
 
 # ---------------------------------------------------------------------
 
@@ -457,11 +469,12 @@ sub copy_items {
     my $coll_item_table_name = $self->get_coll_item_table_name;
     my $row_array_ref = [];
     my $col_names_array_ref = ['extern_item_id','MColl_ID'];
-    my $user_id = $self->get_user_id;
+    # my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
 
     unless ($force_ownership) {
-        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-               qq{Collection $coll_id not owned by user $user_id});
+        ASSERT($self->coll_owned_by_user($coll_id, $user),
+               qq{Collection $coll_id not owned by user $user});
     }
 
     foreach my $id (@$id_arr_ref) {
@@ -512,9 +525,9 @@ sub delete_items {
     my $coll_item_table_name = $self->get_coll_item_table_name;
 
     unless ($force_ownership) {
-        my $user_id = $self->get_user_id;
-        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-               qq{Can not delete items:  Collection $coll_id not owned by user $user_id});
+        my $user = $self->get_user;
+        ASSERT($self->coll_owned_by_user($coll_id, $user),
+               qq{Can not delete items:  Collection $coll_id not owned by user $user});
     }
 
     my $id_string = $self->arr_ref2SQL_in_string($id_arr_ref);
@@ -552,11 +565,11 @@ sub delete_coll {
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_item_table_name = $self->get_coll_item_table_name;
-    my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
 
     unless ($force_ownership) {
-        ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-               qq{Collection $coll_id not owned by user $user_id});
+        ASSERT($self->coll_owned_by_user($coll_id, $user),
+               qq{Collection $coll_id not owned by user $user});
     }
 
     DbUtils::begin_work($dbh);
@@ -814,13 +827,13 @@ sub _edit_metadata {
     my $value = shift;
     my $max_length = shift;
 
-    my $user_id = $self->get_user_id;
+    my $user = $self->get_user;
     my $dbh = $self->get_dbh();
     my $coll_table_name = $self->get_coll_table_name;
     my $coll_name = $self->get_coll_name($coll_id);
 
-    ASSERT($self->coll_owned_by_user($coll_id, $user_id),
-           qq{Can not edit this collection: Collection $coll_name id = $coll_id not owned by user $user_id});
+    ASSERT($self->coll_owned_by_user($coll_id, $user),
+           qq{Can not edit this collection: Collection $coll_name id = $coll_id not owned by user $user});
 
     if (defined($max_length)) {
         if (length($value) > $max_length) {
@@ -1050,16 +1063,18 @@ Description
 sub get_collnames_for_item_and_user {
     my $self = shift;
     my $id = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
     # my $q_id = $dbh->quote($id);
 
-    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
+    my $statement = qq{SELECT $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner IN ($owner_expr) AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, $id);
     my $ref_to_ary_of_ary_ref = $sth->fetchall_arrayref([0]);
     my $collnames_ary_ref = [ map {$_->[0]} @$ref_to_ary_of_ary_ref ];
 
@@ -1078,14 +1093,16 @@ Description
 sub get_coll_id_for_collname_and_user {
     my $self = shift;
     my $collname = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $dbh = $self->get_dbh;
 
-    my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner_name=? AND collname=?};
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
 
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $collname);
+    my $statement = qq{SELECT MColl_ID FROM $coll_table WHERE owner IN ($owner_expr) AND collname=?};
+
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, $collname);
     my $MColl_ID = $sth->fetchrow_array();
 
     return $MColl_ID;
@@ -1104,14 +1121,16 @@ owned by the user containing the item
 sub get_coll_data_for_item_and_user {
     my $self = shift;
     my $id = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
 
-    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, $id);
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
+
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.owner IN ($owner_expr) AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, $id);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
 
     return $ref_to_ary_of_hashref;
@@ -1120,13 +1139,15 @@ sub get_coll_data_for_item_and_user {
 sub get_coll_data_for_items_and_user {
     my $self = shift;
     my $idlist = shift;
-    my $user_id = shift;
+    my $user = CollectionUser->new(shift);
 
     return {} unless ( scalar @$idlist );
 
     my $coll_table = $self->get_coll_table_name;
     my $coll_item_table = $self->get_coll_item_table_name;
     my $dbh = $self->get_dbh;
+
+    my ( $owner_names, $owner_expr ) = CollectionSet->_get_owner_expr($user);
 
     my $expr = []; my $params = [];
     foreach my $item_hashref ( @$idlist ) {
@@ -1136,8 +1157,8 @@ sub get_coll_data_for_items_and_user {
 
     $expr = join(',', @$expr);
 
-    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname, $coll_item_table.extern_item_id FROM $coll_table, $coll_item_table WHERE $coll_table.owner=? AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id IN ( $expr ) ORDER BY $coll_table.collname};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $user_id, @$params);
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname, $coll_item_table.extern_item_id FROM $coll_table, $coll_item_table WHERE $coll_table.owner IN ($owner_expr) AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id IN ( $expr ) ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, @$owner_names, @$params);
     my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
     my $result = {};
     foreach my $ref ( @$ref_to_ary_of_hashref ) {
