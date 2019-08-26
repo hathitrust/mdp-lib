@@ -725,14 +725,18 @@ sub __get_prioritized_scoped_affiliation {
         my @scoped_affiliations = split(/\s*;\s*/, lc $environment);
         @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
-        my %aff_hash = ();
+        my %aff_hash = (); my $aff_array = [];
         if (scalar @scoped_affiliations) {
             foreach my $scoped_affiliation (@scoped_affiliations) {
                 next unless ( $scoped_affiliation =~ m,$allowed_affiliations,i );
                 my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
 
                 if ($affiliation && $security_domain) {
-                    $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+                    # $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+                    unless (exists $aff_hash{$affiliation}) {
+                        $aff_hash{$affiliation} = [];
+                        push @$aff_array, $affiliation;
+                    }
 
                     my $scoped_affiliations_ref = $aff_hash{$affiliation};
                     push( @$scoped_affiliations_ref, $scoped_affiliation );
@@ -747,8 +751,13 @@ sub __get_prioritized_scoped_affiliation {
                     last;
                 }
             }
-        }
 
+            if ( ! $eduPerson_scoped_affiliation && scalar @$aff_array ) {
+                # did not find a prioritized affiliation, but we've recorded
+                # an allowed affiliation in ht_institutions
+                $eduPerson_scoped_affiliation = shift @{ $aff_hash{$$aff_array[0]} };
+            }
+        }
     }
 
     return ( $$self{__eduPerson_scoped_affiliation} = $eduPerson_scoped_affiliation );
