@@ -496,6 +496,27 @@ sub handle_SELECT_COLLECTION_WIDGET_PI
     return $s;
 }
 
+sub handle_CACHE_TIMESTAMP_PI
+    : PI_handler(CACHE_TIMESTAMP)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    # dumb cache busting suffix for CSS/JS
+    my $href = $$piParamHashRef{href};
+    my $base_filename = $href;
+    $base_filename =~ s,^/([^/]+)/,$1/web/,;
+    my $filename = qq{$ENV{SDRROOT}/$base_filename};
+    my $modtime;
+
+    if ( -f $filename ) {
+        $modtime = (stat($filename))[9];
+    } else {
+        $modtime = time();
+    }
+    
+    return qq{<Timestamp href="$href" modtime="$modtime" />};
+}
+
 
 # ---------------------------------------------------------------------
 
