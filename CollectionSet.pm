@@ -202,7 +202,7 @@ sub add_coll
     # ASSERT(($owner ne "" && defined($owner)),
     #        qq{CollectionSet::add_coll must have owner identifier});
 
-    ASSERT(($user ne "" && defined($user)),
+    ASSERT(("$user" ne "" && defined($user)),
            qq{CollectionSet::add_coll must have owner identifier});
 
     ASSERT(($owner_name ne "" && defined($owner_name)),
