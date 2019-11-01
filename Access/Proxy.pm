@@ -39,8 +39,8 @@ $resolver->retry(0);
 
 my %blacklist_services =
   (
-   '__IPADDRESS__.cbl.abuseat.org' => '127.0.0.2',
-   '__IPADDRESS__.dnsbl.njabl.org' => '127.0.0.9',
+#   '__IPADDRESS__.cbl.abuseat.org' => '127.0.0.2',
+#   '__IPADDRESS__.dnsbl.njabl.org' => '127.0.0.9',
    '__IPADDRESS__.__PORT__.__SERVER__.ip-port.exitlist.torproject.org' => '127.0.0.2',
   );
 
