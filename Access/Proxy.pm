@@ -117,12 +117,16 @@ sub __bl_check_services {
 
         eval {
             if (defined $query) {
-                my $answer = $query->{answer}[0];
-                if (defined $answer) {
-                    my $address = $answer->address;
-                    if ($address eq $$blacklist_services{$serv}) {
-                        $blacklist = 1;
-                        last;
+                my $answers = $query->answer;
+                if ( defined $answers && scalar @$answers ) {
+                    foreach my $answer ( @$answers ) {
+                        my $address = $answer->address;
+                        my $possible = $$blacklist_services{$serv};
+                        if ( ref($possible) && grep(/$address/, @$possible) ) {
+                            return 1;
+                        } elsif ( $possible eq $address ) {
+                            return 1;
+                        }
                     }
                 }
             }
