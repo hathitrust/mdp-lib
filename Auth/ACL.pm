@@ -529,7 +529,7 @@ sub ___attribute_mapping {
     my $expires = $hashref->{expires};
 
     # Mapping from UI value to internal superuser
-    if ( grep(/^$role$/, (qw/staffdeveloper staffsysadmin/)) ) {
+    if ( defined($role) && grep(/^$role$/, (qw/staffdeveloper staffsysadmin/)) ) {
         $role = $hashref->{role} = 'superuser';
     }
 
@@ -541,11 +541,11 @@ sub ___attribute_mapping {
     # "no access" IP address or some other value in special cases
     # (SSD, Multi-Factored Auth) below.
     #
-    if ($usertype eq 'student') {
+    if (defined $usertype && $usertype eq 'student') {
         if ($role eq 'ssd') {
             $iprestrict = $hashref->{iprestrict} = $iprestrict_none;
         }
-    } elsif ($mfa) {
+    } elsif (defined $mfa && $mfa) {
       $iprestrict = $hashref->{iprestrict} = $iprestrict_none;      
     } elsif (!defined $iprestrict) {
       $iprestrict = $hashref->{iprestrict} = $iprestrict_all;
