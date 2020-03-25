@@ -85,6 +85,8 @@ use constant EXCLUSIVITY_LIMIT => $ENV{HT_DEV} ? ( 5 / 60 ) * 60 * 60 : 60 * 60;
 
 use Time::HiRes;
 
+our $TABLE_NAME = q{ht_web.pt_exclusivity_ng};
+
 # ---------------------------------------------------------------------
 
 =item acquire_exclusive_access
@@ -107,20 +109,22 @@ sub acquire_exclusive_access {
     my $t0 = Time::HiRes::time();
 
     # Get current user's identity and expiration date
-    my $dbh = $C->get_object('Database')->get_DBH();
-
-    $dbh->{AutoCommit} = 0;
-
-    # Get current user's identity and expiration date
     my ( $identity, $inst_code ) = ___get_user_identity($C);
-    my ( $occupied, $owned, $active ) = ___get_affiliated_grants($C, $dbh, $item_id, $identity, $inst_code, 1);
 
-    my $num_held =
+    my ( $lock_id, $num_held ) =
       (
        $brlm
          ? Access::Holdings::id_is_held_and_BRLM($C, $item_id, $inst_code)
            : Access::Holdings::id_is_held($C, $item_id, $inst_code)
       );
+
+    # Get current user's identity and expiration date
+    my $dbh = $C->get_object('Database')->get_DBH();
+
+    ___revoke_excess_grants($C, $dbh, $lock_id, $item_id, $identity, $inst_code, $num_held);
+    my ( $occupied, $owned, $active ) = ___get_affiliated_grants($C, $dbh, $lock_id, $item_id, $identity, $inst_code, 1);
+
+    $dbh->{AutoCommit} = 0;
 
     if ( ref $owned ) {
         $granted = 1;
@@ -128,20 +132,21 @@ sub acquire_exclusive_access {
         $expires = $$owned{expires};
         if ( Utils::Time::expired($expires) ) {
             # renew the grant
-            $expires = ___renew($C, $dbh, $item_id, $identity, $inst_code);
+            $expires = ___renew($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
         }
     } else {
         if ( scalar @$active < $num_held ) {
             $granted = 1;
             $owner = $identity;
-            $expires = ___grant($C, $dbh, $item_id, $identity, $inst_code);
+            print STDERR "AHOY GRANTING $lock_id :: $item_id\n";
+            $expires = ___grant($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
         }
     }
 
     ___cleanup_expired_grants($C, $dbh);
 
     $dbh->commit();
-    $C->get_object('Session')->set_transient("$id.1", [ $granted, $owner, $expires ]) if ( $granted );
+    $C->get_object('Session')->set_transient("$item_id.1", [ $granted, $owner, $expires ]) if ( $granted );
 
     print STDERR "BENCHMARK acquire_exclusive_access :: $granted :: $owner :: " . ( Time::HiRes::time() - $t0 ) . "\n";
     return ($granted, $owner, $expires);
@@ -169,7 +174,7 @@ sub check_exclusive_access {
     my $t0 = Time::HiRes::time();
 
     my $session = $C->get_object('Session');
-    if ( $session->get_transient("$id.$really") ) {
+    if ( $session->get_transient("$item_id.$really") ) {
         return @{ $session->get_transient("$id.$really"); }
     }
 
@@ -177,7 +182,15 @@ sub check_exclusive_access {
 
     # Get current user's identity and expiration date
     my ( $identity, $inst_code ) = ___get_user_identity($C);
-    my ( $occupied, $owned, $active ) = ___get_affiliated_grants($C, $dbh, $item_id, $identity, $inst_code);
+
+    my ( $lock_id, $num_held ) =
+      (
+       $brlm
+         ? Access::Holdings::id_is_held_and_BRLM($C, $item_id, $inst_code)
+           : Access::Holdings::id_is_held($C, $item_id, $inst_code)
+      );
+
+    my ( $occupied, $owned, $active ) = ___get_affiliated_grants($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
 
     my ($granted, $owner, $expires);
 
@@ -191,13 +204,6 @@ sub check_exclusive_access {
 
     unless ( $granted || $really ) {
         # could the user get the grant?
-        my $num_held =
-          (
-           $brlm
-             ? Access::Holdings::id_is_held_and_BRLM($C, $item_id, $inst_code)
-               : Access::Holdings::id_is_held($C, $item_id, $inst_code)
-          );
-
         # slots are available
         if ( scalar @$active < $num_held ) {
             $granted = 1;
@@ -207,7 +213,7 @@ sub check_exclusive_access {
     }
 
     print STDERR "BENCHMARK check_exclusive_access :: $really :: $granted :: " . ( Time::HiRes::time() - $t0 ) . "\n";
-    $session->set_transient("$id.$really", [ $granted, $owner, $expires ]);
+    $session->set_transient("$item_id.$really", [ $granted, $owner, $expires ]);
     return ($granted, $owner, $expires);
 }
 
@@ -242,7 +248,7 @@ sub update_exclusive_access {
 
     $dbh->{AutoCommit} = 0;
     # Update owner field for all IDs
-    $statement = qq{UPDATE pt_exclusivity SET owner=? WHERE owner=?};
+    $statement = qq{UPDATE $TABLE_NAME SET owner=? WHERE owner=?};
     DEBUG('auth', qq{DEBUG: $statement : $persistent_user_id $temporary_user_id});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $persistent_user_id, $temporary_user_id);
 
@@ -258,14 +264,41 @@ sub release_exclusive_access {
     my $inst_code = $auth->get_institution_code($C, 'mapped');
     my $identity = $auth->get_user_name($C);
 
+    my ( $lock_id, $num_held ) =
+      (
+       $brlm
+         ? Access::Holdings::id_is_held_and_BRLM($C, $item_id, $inst_code)
+           : Access::Holdings::id_is_held($C, $item_id, $inst_code)
+      );
+
     $dbh->{AutoCommit} = 0;
 
     # Remove this grant
-    $statement = qq{DELETE FROM pt_exclusivity WHERE owner=? AND affiliation=? AND item_id=?};
-    DEBUG('auth', qq{DEBUG: $statement : $identity $isnt_code $item_id});
-    $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $item_id);
+    $statement = qq{DELETE FROM $TABLE_NAME WHERE owner=? AND affiliation=? AND lock_id=?};
+    DEBUG('auth', qq{DEBUG: $statement : $identity $isnt_code $lock_id $item_id});
+    $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $lock_id);
 
     $dbh->commit();
+}
+
+sub check_available_grants {
+  my ( $C, $item_id ) = @_;
+  my $dbh = $C->get_object('Database')->get_DBH();
+  my ($sth, $statement);
+  my $auth = $C->get_object('Auth');
+  my $inst_code = $auth->get_institution_code($C, 'mapped');
+  my $identity = $auth->get_user_name($C);
+
+  my ( $lock_id, $num_held ) =
+    (
+     $brlm
+       ? Access::Holdings::id_is_held_and_BRLM($C, $item_id, $inst_code)
+         : Access::Holdings::id_is_held($C, $item_id, $inst_code)
+    );
+
+  my ( $occupied, $owned, $active ) = ___get_affiliated_grants($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
+  
+  return ( scalar @$active < $num_held );
 }
 
 # ---------------------------------------------------------------------
@@ -291,20 +324,70 @@ sub ___get_user_identity {
 }
 
 sub ___get_affiliated_grants {
-    my ( $C, $dbh, $item_id, $identity, $inst_code, $updating ) = @_;
-    my $sql = qq{SELECT *, ( expires < NOW() ) AS expired FROM pt_exclusivity WHERE item_id = ? AND affiliation = ?};
+    my ( $C, $dbh, $lock_id, $item_id, $identity, $inst_code, $updating ) = @_;
+    my $sql = qq{SELECT *, ( expires < NOW() ) AS expired FROM $TABLE_NAME WHERE lock_id = ? AND affiliation = ?};
     if ( $updating ) { $sql .= qq{ FOR UPDATE}; }
 
     my $occupied = $dbh->selectall_arrayref(
         $sql,
         {Slice=>{}},
-        $item_id, $inst_code);
+        $lock_id, $inst_code);
 
     my $owned = List::Util::first { $$_{owner} eq $identity } @$occupied;
-    my $active = [ grep { ! $$a{expired} } @$occupied ];
+    my $active = [ grep { ! $$_{expired} } @$occupied ];
 
     return ( $occupied, $owned, $active );
 
+}
+
+
+ # ---------------------------------------------------------------------
+
+=item ___revoke_excess_grants
+
+In theory, it's possible for grants in excess of what's authorized to end up in
+the exclusivity table. One scenario in which this could happen is if
+replication is behind and some users acquire a grant at one site while others
+acquire a grant at the other site.
+
+=cut
+
+# ---------------------------------------------------------------------
+
+sub ___revoke_excess_grants {
+  my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code, $max_grants) = @_;
+
+  my $select_sql = qq{SELECT * FROM $TABLE_NAME WHERE lock_id = ? AND affiliation = ? AND expires >= NOW() ORDER BY expires ASC FOR UPDATE};
+  my $delete_sql = qq{DELETE FROM $TABLE_NAME WHERE owner=? AND affiliation=? AND lock_id=?};
+
+  $dbh->{AutoCommit} = 0;
+
+  my $grants = $dbh->selectall_arrayref(
+    $select_sql,
+    { Slice => {}},
+    $lock_id, $inst_code);
+
+  my @grants_to_delete = ();
+
+  DEBUG('auth', qq{DEBUG: current active grants: } . scalar(@$grants) . qq{; max grants $max_grants});
+
+  if (scalar @$grants > $max_grants) {
+    @grants_to_delete = @$grants[$max_grants..$#$grants];
+  }
+
+  foreach my $grant (@grants_to_delete) {
+     my $identity = $grant->{owner};
+     my $inst_code = $grant->{affiliation};
+     my $lock_id = $grant->{lock_id};
+     my $item_id = $grant->{item_id};
+
+     # Remove this grant
+     $statement = $delete_sql;
+     DEBUG('auth', qq{DEBUG: $statement : $identity $inst_code $lock_id $item_id});
+     $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $lock_id);
+   }
+
+  $dbh->commit();
 }
 
 # ---------------------------------------------------------------------
@@ -317,14 +400,14 @@ PRIVATE
 
 # ---------------------------------------------------------------------
 sub ___grant {
-    my ($C, $dbh, $id, $identity, $inst_code) = @_;
+    my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code) = @_;
 
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{INSERT INTO pt_exclusivity SET item_id=?, owner=?, affiliation=?, expires=?};
-    DEBUG('auth', qq{DEBUG: $statement : $id : $identity : $inst_code : $expiration_date});
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id, $identity, $inst_code, $expiration_date);
+        qq{INSERT INTO $TABLE_NAME SET lock_id = ?, item_id=?, owner=?, affiliation=?, expires=?};
+    DEBUG('auth', qq{DEBUG: $statement : $lock_id : $item_id : $identity : $inst_code : $expiration_date});
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $lock_id, $item_id, $identity, $inst_code, $expiration_date);
 
     return $expiration_date;
 }
@@ -341,14 +424,14 @@ Same item may be exclusively owned by users with different affiliations.
 
 # ---------------------------------------------------------------------
 sub ___renew {
-    my ($C, $dbh, $id, $identity, $inst_code) = @_;
+    my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code) = @_;
 
     my $expiration_date = ___get_expiration_date();
 
     my $statement =
-        qq{UPDATE pt_exclusivity SET expires=? WHERE item_id=? AND owner=? AND affiliation=?};
-    DEBUG('auth', qq{DEBUG: $statement : $expiration_date : $id : $identity : $inst_code});
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $id, $identity, $inst_code);
+        qq{UPDATE $TABLE_NAME SET expires=?, renewals=renewals+1 WHERE lock_id=? AND owner=? AND affiliation=?};
+    DEBUG('auth', qq{DEBUG: $statement : $expiration_date : $lock_id : $item_id : $identity : $inst_code});
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $lock_id, $identity, $inst_code);
 
     return $expiration_date;
 }
@@ -367,7 +450,7 @@ sub ___cleanup_expired_grants {
 
     my $now = Utils::Time::iso_Time();
 
-    my $statement = qq{DELETE FROM pt_exclusivity WHERE expires < ?};
+    my $statement = qq{DELETE FROM $TABLE_NAME WHERE expires < ?};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $now);
 
     Utils::map_chars_to_cers(\$statement, [q{"}, q{'}]);
