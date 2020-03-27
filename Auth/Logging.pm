@@ -83,6 +83,43 @@ sub log_incopyright_access  {
     return $logged;
 }
 
+sub log_possible_incopyright_access  {
+    my ($C, $id) = @_;
+
+    my $Header_Key = 'X-HathiTrust-InCopyright';
+
+    my $ar = $C->get_object('Access::Rights');
+    my $in_copyright = $ar->in_copyright($C, $id);
+
+    if ( $in_copyright ) {
+        my $attribute             = $ar->get_rights_attribute($C, $id) || 0;
+        my $ic                    = $ar->in_copyright($C, $id) || 0;
+        my $access_type           = $ar->get_access_type($C, 'as_string');
+        my $access_type_by_attr   = $ar->check_initial_access_status_by_attribute($C, $attribute, $id);
+
+        if ( $access_type_by_attr =~ m/holdings|held/ ) {
+            # is this item even held by the institution?
+            my $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
+            my ( $lock_id, $held ) = Access::Holdings::id_is_held($C, $id, $inst);
+
+            if ( $held ) {
+                # ... that is in-copyright
+                my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
+
+                if ($usertype) {
+                    my $role = Auth::ACL::a_GetUserAttributes('role');
+                    Utils::add_header($C, $Header_Key, "user=$usertype,$role;attr=$attribute;access=$access_type;granted=false");
+                }
+                else {
+                    # Users entitled to view OP @OPB brittle, lost, missing held by their institution
+                    Utils::add_header($C, $Header_Key, "user=other,none;attr=$attribute;access=$access_type");
+                }
+            }
+
+        }
+    }
+}
+
 # ---------------------------------------------------------------------
 
 =item log_successful_access
@@ -231,11 +268,22 @@ sub log_access {
         my $attr                  = $ar->get_rights_attribute($C, $id) || 0;
         my $ic                    = $ar->in_copyright($C, $id) || 0;
         my $access_type           = $ar->get_access_type($C, 'as_string');
+        my $access_type_by_attr     = $ar->check_initial_access_status_by_attribute($C, $attr, $id);
+
         push @$message, ['id', $id];
         push @$message, ['attr', $attr];
         push @$message, ['ic', $ic];
         push @$message, ['access', $ar->check_final_access_status($C, $id) eq 'allow' ? 'success' : 'failure'];
         push @$message, ['access_type', $access_type];
+        push @$message, ['access_type_by_attr', $access_type_by_attr];
+
+        if ( $access_type_by_attr =~ m/holdings|held/ ) {
+            # is this item even held by the institution?
+            my $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
+            my ( $lock_id, $held ) = Access::Holdings::id_is_held($C, $id, $inst);
+            push @$message, ['id_is_held', $held];
+        }
+
         my ( $digitization_source, $collection_source ) = $mdpItem->GetSources();
         push @$message, ['digitization_source', $digitization_source];
         push @$message, ['collection_source', $collection_source];
