@@ -1372,6 +1372,7 @@ sub get_user_status_cookie
     my $institution = $auth->get_institution_code($C, 'mapped');
     my $institution_name = $auth->get_institution_name($C, 'mapped');
     my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
+    my $emergency_affiliation = $auth->affiliation_has_emergency_access($C);
     my $auth_type;
     if ( $auth->auth_sys_is_SHIBBOLETH($C) ) {
         $auth_type = 'shibboleth';
@@ -1379,7 +1380,14 @@ sub get_user_status_cookie
     elsif ( $auth->auth_sys_is_COSIGN($C) ) {
         $auth_type = 'cosign';
     }
-    my $status = { authType => $auth_type, displayName => $displayName, institution => $institution, affiliation => $institution_name, u => $print_disabled };
+    my $status = { 
+        authType => $auth_type, 
+        displayName => $displayName, 
+        institution => $institution, 
+        affiliation => $institution_name, 
+        u => $print_disabled,
+        x => $emergency_affiliation,
+    };
 
     my $cookie = new CGI::Cookie(
         -name => "HTstatus",
