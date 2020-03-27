@@ -7,7 +7,7 @@ Access::Holdings;
 =head1 DESCRIPTION
 
 This package provides an interface to the Holdings Database tables
-(mdp-holdings). 
+(mdp-holdings).
 
 During updates to the PHDB, tables can be inaccessible. We return
 held=0 if there are assertion failures in this case assuming that
@@ -40,6 +40,7 @@ sub id_is_held {
     my ($C, $id, $inst) = @_;
 
     my $held = 0;
+    my $lock_id = $id;
 
     if (DEBUG('held')) {
         $held = 1;
@@ -48,22 +49,32 @@ sub id_is_held {
         $held = 0;
     }
     else {
+        my $ses = $C->get_object('Session', 1);
+        if ( $ses && defined $ses->get_transient("held.$id") ) { 
+            ( $lock_id, $held ) = @{ $ses->get_transient("held.$id") }; 
+            return ( $lock_id, $held );
+        }
+
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
         my $sth;
-        my $SELECT_clause = qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+
+        # my $SELECT_clause = qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        my $SELECT_clause = qq{SELECT COALESCE(cluster_id,h.volume_id) AS lock_id, copy_count FROM holdings_htitem_htmember h LEFT OUTER JOIN holdings_cluster_htitem_jn c ON h.volume_id = c.volume_id WHERE h.volume_id = ? AND member_id = ?};
         eval {
             $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
         };
-        if ($@) {
-            return 0;
+        if (my $err = $@) {
+            return ($err, 0);
         }
 
-        $held = $sth->fetchrow_array() || 0;
+        my @row = $sth->fetchrow_array();
+        ( $lock_id, $held ) = @row if ( scalar @row );
+        $ses->set_transient("held.$id", [$lock_id, $held]) if ( $ses );
     }
     DEBUG('auth,all,held,notheld', qq{<h4>Holdings for inst=$inst id="$id": held=$held</h4>});
 
-    return $held;
+    return ( $lock_id, $held );
 }
 
 # ---------------------------------------------------------------------
@@ -79,6 +90,7 @@ sub id_is_held_and_BRLM {
     my ($C, $id, $inst) = @_;
 
     my $held = 0;
+    my $lock_id = $id;
 
     if (DEBUG('heldb')) {
         $held = 1;
@@ -87,10 +99,17 @@ sub id_is_held_and_BRLM {
         $held = 0;
     }
     else {
+        my $ses = $C->get_object('Session', 1);
+        if ( $ses && defined $ses->get_transient("held.brlm.$id") ) { 
+            ( $lock_id, $held ) = @{ $ses->get_transient("held.brlm.$id") }; 
+            return ( $lock_id, $held );
+        }
+
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
         my $sth;
-        my $SELECT_clause = qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        # my $SELECT_clause = qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        my $SELECT_clause = qq{SELECT COALESCE(cluster_id,h.volume_id) AS lock_id, access_count FROM holdings_htitem_htmember h LEFT OUTER JOIN holdings_cluster_htitem_jn c ON h.volume_id = c.volume_id WHERE h.volume_id = ? AND member_id = ?};
         eval {
             $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
         };
@@ -98,12 +117,14 @@ sub id_is_held_and_BRLM {
             return 0;
         }
 
-        $held = $sth->fetchrow_array() || 0;
+        my @row = $sth->fetchrow_array();
+        ( $lock_id, $held ) = @row if ( scalar @row );
+        $ses->set_transient("held.brlm.$id", [$lock_id, $held]) if ( $ses );
     }
     DEBUG('auth,all,heldb,notheldb', qq{<h4>BRLM holdings for inst=$inst id="$id": access_count=$held</h4>});
 
     # @OPB
-    return $held;
+    return ( $lock_id, $held );
 }
 
 # ---------------------------------------------------------------------
