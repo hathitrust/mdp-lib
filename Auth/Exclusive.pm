@@ -124,31 +124,37 @@ sub acquire_exclusive_access {
     ___revoke_excess_grants($C, $dbh, $lock_id, $item_id, $identity, $inst_code, $num_held);
     my ( $occupied, $owned, $active ) = ___get_affiliated_grants($C, $dbh, $lock_id, $item_id, $identity, $inst_code, 1);
 
+    my ($granted, $owner, $expires);
+
+    $granted = 0;
+
     $dbh->{AutoCommit} = 0;
 
-    if ( ref $owned ) {
-        $granted = 1;
-        $owner = $identity;
-        $expires = $$owned{expires};
-        if ( Utils::Time::expired($expires) ) {
-            # renew the grant
-            $expires = ___renew($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
-        }
-    } else {
-        if ( scalar @$active < $num_held ) {
-            $granted = 1;
-            $owner = $identity;
-            print STDERR "AHOY GRANTING $lock_id :: $item_id\n";
-            $expires = ___grant($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
-        }
+    my $copies_available = (scalar @$active < $num_held);
+    my $owned_active = ___active_grant($owned);
+
+    # User gets access if they have a non-expired grant or if there are fewer
+    # active grants than the number available
+    if ($owned_active or $copies_available) {
+      $granted = 1;
+      $owner = $identity;
     }
 
-    ___cleanup_expired_grants($C, $dbh);
+    if ($owned_active) {
+      $expires = $$owned{expires};
+    } elsif ($copies_available) {
+      if ( ref $owned and !$owned_active) {
+        $expires = ___renew($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
+      } else {
+        $expires = ___grant($C, $dbh, $lock_id, $item_id, $identity, $inst_code);
+      }
+    }
+
+    ___cleanup_expired_grants($C, $dbh, $lock_id, $inst_code);
 
     $dbh->commit();
     $C->get_object('Session')->set_transient("$item_id.1", [ $granted, $owner, $expires ]) if ( $granted );
 
-    print STDERR "BENCHMARK acquire_exclusive_access :: $granted :: $owner :: " . ( Time::HiRes::time() - $t0 ) . "\n";
     return ($granted, $owner, $expires);
 }
 
@@ -194,25 +200,30 @@ sub check_exclusive_access {
 
     my ($granted, $owner, $expires);
 
+    my $copies_available = (scalar @$active < $num_held);
+    my $owned_active = ___active_grant($owned);
+
     $granted = 0;
 
-    if ( ref $owned ) {
-        $granted = 1;
-        $owner = $identity;
-        $expires = $$owned{expired} ? ___get_expiration_date() : $$owned{expires};
+    if ($owned_active) {
+      # user has active grant
+      $granted = 1;
+      $owner = $identity;
+      $expires = $$owned{expired}
+    } elsif ( ref($owned) and $really and $copies_available ) {
+      # previous grant has expired and copies are availalable 
+      # and the earlier grant can be renewed
+      $granted = 1;
+      $owner = $identity;
+      $expires = $$owned{expired}
+    } elsif ( !$really and $copies_available ) {
+      # copies are available and we aren't checking that the user already has a
+      # grant
+      $granted = 1;
+      $owner = $identity;
+      $expires = ___get_expiration_date();
     }
 
-    unless ( $granted || $really ) {
-        # could the user get the grant?
-        # slots are available
-        if ( scalar @$active < $num_held ) {
-            $granted = 1;
-            $owner = $identity;
-            $expires = ___get_expiration_date();
-        }
-    }
-
-    print STDERR "BENCHMARK check_exclusive_access :: $really :: $granted :: " . ( Time::HiRes::time() - $t0 ) . "\n";
     $session->set_transient("$item_id.$really", [ $granted, $owner, $expires ]);
     return ($granted, $owner, $expires);
 }
@@ -438,6 +449,25 @@ sub ___renew {
 
 # ---------------------------------------------------------------------
 
+=item ___active_grant
+
+PRIVATE
+
+=cut
+
+sub ___active_grant {
+  my ($owned) = @_;
+
+  return undef unless ref($owned);
+
+  my $expires = $$owned{expires};
+  my $expired = Utils::Time::expired($expires);
+
+  return !$expired;
+}
+
+# ---------------------------------------------------------------------
+
 =item ___cleanup_expired_grants
 
 PRIVATE
@@ -446,15 +476,15 @@ PRIVATE
 
 # ---------------------------------------------------------------------
 sub ___cleanup_expired_grants {
-    my ($C, $dbh) = @_;
+    my ($C, $dbh, $lock_id, $inst_code) = @_;
 
     my $now = Utils::Time::iso_Time();
 
-    my $statement = qq{DELETE FROM $TABLE_NAME WHERE expires < ?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $now);
+    my $statement = qq{DELETE FROM $TABLE_NAME WHERE expires < ? AND lock_id = ? AND affiliation = ?};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $now, $lock_id, $inst_code);
 
     Utils::map_chars_to_cers(\$statement, [q{"}, q{'}]);
-    DEBUG('auth', qq{DEBUG: $statement : $now});
+    DEBUG('auth', qq{DEBUG: $statement : $now $lock_id $inst_code});
 }
 
 
