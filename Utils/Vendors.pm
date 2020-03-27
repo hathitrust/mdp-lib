@@ -39,6 +39,7 @@ sub init {
     $local_switch = $local_switch || $ENV{DEBUG_LOCAL} || ($ENV{REQUEST_METHOD} ne 'POST' && CGI::param('debug') && (CGI::param('debug') =~ m,local,));
     if ($local_switch) {
         push(@my_inc, "$ENV{SDRROOT}/mdp-lib");
+        $ENV{DEBUG_LOCAL} = 1;
         $ENV{DEBUG} .= ',' if ( $ENV{DEBUG} );
         $ENV{DEBUG} .= 'local';
     }
@@ -59,7 +60,7 @@ sub init {
         }
     }
 
-    unshift(@INC, @my_inc);    
+    unshift(@INC, @my_inc);
 }
 
 1;
