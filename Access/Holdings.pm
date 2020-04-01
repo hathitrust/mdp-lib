@@ -60,7 +60,15 @@ sub id_is_held {
         my $sth;
 
         # my $SELECT_clause = qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
-        my $SELECT_clause = qq{SELECT COALESCE(cluster_id,h.volume_id) AS lock_id, copy_count FROM holdings_htitem_htmember h LEFT OUTER JOIN holdings_cluster_htitem_jn c ON h.volume_id = c.volume_id WHERE h.volume_id = ? AND member_id = ?};
+        my $SELECT_clause = <<EOT;
+          SELECT COALESCE(cluster_id,h.volume_id) AS lock_id, 
+                 sum(copy_count) 
+          FROM holdings_htitem_htmember h 
+          JOIN ht_institutions t ON h.member_id = t.inst_id
+          LEFT OUTER JOIN holdings_cluster_htitem_jn c ON h.volume_id = c.volume_id 
+          WHERE h.volume_id = ? AND mapto_inst_id = ?
+          GROUP BY h.volume_id, mapto_inst_id;
+EOT
         eval {
             $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
         };
