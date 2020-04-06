@@ -112,7 +112,7 @@ sub log_possible_incopyright_access  {
                 }
                 else {
                     # Users entitled to view OP @OPB brittle, lost, missing held by their institution
-                    Utils::add_header($C, $Header_Key, "user=other,none;attr=$attribute;access=$access_type");
+                    Utils::add_header($C, $Header_Key, "user=other,none;attr=$attribute;access=$access_type;granted=false");
                 }
             }
 
