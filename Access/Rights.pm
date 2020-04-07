@@ -1033,6 +1033,12 @@ sub _Assert_final_access_status {
     elsif ($initial_access_status eq 'allow_emergency_access_by_holdings_by_geo_ipaddr') {
         ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 1);
     }
+    elsif ($initial_access_status eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings') {
+        $final_access_status = _resolve_us_aff_access_by_GeoIP($C);
+        if ( $final_access_status eq 'deny' ) {
+            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held($C, $id, 1);
+        }
+    }
 
     ___final_access_status_check($final_access_status);
 
@@ -1140,6 +1146,18 @@ sub _Check_final_access_status {
     elsif ($initial_access_status eq 'allow_emergency_access_by_holdings_by_geo_ipaddr') {
         if (defined($id)) {
             ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 0);
+        }
+        else {
+            # downstream must filter on holdings
+            $final_access_status = 'allow';
+        }
+    }
+    elsif ($initial_access_status eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings') {
+        if (defined($id)) {
+            $final_access_status = _resolve_access_by_GeoIP($C, 'US');
+            if ( $final_access_status eq 'deny' ) {
+                ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held($C, $id, 0);
+            }
         }
         else {
             # downstream must filter on holdings
