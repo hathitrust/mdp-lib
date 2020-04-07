@@ -363,7 +363,7 @@ our $EMERGENCY_ACCESS_AFFILIATE = 9;
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
            $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
            $ENHANCED_TEXT_USER    => 'allow',
-           $EMERGENCY_ACCESS_AFFILIATE => 'allow_us_aff_by_ipaddr',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings',
           },
    # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
    '10' => {
