@@ -85,7 +85,8 @@ use constant EXCLUSIVITY_LIMIT => $ENV{HT_DEV} ? ( 5 / 60 ) * 60 * 60 : 60 * 60;
 
 use Time::HiRes;
 
-our $TABLE_NAME = q{pt_exclusivity_ng};
+# our $TABLE_NAME = q{pt_exclusivity_ng};
+our $TABLE_NAME = q{ht_web.pt_exclusivity_ng_dev};
 
 # ---------------------------------------------------------------------
 
@@ -150,9 +151,10 @@ sub acquire_exclusive_access {
       }
     }
 
+    $dbh->commit();
+
     ___cleanup_expired_grants($C, $dbh, $lock_id, $inst_code);
 
-    $dbh->commit();
     $C->get_object('Session')->set_transient("$item_id.1", [ $granted, $owner, $expires ]) if ( $granted );
 
     return ($granted, $owner, $expires);
@@ -478,13 +480,31 @@ PRIVATE
 sub ___cleanup_expired_grants {
     my ($C, $dbh, $lock_id, $inst_code) = @_;
 
-    my $now = Utils::Time::iso_Time();
+    my $select_sql = qq{SELECT * FROM $TABLE_NAME USE INDEX (excess_check) WHERE lock_id = ? AND affiliation = ? AND expires < NOW() ORDER BY expires ASC FOR UPDATE};
+    my $delete_sql = qq{DELETE FROM $TABLE_NAME WHERE owner=? AND affiliation=? AND lock_id=?};
 
-    my $statement = qq{DELETE FROM $TABLE_NAME WHERE expires < ? AND lock_id = ? AND affiliation = ?};
-    my $sth = DbUtils::prep_n_execute($dbh, $statement, $now, $lock_id, $inst_code);
+    $dbh->{AutoCommit} = 0;
 
-    Utils::map_chars_to_cers(\$statement, [q{"}, q{'}]);
-    DEBUG('auth', qq{DEBUG: $statement : $now $lock_id $inst_code});
+    my $grants = $dbh->selectall_arrayref(
+      $select_sql,
+      { Slice => {}},
+      $lock_id, $inst_code);
+
+    DEBUG('auth', qq{DEBUG: expired grants: } . scalar(@$grants));
+
+    foreach my $grant (@$grants) {
+       my $identity = $grant->{owner};
+       my $inst_code = $grant->{affiliation};
+       my $lock_id = $grant->{lock_id};
+       my $item_id = $grant->{item_id};
+
+       # Remove this grant
+       $statement = $delete_sql;
+       DEBUG('auth', qq{DEBUG: $statement : $identity $inst_code $lock_id $item_id});
+       $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $lock_id);
+     }
+
+     $dbh->commit();
 }
 
 
