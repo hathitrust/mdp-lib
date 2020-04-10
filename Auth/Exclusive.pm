@@ -85,8 +85,8 @@ use constant EXCLUSIVITY_LIMIT => $ENV{HT_DEV} ? ( 5 / 60 ) * 60 * 60 : 60 * 60;
 
 use Time::HiRes;
 
-# our $TABLE_NAME = q{pt_exclusivity_ng};
-our $TABLE_NAME = q{ht_web.pt_exclusivity_ng_dev};
+our $TABLE_NAME = q{pt_exclusivity_ng};
+# our $TABLE_NAME = q{ht_web.pt_exclusivity_ng_dev};
 
 # ---------------------------------------------------------------------
 
