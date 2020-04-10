@@ -85,9 +85,6 @@ use constant EXCLUSIVITY_LIMIT => $ENV{HT_DEV} ? ( 5 / 60 ) * 60 * 60 : 60 * 60;
 
 use Time::HiRes;
 
-our $TABLE_NAME = q{pt_exclusivity_ng};
-# our $TABLE_NAME = q{ht_web.pt_exclusivity_ng_dev};
-
 # ---------------------------------------------------------------------
 
 =item acquire_exclusive_access
@@ -255,13 +252,14 @@ number of copies held.
 sub update_exclusive_access {
     my ($C, $temporary_user_id, $persistent_user_id) = @_;
 
+    my $table_name = __get_table_name($C);
     # Get current user's identity and expiration date
     my $dbh = $C->get_object('Database')->get_DBH();
     my ($sth, $statement);
 
     $dbh->{AutoCommit} = 0;
     # Update owner field for all IDs
-    $statement = qq{UPDATE $TABLE_NAME SET owner=? WHERE owner=?};
+    $statement = qq{UPDATE $table_name SET owner=? WHERE owner=?};
     DEBUG('auth', qq{DEBUG: $statement : $persistent_user_id $temporary_user_id});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $persistent_user_id, $temporary_user_id);
 
@@ -277,6 +275,8 @@ sub release_exclusive_access {
     my $inst_code = $auth->get_institution_code($C, 'mapped');
     my $identity = $auth->get_user_name($C);
 
+    my $table_name = __get_table_name($C);
+
     my ( $lock_id, $num_held ) =
       (
        $brlm
@@ -287,7 +287,7 @@ sub release_exclusive_access {
     $dbh->{AutoCommit} = 0;
 
     # Remove this grant
-    $statement = qq{DELETE FROM $TABLE_NAME WHERE owner=? AND affiliation=? AND lock_id=?};
+    $statement = qq{DELETE FROM $table_name WHERE owner=? AND affiliation=? AND lock_id=?};
     DEBUG('auth', qq{DEBUG: $statement : $identity $isnt_code $lock_id $item_id});
     $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $lock_id);
 
@@ -338,7 +338,9 @@ sub ___get_user_identity {
 
 sub ___get_affiliated_grants {
     my ( $C, $dbh, $lock_id, $item_id, $identity, $inst_code, $updating ) = @_;
-    my $sql = qq{SELECT *, ( expires < NOW() ) AS expired FROM $TABLE_NAME WHERE lock_id = ? AND affiliation = ?};
+
+    my $table_name = __get_table_name($C);
+    my $sql = qq{SELECT *, ( expires < NOW() ) AS expired FROM $table_name WHERE lock_id = ? AND affiliation = ?};
     if ( $updating ) { $sql .= qq{ FOR UPDATE}; }
 
     my $occupied = $dbh->selectall_arrayref(
@@ -368,39 +370,40 @@ acquire a grant at the other site.
 # ---------------------------------------------------------------------
 
 sub ___revoke_excess_grants {
-  my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code, $max_grants) = @_;
+    my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code, $max_grants) = @_;
 
-  my $select_sql = qq{SELECT * FROM $TABLE_NAME WHERE lock_id = ? AND affiliation = ? AND expires >= NOW() ORDER BY expires ASC FOR UPDATE};
-  my $delete_sql = qq{DELETE FROM $TABLE_NAME WHERE owner=? AND affiliation=? AND lock_id=?};
+    my $table_name = __get_table_name($C);
+    my $select_sql = qq{SELECT * FROM $table_name WHERE lock_id = ? AND affiliation = ? AND expires >= NOW() ORDER BY expires ASC FOR UPDATE};
+    my $delete_sql = qq{DELETE FROM $table_name WHERE owner=? AND affiliation=? AND lock_id=?};
 
-  $dbh->{AutoCommit} = 0;
+    $dbh->{AutoCommit} = 0;
 
-  my $grants = $dbh->selectall_arrayref(
+    my $grants = $dbh->selectall_arrayref(
     $select_sql,
-    { Slice => {}},
-    $lock_id, $inst_code);
+        { Slice => {}},
+        $lock_id, $inst_code);
 
-  my @grants_to_delete = ();
+    my @grants_to_delete = ();
 
-  DEBUG('auth', qq{DEBUG: current active grants: } . scalar(@$grants) . qq{; max grants $max_grants});
+    DEBUG('auth', qq{DEBUG: current active grants: } . scalar(@$grants) . qq{; max grants $max_grants});
 
-  if (scalar @$grants > $max_grants) {
-    @grants_to_delete = @$grants[$max_grants..$#$grants];
-  }
+    if (scalar @$grants > $max_grants) {
+        @grants_to_delete = @$grants[$max_grants..$#$grants];
+    }
 
-  foreach my $grant (@grants_to_delete) {
-     my $identity = $grant->{owner};
-     my $inst_code = $grant->{affiliation};
-     my $lock_id = $grant->{lock_id};
-     my $item_id = $grant->{item_id};
+    foreach my $grant (@grants_to_delete) {
+        my $identity = $grant->{owner};
+        my $inst_code = $grant->{affiliation};
+        my $lock_id = $grant->{lock_id};
+        my $item_id = $grant->{item_id};
 
-     # Remove this grant
-     $statement = $delete_sql;
-     DEBUG('auth', qq{DEBUG: $statement : $identity $inst_code $lock_id $item_id});
-     $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $lock_id);
-   }
+        # Remove this grant
+        $statement = $delete_sql;
+        DEBUG('auth', qq{DEBUG: $statement : $identity $inst_code $lock_id $item_id});
+        $sth = DbUtils::prep_n_execute($dbh, $statement, $identity, $inst_code, $lock_id);
+    }
 
-  $dbh->commit();
+    $dbh->commit();
 }
 
 # ---------------------------------------------------------------------
@@ -416,9 +419,13 @@ sub ___grant {
     my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code) = @_;
 
     my $expiration_date = ___get_expiration_date();
+    my $table_name = __get_table_name($C);
 
-    my $statement =
-        qq{INSERT INTO $TABLE_NAME SET lock_id = ?, item_id=?, owner=?, affiliation=?, expires=?};
+    my $statement = <<SQL;
+INSERT INTO $table_name SET lock_id = ?, item_id=?, owner=?, affiliation=?, expires=?
+ON DUPLICATE KEY UPDATE expires=expires
+SQL
+
     DEBUG('auth', qq{DEBUG: $statement : $lock_id : $item_id : $identity : $inst_code : $expiration_date});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $lock_id, $item_id, $identity, $inst_code, $expiration_date);
 
@@ -440,9 +447,10 @@ sub ___renew {
     my ($C, $dbh, $lock_id, $item_id, $identity, $inst_code) = @_;
 
     my $expiration_date = ___get_expiration_date();
+    my $table_name = __get_table_name($C);
 
     my $statement =
-        qq{UPDATE $TABLE_NAME SET expires=?, renewals=renewals+1 WHERE lock_id=? AND owner=? AND affiliation=?};
+        qq{UPDATE $table_name SET expires=?, renewals=renewals+1 WHERE lock_id=? AND owner=? AND affiliation=?};
     DEBUG('auth', qq{DEBUG: $statement : $expiration_date : $lock_id : $item_id : $identity : $inst_code});
     my $sth = DbUtils::prep_n_execute($dbh, $statement, $expiration_date, $lock_id, $identity, $inst_code);
 
@@ -480,8 +488,9 @@ PRIVATE
 sub ___cleanup_expired_grants {
     my ($C, $dbh, $lock_id, $inst_code) = @_;
 
-    my $select_sql = qq{SELECT * FROM $TABLE_NAME USE INDEX (excess_check) WHERE lock_id = ? AND affiliation = ? AND expires < NOW() ORDER BY expires ASC FOR UPDATE};
-    my $delete_sql = qq{DELETE FROM $TABLE_NAME WHERE owner=? AND affiliation=? AND lock_id=?};
+    my $table_name = __get_table_name($C);
+    my $select_sql = qq{SELECT * FROM $table_name USE INDEX (excess_check) WHERE lock_id = ? AND affiliation = ? AND expires < NOW() ORDER BY expires ASC FOR UPDATE};
+    my $delete_sql = qq{DELETE FROM $table_name WHERE owner=? AND affiliation=? AND lock_id=?};
 
     $dbh->{AutoCommit} = 0;
 
@@ -505,6 +514,11 @@ sub ___cleanup_expired_grants {
      }
 
      $dbh->commit();
+}
+
+sub __get_table_name {
+  my ( $C ) = @_;
+  return $C->get_object('MdpConfig')->get('exclusivity_table_name');
 }
 
 
