@@ -161,9 +161,7 @@ sub _initialize {
         my $ses = $C->get_object('Session');
         my $was_logged_in_via = __get_auth_sys($ses);
 
-        my $is_logged_out = $ses->get_persistent('debug_logout') || 0;
-
-        if ($self->is_logged_in($C) && ! $is_logged_out) {
+        if ($self->is_logged_in($C)) {
             $self->set_auth_sys($ses);
             my $now_logged_in_via = __get_auth_sys($ses);
 
@@ -180,21 +178,12 @@ sub _initialize {
             $self->__debug_auth($C, $ses);
         }
         else {
-            # Not authenticated: THIS MAY BE CONDITION X:
-            # See pod (above).
-            ## $ses->set_persistent('debug_logout', 0) if ( $is_logged_out );
             $self->__debug_auth($C, $ses);
             if ( my $redirect_to = $self->handle_possible_auth_renewal($C, $was_logged_in_via) ) {
                 $self->do_redirect($C, $redirect_to);
             } else {
                 $self->handle_possible_auth_expiration($C, $was_logged_in_via);
             }
-            # if ( $self->is_cosign_active ) {
-            #     $self->handle_possible_redirect($C, $was_logged_in_via);
-            # } else {
-            #     $self->handle_possible_auth_expiration($C, $was_logged_in_via);
-            # }
-            # POSSIBLY NOTREACHED
         }
     }
 }
@@ -260,11 +249,12 @@ sub handle_possible_auth_renewal {
     if ( $was_logged_in_via eq 'shibboleth' ) {
         my $ses = $C->get_object('Session');
         my $entity_id = $ses->get_persistent('entity_id') || '';
-        # my $could_renew = ( $ENV{REQUEST_URI} =~ m,/cgi/mb|/cgi/ls|/cgi/pt, );
-        my $could_renew_pt = $ENV{REQUEST_URI} =~ m,/cgi/pt, && $ENV{QUERY_STRING} !~ m,a=,;
-        my $could_renew_app = $ENV{REQUEST_URI} =~ m,/cgi/(ssd|mb|ls),;
-        if ( $entity_id && ( $could_renew_pt || $could_renew_app ) ) {
-            print STDERR "AHOY AHOY RENEWING THE AUTH\n";
+        my $could_renew = 
+            ( $ENV{REQUEST_URI} =~ m,/cgi/(ssd|mb|ls), )
+            ||
+            ( $ENV{REQUEST_URI} =~ m,/cgi/pt, && $ENV{QUERY_STRING} !~ m,a=, );
+
+        if ( $entity_id && $could_renew ) {
             my $cgi = $C->get_object('CGI');
             my $target = CGI::self_url($cgi);
             my $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'inst_id', 1);
