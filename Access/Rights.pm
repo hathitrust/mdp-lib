@@ -1031,7 +1031,10 @@ sub _Assert_final_access_status {
         ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held($C, $id, 1);
     }
     elsif ($initial_access_status eq 'allow_emergency_access_by_holdings_by_geo_ipaddr') {
-        ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 1);
+        ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 1, 'US');
+    }
+    elsif ($initial_access_status eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings') {
+        ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 1, 'NONUS');
     }
 
     ___final_access_status_check($final_access_status);
@@ -1139,7 +1142,16 @@ sub _Check_final_access_status {
     }
     elsif ($initial_access_status eq 'allow_emergency_access_by_holdings_by_geo_ipaddr') {
         if (defined($id)) {
-            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 0);
+            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 0, 'US');
+        }
+        else {
+            # downstream must filter on holdings
+            $final_access_status = 'allow';
+        }
+    }
+    elsif ($initial_access_status eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings') {
+        if (defined($id)) {
+            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 0, 'NONUS');
         }
         else {
             # downstream must filter on holdings
@@ -1728,14 +1740,14 @@ sub _resolve_ssd_access_by_held_by_GeoIP {
 }
 
 sub _resolve_emergency_access_by_held_by_GeoIP {
-    my ($C, $id, $assert_ownership) = @_;
+    my ($C, $id, $assert_ownership, $required_location) = @_;
 
     my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
     my $inst = 'not defined';
     my $held = 0;
 
-    my $US_status = _resolve_access_by_GeoIP($C, 'US');
-    if ($US_status eq 'allow') {
+    my $geoip_status = _resolve_access_by_GeoIP($C, $required_location);
+    if ($geoip_status eq 'allow') {
         $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
         $held = Access::Holdings::id_is_held($C, $id, $inst);
         if ($held) {
