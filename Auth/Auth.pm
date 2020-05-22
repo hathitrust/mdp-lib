@@ -1012,6 +1012,13 @@ sub user_is_print_disabled_proxy {
         $is_proxy = ($entitlement eq 'ssdproxy');
     }
 
+    if ( $is_proxy ) {
+        # check that the user has toggled this setting
+        my $activated = $C->get_object('Session')->get_persistent('activated_role') eq 'ssdproxy';
+        print STDERR "AHOY AHOY user_is_print_disabled_proxy :: $activated\n";
+        unless ( $activated ) { $is_proxy = 0; }
+    }
+
     return $is_proxy;
 }
 

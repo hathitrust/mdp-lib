@@ -72,11 +72,37 @@ sub handle_USER_AFFILIATION_PI
 
     my $auth = $C->get_object('Auth');
     my $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+
+    my $check = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
+    my $activated = $C->get_object('Session')->get_persistent('activated_role');
+    if ( $check && $activated && $activated eq 'ssdproxy' ) {
+        $affiliation = 'ATRS';
+    }
+
     $affiliation = CGI::escape($affiliation);
 
     return $affiliation;
 }
 
+sub handle_USER_HAS_ROLE_TOGGLES_PI
+    : PI_handler(USER_HAS_ROLE_TOGGLES) {
+
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $retval;
+
+    my $auth = $C->get_object('Auth');
+    # limited to ATRS users
+    my $check = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
+    if ( $check ) {
+        my $activated = '';
+        if ( $C->get_object('Session')->get_persistent('activated_role') eq 'ssdproxy' ) {
+            $activated = 'ssdproxy';
+        }
+        $retval = qq{<UserHasRoleToggles activated="$activated">TRUE</UserHasRoleToggles>};
+    }
+    return $retval;
+}
 
 
 
