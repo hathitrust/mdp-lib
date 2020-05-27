@@ -573,7 +573,8 @@ sub get_single_page_PDF_access_status {
         # you can read the book, so you can download single page PDFs
         $status = 'allow';
         my $access_type = $self->get_access_type($C);
-        if ( $access_type == $RightsGlobals::ENHANCED_TEXT_USER ) {
+        if ( $access_type == $RightsGlobals::ENHANCED_TEXT_USER || 
+             $access_type == $RightsGlobals::EMERGENCY_ACCESS_AFFILIATE ) {
             # but ENHANCED_TEXT_USER affiliations can only single-page download
             # what ordinary users can download
             my $rights_attribute = $self->get_rights_attribute($C, $id);
