@@ -273,7 +273,17 @@ sub log_access {
         push @$message, ['id', $id];
         push @$message, ['attr', $attr];
         push @$message, ['ic', $ic];
-        push @$message, ['access', $ar->check_final_access_status($C, $id) eq 'allow' ? 'success' : 'failure'];
+
+        # check for alternative access from $tuples
+        my $access;
+        if ( ref($tuples) && $$tuples[0][0] eq 'access' ) {
+            my $tmp = shift @$tuples;
+            $access = $$tmp[1];
+        } else {
+            $access = $ar->check_final_access_status($C, $id) eq 'allow' ? 'success' : 'failure';
+        }
+
+        push @$message, ['access', $access ];
         push @$message, ['access_type', $access_type];
         push @$message, ['access_type_by_attr', $access_type_by_attr];
 
