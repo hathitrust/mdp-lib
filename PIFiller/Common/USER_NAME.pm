@@ -97,7 +97,7 @@ sub handle_USER_HAS_ROLE_TOGGLES_PI
     if ( $check ) {
         my $activated = '';
         if ( $C->get_object('Session')->get_persistent('activated_role') eq 'ssdproxy' ) {
-            $activated = 'ssdproxy';
+            $activated = 'enhancedTextProxy';
         }
         $retval = qq{<UserHasRoleToggles activated="$activated">TRUE</UserHasRoleToggles>};
     }
