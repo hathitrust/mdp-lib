@@ -202,12 +202,20 @@ sub extract_file_to_temp_cache {
     # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, "$stripped_pairtree_id/$filename";
 
-    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>&1";
+    my $stderr;
+    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>>", \$stderr;
 
-    my $cmd = qq{$UNZIP_PROG -j -qq -d $input_cache_dir $zip_file "$stripped_pairtree_id/$filename"};
+    my $system_retval = $? >> 8;
+
+    my $cmd = join(' ', @unzip);
     DEBUG('doc', qq{UNZIP: $cmd});
 
-    soft_ASSERT((-e qq{$input_cache_dir/$filename}, qq{Could not extract $filename to $input_cache_dir} . __get_df_report('/ram')));
+    soft_ASSERT((-e qq{$input_cache_dir/$filename}, 
+        qq{Could not extract $filename to $input_cache_dir} . "\n" . 
+        $cmd . "\n" . 
+        qq{code=$system_retval} . "\n" . 
+        $stderr . "\n" . 
+        __get_df_report('/ram')));
 
     return
       (-e qq{$input_cache_dir/$filename})
