@@ -1395,9 +1395,9 @@ sub _resolve_access_by_GeoIP {
     my $PROXIED_ADDR = proxied_address() || 0;
     my $proxy_detected = $PROXIED_ADDR;
 
-    my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
+    my $REMOTE_ADDR = $ENV{REMOTE_ADDR} || '0.0.0.0';
 
-    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR );
+    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR ) || '';
     my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
 

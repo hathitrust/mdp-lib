@@ -108,10 +108,6 @@ use Debug::DUtils;
 use Database;
 use DbUtils;
 
-# 141.213.171.72-141.213.171.87
-# 141.213.175.72-141.213.175.87
-my $library_vpn_range = q{^141\.213\.17[15]\.(7[2-9]|8[0-7])$};
-
 # blocked
 my $iprestrict_all = 'notanipaddress';
 
@@ -121,7 +117,6 @@ my $iprestrict_none = '.*';
 # 
 
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
-my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
 my $do_restrict_to_identity_provider = 0;
 

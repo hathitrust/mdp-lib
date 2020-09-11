@@ -300,7 +300,7 @@ sub log_access {
     }
 
 
-    my $remote_addr           = $ENV{REMOTE_ADDR} || undef;
+    my $remote_addr           = $ENV{REMOTE_ADDR} || '0.0.0.0';
     my $proxied_addr          = Access::Rights::proxied_address() || undef;
     my $remote_user_processed = Utils::Get_Remote_User() || undef;
     my $remote_user_from_env  = $ENV{REMOTE_USER} || undef;

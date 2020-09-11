@@ -1,8 +1,7 @@
 #############################################################################
 #
 # Apache::Session::MySQL::InnoDB
-# Apache persistent user sessions in a Postgres database
-# Copyright(c) 1998, 1999, 2000 Jeffrey William Baker (jwbaker@acm.org)
+# Apache persistent user sessions in a MySQL InnoDB table
 # Distribute under the Perl License
 #
 ############################################################################
@@ -72,7 +71,7 @@ Apache::Session::MySQL::InnoDB - An implementation of Apache::Session
 
 =head1 DESCRIPTION
 
-This module is an implementation of Apache::Session.  It uses the Postgres
+This module is an implementation of Apache::Session.  It uses the MySQL
 backing store and no locking.  See the example, and the documentation for
 Apache::Session::Store::MySQL::InnoDB for more details.
 
@@ -87,7 +86,7 @@ argument is mandatory in order to make you think about this problem.
 
 =head1 AUTHOR
 
-This module was written by Jeffrey William Baker <jwbaker@acm.org>.
+This module is based on Apache::Session::Store::MySQL
 
 =head1 SEE ALSO
 
