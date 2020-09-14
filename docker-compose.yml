@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+
+  mariadb:
+    build: docker/database
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 'mdp-lib'
+    ports:
+      - "52000:3306"
+
+  test:
+    build: .
+    volumes:
+      - .:/htapps/babel/mdp-lib
+      - ./etc:/htapps/babel/etc
+    environment:
+      - SDRROOT=/htapps/babel
+      - HT_DEV=
+      - HTTP_HOST=
+      - SDRDATAROOT=/htapps/babel
+      - MARIADB_USER=mdp-lib
+      - REMOTE_ADDR=127.0.0.1
+      - HTTP_HOST=127.0.0.1
+    depends_on:
+      - mariadb
+    links:
+      - mariadb
+    command: bash -c "cd /htapps/babel/mdp-lib && perl Makefile.PL && bin/wait-for --timeout=60 mariadb:3306 -- make test TEST_VERBOSE=1"
