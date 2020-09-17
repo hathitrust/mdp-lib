@@ -145,10 +145,10 @@ sub _initialize {
         last if ($dbh);
         sleep 5;
     }
-    silent_ASSERT($dbh, qq{database connect failed: } . DBI->errstr);
+    silent_ASSERT($dbh, qq{database connect failed: } . (DBI->errstr || ''));
 
     my $charset_cmd = qq{SET NAMES 'UTF8'};
-    silent_ASSERT($dbh->do($charset_cmd), qq{database charset failed: } . DBI->errstr);
+    silent_ASSERT($dbh->do($charset_cmd), qq{database charset failed: } . (DBI->errstr || ''));
 
     # mysql_auto_reconnect in conjunction with a ping() will reconnect
     # if a client is affected by the mysql server timeout but only if
