@@ -22,7 +22,8 @@ foreach my $i (0 .. 9)
 }
 print "\n";
 
-my @test_files = ('mdp-lib/t/namespace.t',
+my @test_files = ('mdp-lib/t/geoip.t',
+                  'mdp-lib/t/namespace.t',
                   'mdp-lib/t/rights.t',
                  );
 runtests map { File::Spec->catdir($ENV{SDRROOT}, $_); } @test_files;
