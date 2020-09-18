@@ -25,13 +25,13 @@ my $auth = new Auth::Auth($C);
 $C->set_object('Auth', $auth);
 
 # pd/bib volume in sql/002_ht_rights_current.sql fixture
-my $ar = Access::Rights->new($C, 'inu.30000000079024');
-my $resp = $ar->check_final_access_status($C, 'inu.30000000079024');
+my $ar = Access::Rights->new($C, 'test.pd_bib_google_google');
+my $resp = $ar->check_final_access_status($C, 'test.pd_bib_google_google');
 is($resp, 'allow');
 
 # pdus/bib volume in sql/002_ht_rights_current.sql fixture
-$ar = Access::Rights->new($C, 'inu.30000000124697');
-$resp = $ar->check_final_access_status($C, 'inu.30000000124697');
+$ar = Access::Rights->new($C, 'test.pdus_bib_google_google');
+$resp = $ar->check_final_access_status($C, 'test.pdus_bib_google_google');
 is($resp, 'deny');
 
 done_testing();
