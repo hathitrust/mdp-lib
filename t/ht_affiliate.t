@@ -85,6 +85,10 @@ sub test_attr {
     my $id = "test.$attr.$source";
     $Access::Rights::current_location = $location || 'US';
 
+    unless ( $attr ) {
+        print STDERR caller();
+    }
+
     my $ar = Access::Rights->new($C, $id);
     my $status = $ar->check_final_access_status($C, $id);
     return $status;
@@ -92,38 +96,41 @@ sub test_attr {
 
 my $num_tests = 0;
 
+my $attrs = \%RightsGlobals::g_attributes;
+my $sources = \%RightsGlobals::g_sources;
+
 # US institution
-is(test_attr(1, 1), 'allow', 'ht_affiliate + attr=1 + source=1'); $num_tests += 1;
-is(test_attr(2, 1), 'deny', 'ht_affiliate + attr=2'); $num_tests += 1;
-is(test_attr(3, 1), 'deny', 'ht_affiliate + attr=3'); $num_tests += 1;
+is(test_attr($$attrs{'pd'}, $$sources{'google'}), 'allow', 'ht_affiliate + attr=pd + source=1'); $num_tests += 1;
+is(test_attr($$attrs{'ic'}, $$sources{'google'}), 'deny', 'ht_affiliate + attr=ic'); $num_tests += 1;
+is(test_attr($$attrs{'op'}, $$sources{'google'}), 'deny', 'ht_affiliate + attr=op'); $num_tests += 1;
 
 # attr=4 -- requires database lock
 
-is(test_attr(5, 1), 'deny', "ht_affiliate + attr=5"); $num_tests += 1;
-is(test_attr(6, 1), 'allow', "ht_affiliate + attr=6"); $num_tests += 1;
-is(test_attr(7, 1), 'allow', "ht_affiliate + attr=7"); $num_tests += 1;
-is(test_attr(8, 1), 'deny', "ht_affiliate + attr=8"); $num_tests += 1;
-is(test_attr(9, 1), 'allow', "ht_affiliate + attr=9 + user US"); $num_tests += 1;
-is(test_attr(9, 1, 'NONUS'), 'deny', "ht_affiliate + attr=9 + user NONUS"); $num_tests += 1;
-is(test_attr(10, 1), 'allow', "ht_affiliate + attr=10"); $num_tests += 1;
-is(test_attr(11, 1), 'allow', "ht_affiliate + attr=11"); $num_tests += 1;
-is(test_attr(12, 1), 'allow', "ht_affiliate + attr=12"); $num_tests += 1;
-is(test_attr(13, 1), 'allow', "ht_affiliate + attr=13"); $num_tests += 1;
-is(test_attr(14, 1), 'allow', "ht_affiliate + attr=14"); $num_tests += 1;
-is(test_attr(15, 1), 'allow', "ht_affiliate + attr=15"); $num_tests += 1;
-is(test_attr(16, 1), 'deny', "ht_affiliate + attr=16"); $num_tests += 1;
-is(test_attr(17, 1), 'allow', "ht_affiliate + attr=17"); $num_tests += 1;
-is(test_attr(18, 1), 'allow', "ht_affiliate + attr=18"); $num_tests += 1;
-is(test_attr(19, 1), 'deny', "ht_affiliate + attr=19"); $num_tests += 1;
-is(test_attr(19, 1, 'NONUS'), 'allow', "ht_affiliate + attr=19 + user NONUS"); $num_tests += 1;
-is(test_attr(20, 1), 'allow', "ht_affiliate + attr=20"); $num_tests += 1;
-is(test_attr(21, 1), 'allow', "ht_affiliate + attr=21"); $num_tests += 1;
-is(test_attr(22, 1), 'allow', "ht_affiliate + attr=22"); $num_tests += 1;
-is(test_attr(23, 1), 'allow', "ht_affiliate + attr=23"); $num_tests += 1;
-is(test_attr(24, 1), 'allow', "ht_affiliate + attr=24"); $num_tests += 1;
-is(test_attr(25, 1), 'allow', "ht_affiliate + attr=25"); $num_tests += 1;
-is(test_attr(26, 1), 'deny', "ht_affiliate + attr=26"); $num_tests += 1;
-is(test_attr(27, 1), 'deny', "ht_affiliate + attr=27"); $num_tests += 1;
+is(test_attr($$attrs{'und'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=und"); $num_tests += 1;
+is(test_attr($$attrs{'umall'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=umall"); $num_tests += 1;
+is(test_attr($$attrs{'ic-world'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=ic-world"); $num_tests += 1;
+is(test_attr($$attrs{'nobody'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=nobody"); $num_tests += 1;
+is(test_attr($$attrs{'pdus'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=pdus + user US"); $num_tests += 1;
+is(test_attr($$attrs{'pdus'}, 1, 'NONUS'), 'deny', "ht_affiliate + attr=pdus + user NONUS"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-3.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nd-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nd-3.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nc-nd-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-nd-3.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nc-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-3.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nc-sa-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-sa-3.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-sa-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-sa-3.0"); $num_tests += 1;
+is(test_attr($$attrs{'orphcand'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=orphcand"); $num_tests += 1;
+is(test_attr($$attrs{'cc-zero'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-zero"); $num_tests += 1;
+is(test_attr($$attrs{'und-world'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=und-world"); $num_tests += 1;
+is(test_attr($$attrs{'icus'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=icus"); $num_tests += 1;
+is(test_attr($$attrs{'icus'}, $$sources{'google'}, 'NONUS'), 'allow', "ht_affiliate + attr=icus + user NONUS"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-4.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nd-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nd-4.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nc-nd-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-nd-4.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nc-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-4.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-nc-sa-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-sa-4.0"); $num_tests += 1;
+is(test_attr($$attrs{'cc-by-sa-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-sa-4.0"); $num_tests += 1;
+is(test_attr($$attrs{'pd-pvt'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=pd-pvt"); $num_tests += 1;
+is(test_attr($$attrs{'supp'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=supp"); $num_tests += 1;
 
 # NONUS institution
 $ENV{REMOTE_USER} = 'user';
@@ -131,8 +138,8 @@ $ENV{eppn} = q{user@ox.ac.edu};
 delete $ENV{umichCosignFactor};
 $ENV{Shib_Identity_Provider} = q{https://registry.shibboleth.ox.ac.uk/idp};
 $ENV{affiliation} = q{member@ox.ac.edu};
-is(test_attr(9, 1, 'US'), 'allow', "NON US ht_affiliate + attr=9 + user US"); $num_tests += 1;
-is(test_attr(9, 1, 'NONUS'), 'deny', "NON US ht_affiliate + attr=9 + user NONUS"); $num_tests += 1;
+is(test_attr($$attrs{'pdus'}, $$sources{'google'}, 'US'), 'allow', "NON US ht_affiliate + attr=9 + user US"); $num_tests += 1;
+is(test_attr($$attrs{'pdus'}, $$sources{'google'}, 'NONUS'), 'deny', "NON US ht_affiliate + attr=9 + user NONUS"); $num_tests += 1;
 
 done_testing($num_tests);
 
