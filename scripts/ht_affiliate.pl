@@ -14,7 +14,9 @@ use MdpConfig;
 use Database;
 use Session;
 use Auth::Auth;
+use Auth::ACL;
 use Access::Rights;
+use Institutions;
 use CGI;
 
 use IO::File;
@@ -69,11 +71,36 @@ $C->set_object('MdpConfig', $config);
 my $auth = Auth::Auth->new($C);
 $C->set_object('Auth', $auth);
 
-# Database connection
-# NEEDED: for Auth::ACL and Institutions
-my $db = new Database('ht_maintenance');
-our $dbh = $db->get_DBH();
-$C->set_object('Database', $db);
+my $inst_ref = { entityIDs => {} };
+$$inst_ref{entityIDs}{Auth::Auth::get_umich_IdP_entity_id()} = {
+    sdrinst => 'uom',
+    inst_id => 'umich',
+    entityID => Auth::Auth::get_umich_IdP_entity_id(),
+    enabled => 1,
+    allowed_affiliations => q{^(alum|member)@umich.edu},
+    us => 1,
+};
+$$inst_ref{entityIDs}{q{https://registry.shibboleth.ox.ac.uk/idp}} = {
+    sdrinst => 'ox',
+    inst_id => 'ox',
+    entityID => q{https://registry.shibboleth.ox.ac.uk/idp},
+    enabled => 1,
+    allowed_affiliations => q{^(alum|member)@ox.ac.uk},
+    us => 0,
+};
+bless $inst_ref, 'Institutions';
+$C->set_object('Institutions', $inst_ref);
+
+my $acl_ref = {};
+$$acl_ref{'bjensen'} = { userid => 'bjensen' };
+bless $acl_ref, 'Auth::ACL';
+$C->set_object('Auth::ACL', $acl_ref);
+
+# # Database connection
+# # NEEDED: for Auth::ACL and Institutions
+# my $db = new Database('ht_maintenance');
+# our $dbh = $db->get_DBH();
+# $C->set_object('Database', $db);
 
 sub test_attr {
     my ( $attr, $source, $expected, $location ) = @_;
@@ -83,7 +110,7 @@ sub test_attr {
 
     my $ar = Access::Rights->new($C, $id);
     my $status = $ar->check_final_access_status($C, $id);
-    say "attr=$attr : source=$source : $expected == $status : " . ( ( $status eq $expected ) ? 'PASS' : 'FAILED' );
+    say "attr=$attr : source=$source : location=$location : $expected == $status : " . ( ( $status eq $expected ) ? 'PASS' : 'FAILED' );
 }
 
 {
@@ -93,6 +120,7 @@ sub test_attr {
     $ENV{SERVER_PORT} = q{443};
     $ENV{REMOTE_USER} = 'user';
     $ENV{eppn} = q{user@umich.edu};
+    $ENV{umichCosignFactor} = q{UMICH.EDU};
     $ENV{Shib_Identity_Provider} = Auth::Auth::get_umich_IdP_entity_id();
     $ENV{AUTH_TYPE} = q{shibboleth};
     $ENV{affiliation} = q{member@umich.edu};
@@ -109,6 +137,7 @@ sub test_attr {
     test_attr(7, 1, 'allow');
     test_attr(8, 1, 'deny');
     test_attr(9, 1, 'allow');
+    test_attr(9, 1, 'deny', 'NONUS');
 
     {
         local %ENV = %ENV;
