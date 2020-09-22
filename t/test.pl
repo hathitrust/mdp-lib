@@ -8,6 +8,10 @@ use lib "$FindBin::Bin/../../slip-lib";
 use Term::ANSIColor qw(:constants);
 $Term::ANSIColor::AUTORESET = 1;
 
+BEGIN {
+    $ENV{HT_DEV} = 'test';
+}
+
 # Colorization is for Mac Docker app which makes it difficult to distinguish
 # test runs in the logs.
 my @colors = qw(BLACK RED GREEN YELLOW BLUE MAGENTA CYAN WHITE
@@ -22,10 +26,12 @@ foreach my $i (0 .. 9)
 }
 print "\n";
 
-my @test_files = ('mdp-lib/t/namespace.t',
-                  'mdp-lib/t/rights.t',
-                 );
-runtests map { File::Spec->catdir($ENV{SDRROOT}, $_); } @test_files;
+#my @test_files = ('mdp-lib/t/namespace.t',
+#                  'mdp-lib/t/rights.t',
+#                 );
+#runtests map { File::Spec->catdir($ENV{SDRROOT}, $_); } @test_files;
+my @test_files = glob("$FindBin::Bin/../t/*.t");
+runtests @test_files;
 
 foreach my $i (0 .. 9)
 {
