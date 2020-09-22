@@ -361,7 +361,7 @@ our $EMERGENCY_ACCESS_AFFILIATE = 9;
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
            $UM_AFFILIATE          => 'allow', # US affiliate any IP
-           $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
+           $HT_AFFILIATE          => 'allow_by_us_geo_ipaddr', # US IP only
            $ENHANCED_TEXT_USER    => 'allow',
            $EMERGENCY_ACCESS_AFFILIATE => 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings',
           },
@@ -633,6 +633,8 @@ $g_suppressed_attribute_value = 27;
     );
 
 %g_pdus_country_codes_hash = map { $_ => 1 } @g_pdus_country_codes;
+%g_attributes = map { $g_attribute_keys{$_} => $_ } keys %g_attribute_keys;
+%g_sources = map { $g_source_names{$_} => $_ } keys %g_source_names;
 
 1;
 
