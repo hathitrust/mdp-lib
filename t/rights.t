@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use FindBin;
 use File::Spec;
+use lib "$FindBin::Bin/lib";
 
 use Access::Rights;
 use Auth::Auth;
@@ -31,6 +32,12 @@ is($resp, 'allow');
 
 # pdus/bib volume in sql/002_ht_rights_current.sql fixture
 $ar = Access::Rights->new($C, 'test.pdus_bib_google_google');
+$ENV{TEST_GEO_IP_COUNTRY_CODE} = 'US';
+$resp = $ar->check_final_access_status($C, 'test.pdus_bib_google_google');
+is($resp, 'allow');
+
+$ar = Access::Rights->new($C, 'test.pdus_bib_google_google');
+$ENV{TEST_GEO_IP_COUNTRY_CODE} = 'GB';
 $resp = $ar->check_final_access_status($C, 'test.pdus_bib_google_google');
 is($resp, 'deny');
 

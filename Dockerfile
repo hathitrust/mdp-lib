@@ -166,4 +166,6 @@ RUN cpan \
 RUN mkdir /htapps
 RUN mkdir /htapps/babel
 RUN mkdir /htapps/babel/mdp-lib
+RUN mkdir /htapps/test.babel
+RUN mkdir /htapps/test.babel/mdp-lib
 RUN git clone https://github.com/hathitrust/slip-lib.git /htapps/babel/slip-lib
