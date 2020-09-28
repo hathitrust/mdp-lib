@@ -19,6 +19,7 @@ services:
     volumes:
       - .:/htapps/babel/mdp-lib
       - ./etc:/htapps/babel/etc
+      - ./etc:/htapps/test.babel/etc
     environment:
       - SDRROOT=/htapps/babel
       - HT_DEV=
@@ -27,6 +28,7 @@ services:
       - MARIADB_USER=mdp-lib
       - REMOTE_ADDR=127.0.0.1
       - HTTP_HOST=127.0.0.1
+      - SDRVIEW=sample
     depends_on:
       - mariadb
     links:
