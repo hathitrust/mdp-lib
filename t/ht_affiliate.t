@@ -49,10 +49,6 @@ local *Auth::Auth::auth_sys_is_SHIBBOLETH = sub {
 local *Auth::Auth::affiliation_has_emergency_access = sub {
     return 0;
 };
-
-local *Auth::Auth::affiliation_is_umich = sub {
-    return 0;
-};
 #---- MONEKYPATCHES
 
 

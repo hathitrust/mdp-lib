@@ -140,13 +140,12 @@ sub __debug_auth {
                               . q{ prioritized-scoped-affiliation=} . $self->get_eduPersonScopedAffiliation($C)
                                 . q{ institution code=} . $self->get_institution_code($C) . q{ institution-code (mapped)=} . $self->get_institution_code($C, 1)
                                   . q{ institution name=} . $self->get_institution_name($C) . q{ institution-name (mapped)=} . $self->get_institution_name($C, 1)
-                                    . q{ is-umich=} . $self->affiliation_is_umich($C)
+                                    . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
                                       . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                        . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                          . q{ is-emergency-access-affiliate=} . $self->affiliation_has_emergency_access($C)
-                                            . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                                              . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
-                                                . q{ print-disabled=} . $self->user_is_print_disabled($C);
+                                        . q{ is-emergency-access-affiliate=} . $self->affiliation_has_emergency_access($C)
+                                          . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                                            . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                              . q{ print-disabled=} . $self->user_is_print_disabled($C);
 
               $self->{__debug_auth_printed} = 1;
               return $auth_str;
@@ -1188,42 +1187,6 @@ sub __get_displayName {
 
     return $displayName;
 }
-
-# ---------------------------------------------------------------------
-
-=item affiliation_is_umich
-
-This currently is for in-copyright out-of-print-brittle extended
-access not limited to being "in a library"
-
-=cut
-
-# ---------------------------------------------------------------------
-sub affiliation_is_umich {
-    my $self = shift;
-    my $C = shift;
-
-    my $is_umich = 0;
-
-    if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        my $aff = $self->get_eduPersonScopedAffiliation($C);
-        $is_umich = (lc($aff) =~ m,umich.edu$,);
-    }
-    elsif ($self->auth_sys_is_COSIGN($C)) {
-        if (! $self->login_realm_is_friend()) {
-            $is_umich = 1;
-        }
-        else {
-            $is_umich = 0;
-        }
-    }
-    else {
-        $is_umich = 0;
-    }
-
-    return $is_umich;
-}
-
 
 # ---------------------------------------------------------------------
 
