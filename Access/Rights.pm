@@ -1225,10 +1225,6 @@ sub _determine_access_type {
         # entitlement is implemented.
         $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
     }
-    elsif ($auth->affiliation_is_umich($C)) {
-        # full pd PDF on or off-campus + some DLPS ic works
-        $access_type = $RightsGlobals::UM_AFFILIATE;
-    }
     elsif ($auth->affiliation_is_hathitrust($C)) {
         # full pd PDF
         $access_type = $RightsGlobals::HT_AFFILIATE;
