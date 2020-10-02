@@ -13,13 +13,19 @@ use Context;
 use Database;
 use Utils;
 
+local %ENV = %ENV;
+$ENV{HTTP_HOST} = q{babel.hathitrust.org};
+$ENV{SERVER_ADDR} = q{141.213.128.185};
+$ENV{SERVER_PORT} = q{443};
+$ENV{REMOTE_ADDR} = q{127.0.0.1};
+
 my $C = new Context;
 my $cgi = new CGI;
 $C->set_object('CGI', $cgi);
 my $config = new MdpConfig(File::Spec->catdir($ENV{SDRROOT}, 'mdp-lib/Config/uber.conf'),
                            File::Spec->catdir($ENV{SDRROOT}, 'slip-lib/Config/common.conf'));
 $C->set_object('MdpConfig', $config);
-my $db_user = $ENV{'MARIADB_USER'};
+my $db_user = $ENV{'MARIADB_USER'} || 'ht_testing';
 my $db = new Database($db_user);
 $C->set_object('Database', $db);
 my $auth = new Auth::Auth($C);

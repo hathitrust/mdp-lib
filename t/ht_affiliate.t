@@ -5,12 +5,16 @@ use warnings;
 use Test::More;
 use File::Spec;
 
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
 use RightsGlobals;
 
 use MdpConfig;
 use Auth::Auth;
 use Auth::ACL;
 use Access::Rights;
+use Database;
 use Institutions;
 use CGI;
 use Utils;
@@ -29,13 +33,6 @@ local *Access::Rights::get_source_attribute = sub {
     my ($C, $id) = @_;
 
     return ( split(/\./, $id) )[-1];    
-};
-
-$Access::Rights::current_location = 'US';
-local *Access::Rights::_resolve_access_by_GeoIP = sub {
-    my $C = shift;
-    my $required_location = shift;
-    return ( $required_location eq $Access::Rights::current_location ) ? 'allow' : 'deny';
 };
 
 local *Auth::Auth::affiliation_is_hathitrust = sub {
@@ -59,6 +56,10 @@ my $config = new MdpConfig(File::Spec->catdir($ENV{SDRROOT}, 'mdp-lib/Config/ube
                            File::Spec->catdir($ENV{SDRROOT}, 'slip-lib/Config/common.conf'));
 $C->set_object('MdpConfig', $config);
 
+my $db_user = $ENV{'MARIADB_USER'} || 'ht_testing';
+my $db = new Database($db_user);
+$C->set_object('Database', $db);
+
 my $auth = Auth::Auth->new($C);
 $C->set_object('Auth', $auth);
 
@@ -79,7 +80,7 @@ $ENV{affiliation} = q{member@umich.edu};
 sub test_attr {
     my ( $attr, $source, $location ) = @_;
     my $id = "test.$attr.$source";
-    $Access::Rights::current_location = $location || 'US';
+    $ENV{TEST_GEO_IP_COUNTRY_CODE} = $location || 'US';
 
     unless ( $attr ) {
         print STDERR caller();
