@@ -26,19 +26,19 @@ my $auth = new Auth::Auth($C);
 $C->set_object('Auth', $auth);
 
 # pd/bib volume in sql/002_ht_rights_current.sql fixture
-my $ar = Access::Rights->new($C, 'test.pd_bib_google_google');
-my $resp = $ar->check_final_access_status($C, 'test.pd_bib_google_google');
+my $ar = Access::Rights->new($C, 'test.pd_open');
+my $resp = $ar->check_final_access_status($C, 'test.pd_open');
 is($resp, 'allow');
 
 # pdus/bib volume in sql/002_ht_rights_current.sql fixture
-$ar = Access::Rights->new($C, 'test.pdus_bib_google_google');
+$ar = Access::Rights->new($C, 'test.pdus_open');
 $ENV{TEST_GEO_IP_COUNTRY_CODE} = 'US';
-$resp = $ar->check_final_access_status($C, 'test.pdus_bib_google_google');
+$resp = $ar->check_final_access_status($C, 'test.pdus_open');
 is($resp, 'allow');
 
-$ar = Access::Rights->new($C, 'test.pdus_bib_google_google');
+$ar = Access::Rights->new($C, 'test.pdus_open');
 $ENV{TEST_GEO_IP_COUNTRY_CODE} = 'GB';
-$resp = $ar->check_final_access_status($C, 'test.pdus_bib_google_google');
+$resp = $ar->check_final_access_status($C, 'test.pdus_open');
 is($resp, 'deny');
 
 done_testing();
