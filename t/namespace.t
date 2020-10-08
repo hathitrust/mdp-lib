@@ -16,7 +16,7 @@ $C->set_object('CGI', $cgi);
 my $config = new MdpConfig(File::Spec->catdir($ENV{SDRROOT}, 'mdp-lib/Config/uber.conf'),
                            File::Spec->catdir($ENV{SDRROOT}, 'slip-lib/Config/common.conf'));
 $C->set_object('MdpConfig', $config);
-my $db_user = $ENV{'MARIADB_USER'} || 'ht_web';
+my $db_user = $ENV{'MARIADB_USER'} || 'ht_testing';
 my $db = new Database($db_user);
 $C->set_object('Database', $db);
 

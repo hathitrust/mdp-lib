@@ -48,7 +48,7 @@ sub blacklisted {
 
     # Check cache
     if (defined $ip_address_cache{$ip_addr}) {
-        DEBUG('proxy', qq{<pre>return cached blacklist=$blacklist</pre>});
+        DEBUG('proxy', qq{<pre>return cached blacklist=$ip_address_cache{$ip_addr}</pre>});
         return $ip_address_cache{$ip_addr};
     }
     
