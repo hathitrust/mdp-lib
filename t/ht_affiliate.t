@@ -24,20 +24,6 @@ use feature qw(say);
 
 #---- MONEKYPATCHES
 no warnings 'redefine';
-local *Access::Rights::get_rights_attribute = sub {
-    my $self = shift;
-    my ($C, $id) = @_;
-
-    return ( split(/\./, $id) )[-2];    
-};
-
-local *Access::Rights::get_source_attribute = sub {
-    my $self = shift;
-    my ($C, $id) = @_;
-
-    return ( split(/\./, $id) )[-1];    
-};
-
 local *Auth::Auth::affiliation_is_hathitrust = sub {
     return 1;
 };
@@ -92,8 +78,8 @@ sub setup_nonus_instition {
 }
 
 sub test_attr {
-    my ( $attr, $source, $location ) = @_;
-    my $id = "test.$attr.$source";
+    my ( $attr, $access_profile, $location ) = @_;
+    my $id = "test.$attr\_$access_profile";
     $ENV{TEST_GEO_IP_COUNTRY_CODE} = $location || 'US';
 
     unless ( $attr ) {
@@ -106,10 +92,6 @@ sub test_attr {
 }
 
 my $num_tests = 0;
-
-my $attrs = \%RightsGlobals::g_attributes;
-my $sources = \%RightsGlobals::g_sources;
-my $profiles = \%RightsGlobals::g_access_profiles;
 
 my $tests = [];
 while ( my $line = <DATA> ) {
@@ -139,7 +121,8 @@ foreach my $test ( @$tests ) {
     } elsif ( $expected_volume eq 'allow_nonus_aff_by_ipaddr' ) {
         $expected_volume = ( $location eq 'NONUS' ) ? 'allow' : 'deny';
     }
-    is(test_attr($code, $$profiles{$access_profile}, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
+    # is(test_attr($code, $$profiles{$access_profile}, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
+    is(test_attr($attr, $access_profile, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
     $num_tests += 1;
 }
 
@@ -178,8 +161,6 @@ sub mock_acls {
     bless $acl_ref, 'Auth::ACL';
     $C->set_object('Auth::ACL', $acl_ref);
 }
-<<<<<<< HEAD
-=======
 
 __DATA__
 1|pd|open|ht_affiliate|allow|allow|allow|allow
@@ -243,4 +224,3 @@ __DATA__
 26|pd-pvt|google|ht_affiliate|deny|deny|deny|deny
 27|supp|open|ht_affiliate|deny|deny|deny|deny
 27|supp|google|ht_affiliate|deny|deny|deny|deny
->>>>>>> 49e00dc... wut?
