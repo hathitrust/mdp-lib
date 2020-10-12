@@ -19,22 +19,11 @@ use Institutions;
 use CGI;
 use Utils;
 
+use Data::Dumper;
+use feature qw(say);
+
 #---- MONEKYPATCHES
 no warnings 'redefine';
-local *Access::Rights::get_rights_attribute = sub {
-    my $self = shift;
-    my ($C, $id) = @_;
-
-    return ( split(/\./, $id) )[-2];    
-};
-
-local *Access::Rights::get_source_attribute = sub {
-    my $self = shift;
-    my ($C, $id) = @_;
-
-    return ( split(/\./, $id) )[-1];    
-};
-
 local *Auth::Auth::affiliation_is_hathitrust = sub {
     return 1;
 };
@@ -70,16 +59,27 @@ local %ENV = %ENV;
 $ENV{HTTP_HOST} = q{babel.hathitrust.org};
 $ENV{SERVER_ADDR} = q{141.213.128.185};
 $ENV{SERVER_PORT} = q{443};
-$ENV{REMOTE_USER} = 'user';
-$ENV{eppn} = q{user@umich.edu};
-$ENV{umichCosignFactor} = q{UMICH.EDU};
-$ENV{Shib_Identity_Provider} = Auth::Auth::get_umich_IdP_entity_id();
 $ENV{AUTH_TYPE} = q{shibboleth};
 $ENV{affiliation} = q{member@umich.edu};
 
+sub setup_us_institution {
+    $ENV{REMOTE_USER} = 'user';
+    $ENV{eppn} = q{user@umich.edu};
+    $ENV{umichCosignFactor} = q{UMICH.EDU};
+    $ENV{Shib_Identity_Provider} = Auth::Auth::get_umich_IdP_entity_id();    
+}
+
+sub setup_nonus_instition {
+    $ENV{REMOTE_USER} = 'user';
+    $ENV{eppn} = q{user@ox.ac.edu};
+    delete $ENV{umichCosignFactor};
+    $ENV{Shib_Identity_Provider} = q{https://registry.shibboleth.ox.ac.uk/idp};
+    $ENV{affiliation} = q{member@ox.ac.edu};
+}
+
 sub test_attr {
-    my ( $attr, $source, $location ) = @_;
-    my $id = "test.$attr.$source";
+    my ( $attr, $access_profile, $location ) = @_;
+    my $id = "test.$attr\_$access_profile";
     $ENV{TEST_GEO_IP_COUNTRY_CODE} = $location || 'US';
 
     unless ( $attr ) {
@@ -93,50 +93,38 @@ sub test_attr {
 
 my $num_tests = 0;
 
-my $attrs = \%RightsGlobals::g_attributes;
-my $sources = \%RightsGlobals::g_sources;
+my $tests = [];
+while ( my $line = <DATA> ) {
+    chomp $line;
+    next unless ( $line );
+    push @$tests, [ split(/\|/, $line) ];
+}
 
-# US institution
-is(test_attr($$attrs{'pd'}, $$sources{'google'}), 'allow', 'ht_affiliate + attr=pd + source=1'); $num_tests += 1;
-is(test_attr($$attrs{'ic'}, $$sources{'google'}), 'deny', 'ht_affiliate + attr=ic'); $num_tests += 1;
-is(test_attr($$attrs{'op'}, $$sources{'google'}), 'deny', 'ht_affiliate + attr=op'); $num_tests += 1;
+foreach my $test ( @$tests ) {
+    my ( 
+        $code, 
+        $attr, 
+        $access_profile, 
+        $access_type, 
+        $expected_volume,
+        $expected_download_page,
+        $expected_download_volume,
+        $expected_download_plaintext
+    ) = @$test;
 
-# attr=4 -- requires database lock
+    my $location = $access_type =~ m,NONUS, ? 'NONUS' : 'US';
+    if ( $location eq 'US' ) { setup_us_institution(); }
+    else { setup_nonus_instition(); }
 
-is(test_attr($$attrs{'und'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=und"); $num_tests += 1;
-is(test_attr($$attrs{'umall'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=umall"); $num_tests += 1;
-is(test_attr($$attrs{'ic-world'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=ic-world"); $num_tests += 1;
-is(test_attr($$attrs{'nobody'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=nobody"); $num_tests += 1;
-is(test_attr($$attrs{'pdus'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=pdus + user US"); $num_tests += 1;
-is(test_attr($$attrs{'pdus'}, 1, 'NONUS'), 'deny', "ht_affiliate + attr=pdus + user NONUS"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-3.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nd-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nd-3.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nc-nd-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-nd-3.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nc-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-3.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nc-sa-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-sa-3.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-sa-3.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-sa-3.0"); $num_tests += 1;
-is(test_attr($$attrs{'orphcand'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=orphcand"); $num_tests += 1;
-is(test_attr($$attrs{'cc-zero'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-zero"); $num_tests += 1;
-is(test_attr($$attrs{'und-world'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=und-world"); $num_tests += 1;
-is(test_attr($$attrs{'icus'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=icus"); $num_tests += 1;
-is(test_attr($$attrs{'icus'}, $$sources{'google'}, 'NONUS'), 'allow', "ht_affiliate + attr=icus + user NONUS"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-4.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nd-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nd-4.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nc-nd-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-nd-4.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nc-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-4.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-nc-sa-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-nc-sa-4.0"); $num_tests += 1;
-is(test_attr($$attrs{'cc-by-sa-4.0'}, $$sources{'google'}), 'allow', "ht_affiliate + attr=cc-by-sa-4.0"); $num_tests += 1;
-is(test_attr($$attrs{'pd-pvt'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=pd-pvt"); $num_tests += 1;
-is(test_attr($$attrs{'supp'}, $$sources{'google'}), 'deny', "ht_affiliate + attr=supp"); $num_tests += 1;
-
-# NONUS institution
-$ENV{REMOTE_USER} = 'user';
-$ENV{eppn} = q{user@ox.ac.edu};
-delete $ENV{umichCosignFactor};
-$ENV{Shib_Identity_Provider} = q{https://registry.shibboleth.ox.ac.uk/idp};
-$ENV{affiliation} = q{member@ox.ac.edu};
-is(test_attr($$attrs{'pdus'}, $$sources{'google'}, 'US'), 'allow', "NON US ht_affiliate + attr=9 + user US"); $num_tests += 1;
-is(test_attr($$attrs{'pdus'}, $$sources{'google'}, 'NONUS'), 'deny', "NON US ht_affiliate + attr=9 + user NONUS"); $num_tests += 1;
+    if ( $expected_volume eq 'allow_by_us_geo_ipaddr' ) {
+        $expected_volume = ( $location eq 'NONUS' ) ? 'deny' : 'allow';
+    } elsif ( $expected_volume eq 'allow_nonus_aff_by_ipaddr' ) {
+        $expected_volume = ( $location eq 'NONUS' ) ? 'allow' : 'deny';
+    }
+    # is(test_attr($code, $$profiles{$access_profile}, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
+    is(test_attr($attr, $access_profile, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
+    $num_tests += 1;
+}
 
 done_testing($num_tests);
 
@@ -173,3 +161,66 @@ sub mock_acls {
     bless $acl_ref, 'Auth::ACL';
     $C->set_object('Auth::ACL', $acl_ref);
 }
+
+__DATA__
+1|pd|open|ht_affiliate|allow|allow|allow|allow
+1|pd|google|ht_affiliate|allow|allow|allow|allow
+1|pd|page|ht_affiliate|allow|allow|deny|allow
+2|ic|open|ht_affiliate|deny|deny|deny|deny
+2|ic|google|ht_affiliate|deny|deny|deny|deny
+2|ic|page|ht_affiliate|deny|deny|deny|deny
+3|op|open|ht_affiliate|deny|deny|deny|deny
+3|op|google|ht_affiliate|deny|deny|deny|deny
+5|und|open|ht_affiliate|deny|deny|deny|deny
+5|und|google|ht_affiliate|deny|deny|deny|deny
+5|und|page|ht_affiliate|deny|deny|deny|deny
+7|ic-world|open|ht_affiliate|allow|allow|allow|allow
+7|ic-world|google|ht_affiliate|allow|allow|allow|allow
+7|ic-world|page|ht_affiliate|allow|allow|deny|allow
+8|nobody|open|ht_affiliate|deny|deny|deny|deny
+8|nobody|google|ht_affiliate|deny|deny|deny|deny
+8|nobody|page|ht_affiliate|deny|deny|deny|deny
+9|pdus|open|ht_affiliate - NONUS|deny|deny|deny|deny
+9|pdus|google|ht_affiliate - NONUS|deny|deny|deny|deny
+9|pdus|page|ht_affiliate - NONUS|deny|deny|deny|deny
+9|pdus|open|ht_affiliate - US|allow_by_us_geo_ipaddr|allow|allow|allow
+9|pdus|google|ht_affiliate - US|allow_by_us_geo_ipaddr|allow|allow|allow
+9|pdus|page|ht_affiliate - US|allow_by_us_geo_ipaddr|allow|deny|allow
+10|cc-by-3.0|open|ht_affiliate|allow|allow|allow|deny
+10|cc-by-3.0|google|ht_affiliate|allow|allow|allow|deny
+11|cc-by-nd-3.0|open|ht_affiliate|allow|allow|allow|deny
+11|cc-by-nd-3.0|google|ht_affiliate|allow|allow|allow|deny
+12|cc-by-nc-nd-3.0|open|ht_affiliate|allow|allow|allow|deny
+12|cc-by-nc-nd-3.0|google|ht_affiliate|allow|allow|allow|deny
+12|cc-by-nc-nd-3.0|page|ht_affiliate|allow|allow|allow|deny
+13|cc-by-nc-3.0|open|ht_affiliate|allow|allow|allow|deny
+13|cc-by-nc-3.0|google|ht_affiliate|allow|allow|allow|deny
+13|cc-by-nc-3.0|page|ht_affiliate|allow|allow|allow|deny
+14|cc-by-nc-sa-3.0|open|ht_affiliate|allow|allow|allow|deny
+14|cc-by-nc-sa-3.0|google|ht_affiliate|allow|allow|allow|deny
+15|cc-by-sa-3.0|google|ht_affiliate|allow|allow|allow|deny
+17|cc-zero|open|ht_affiliate|allow|allow|allow|deny
+17|cc-zero|google|ht_affiliate|allow|allow|allow|deny
+17|cc-zero|page|ht_affiliate|allow|allow|allow|deny
+18|und-world|page+lowres|ht_affiliate|allow|allow|deny|allow
+19|icus|open|ht_affiliate - NONUS|allow_nonus_aff_by_ipaddr|allow|allow|allow
+19|icus|google|ht_affiliate - NONUS|allow_nonus_aff_by_ipaddr|allow|allow|allow
+19|icus|open|ht_affiliate - US|deny|deny|deny|deny
+19|icus|google|ht_affiliate - US|deny|deny|deny|deny
+20|cc-by-4.0|open|ht_affiliate|allow|allow|allow|deny
+20|cc-by-4.0|google|ht_affiliate|allow|allow|allow|deny
+21|cc-by-nd-4.0|open|ht_affiliate|allow|allow|allow|deny
+21|cc-by-nd-4.0|google|ht_affiliate|allow|allow|allow|deny
+22|cc-by-nc-nd-4.0|open|ht_affiliate|allow|allow|allow|deny
+22|cc-by-nc-nd-4.0|google|ht_affiliate|allow|allow|allow|deny
+22|cc-by-nc-nd-4.0|page|ht_affiliate|allow|allow|allow|deny
+23|cc-by-nc-4.0|open|ht_affiliate|allow|allow|allow|deny
+23|cc-by-nc-4.0|google|ht_affiliate|allow|allow|allow|deny
+24|cc-by-nc-sa-4.0|open|ht_affiliate|allow|allow|allow|deny
+24|cc-by-nc-sa-4.0|google|ht_affiliate|allow|allow|allow|deny
+25|cc-by-sa-4.0|open|ht_affiliate|allow|allow|allow|deny
+25|cc-by-sa-4.0|google|ht_affiliate|allow|allow|allow|deny
+26|pd-pvt|open|ht_affiliate|deny|deny|deny|deny
+26|pd-pvt|google|ht_affiliate|deny|deny|deny|deny
+27|supp|open|ht_affiliate|deny|deny|deny|deny
+27|supp|google|ht_affiliate|deny|deny|deny|deny

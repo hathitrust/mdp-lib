@@ -606,6 +606,7 @@ $g_suppressed_attribute_value = 27;
 %g_pdus_country_codes_hash = map { $_ => 1 } @g_pdus_country_codes;
 %g_attributes = map { $g_attribute_keys{$_} => $_ } keys %g_attribute_keys;
 %g_sources = map { $g_source_names{$_} => $_ } keys %g_source_names;
+%g_access_profiles = map { $g_access_profile_names{$_} => $_ } keys %g_access_profile_names;
 
 1;
 
