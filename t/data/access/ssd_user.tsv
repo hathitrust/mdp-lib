@@ -1,0 +1,60 @@
+Attribute Code	Attribute	Access Profile	Access Type	Can access volume?	Can download single page?	Can download multiple pages?	Can view multiple plaintext?
+1	pd	open	ssd_user	allow	allow	allow	allow
+1	pd	google	ssd_user	allow	allow	deny	allow
+1	pd	page	ssd_user	allow	allow	deny	allow
+2	ic	open	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+2	ic	google	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+2	ic	page	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+3	op	open	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+3	op	google	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+5	und	open	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+5	und	google	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+5	und	page	ssd_user	allow_ssd_by_holdings	allow	deny	allow
+7	ic-world	open	ssd_user	allow	allow	allow	allow
+7	ic-world	google	ssd_user	allow	allow	deny	allow
+7	ic-world	page	ssd_user	allow	allow	deny	allow
+8	nobody	open	ssd_user	deny	deny	deny	deny
+8	nobody	google	ssd_user	deny	deny	deny	deny
+8	nobody	page	ssd_user	deny	deny	deny	deny
+10	cc-by-3.0	open	ssd_user	allow	allow	allow	allow
+10	cc-by-3.0	google	ssd_user	allow	allow	allow	allow
+11	cc-by-nd-3.0	open	ssd_user	allow	allow	allow	allow
+11	cc-by-nd-3.0	google	ssd_user	allow	allow	allow	allow
+12	cc-by-nc-nd-3.0	open	ssd_user	allow	allow	allow	allow
+12	cc-by-nc-nd-3.0	google	ssd_user	allow	allow	allow	allow
+12	cc-by-nc-nd-3.0	page	ssd_user	allow	allow	allow	allow
+13	cc-by-nc-3.0	open	ssd_user	allow	allow	allow	allow
+13	cc-by-nc-3.0	google	ssd_user	allow	allow	allow	allow
+13	cc-by-nc-3.0	page	ssd_user	allow	allow	allow	allow
+14	cc-by-nc-sa-3.0	open	ssd_user	allow	allow	allow	allow
+14	cc-by-nc-sa-3.0	google	ssd_user	allow	allow	allow	allow
+15	cc-by-sa-3.0	google	ssd_user	allow	allow	allow	allow
+17	cc-zero	open	ssd_user	allow	allow	allow	allow
+17	cc-zero	google	ssd_user	allow	allow	allow	allow
+17	cc-zero	page	ssd_user	allow	allow	allow	allow
+18	und-world	page+lowres	ssd_user	allow	allow	deny	allow
+19	icus	open	ssd_user	allow_ssd_by_holdings_by_geo_ipaddr	allow	allow	allow
+19	icus	google	ssd_user	allow_ssd_by_holdings_by_geo_ipaddr	allow	deny	allow
+20	cc-by-4.0	open	ssd_user	allow	allow	allow	allow
+20	cc-by-4.0	google	ssd_user	allow	allow	allow	allow
+21	cc-by-nd-4.0	open	ssd_user	allow	allow	allow	allow
+21	cc-by-nd-4.0	google	ssd_user	allow	allow	allow	allow
+22	cc-by-nc-nd-4.0	open	ssd_user	allow	allow	allow	allow
+22	cc-by-nc-nd-4.0	google	ssd_user	allow	allow	allow	allow
+22	cc-by-nc-nd-4.0	page	ssd_user	allow	allow	allow	allow
+23	cc-by-nc-4.0	open	ssd_user	allow	allow	allow	allow
+23	cc-by-nc-4.0	google	ssd_user	allow	allow	allow	allow
+24	cc-by-nc-sa-4.0	open	ssd_user	allow	allow	allow	allow
+24	cc-by-nc-sa-4.0	google	ssd_user	allow	allow	allow	allow
+25	cc-by-sa-4.0	open	ssd_user	allow	allow	allow	allow
+25	cc-by-sa-4.0	google	ssd_user	allow	allow	allow	allow
+26	pd-pvt	open	ssd_user	deny	deny	deny	deny
+26	pd-pvt	google	ssd_user	deny	deny	deny	deny
+27	supp	open	ssd_user	deny	deny	deny	deny
+27	supp	google	ssd_user	deny	deny	deny	deny
+9	pdus	open	ssd_user - NONUS	deny	deny	deny	deny
+9	pdus	google	ssd_user - NONUS	deny	deny	deny	deny
+9	pdus	page	ssd_user - NONUS	deny	deny	deny	deny
+9	pdus	open	ssd_user - US	allow_us_aff_by_ipaddr	allow	allow	allow
+9	pdus	google	ssd_user - US	allow_us_aff_by_ipaddr	allow	deny	allow
+9	pdus	page	ssd_user - US	allow_us_aff_by_ipaddr	allow	deny	allow

@@ -12,6 +12,8 @@ BEGIN {
     $ENV{HT_DEV} = 'test';
 }
 
+system("mkdir /ram") unless ( -d "/ram" );
+
 # Colorization is for Mac Docker app which makes it difficult to distinguish
 # test runs in the logs.
 my @colors = qw(BLACK RED GREEN YELLOW BLUE MAGENTA CYAN WHITE

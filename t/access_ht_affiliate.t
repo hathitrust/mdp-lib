@@ -19,6 +19,8 @@ use Institutions;
 use CGI;
 use Utils;
 
+use Test::File;
+
 use Data::Dumper;
 use feature qw(say);
 
@@ -93,12 +95,7 @@ sub test_attr {
 
 my $num_tests = 0;
 
-my $tests = [];
-while ( my $line = <DATA> ) {
-    chomp $line;
-    next unless ( $line );
-    push @$tests, [ split(/\|/, $line) ];
-}
+my $tests = Test::File::load_data("$FindBin::Bin/data/access/ht_affiliate.tsv");
 
 foreach my $test ( @$tests ) {
     my ( 
@@ -121,8 +118,7 @@ foreach my $test ( @$tests ) {
     } elsif ( $expected_volume eq 'allow_nonus_aff_by_ipaddr' ) {
         $expected_volume = ( $location eq 'NONUS' ) ? 'allow' : 'deny';
     }
-    # is(test_attr($code, $$profiles{$access_profile}, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
-    is(test_attr($attr, $access_profile, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + proflie=$access_profile");
+    is(test_attr($attr, $access_profile, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + profile=$access_profile");
     $num_tests += 1;
 }
 
@@ -162,65 +158,3 @@ sub mock_acls {
     $C->set_object('Auth::ACL', $acl_ref);
 }
 
-__DATA__
-1|pd|open|ht_affiliate|allow|allow|allow|allow
-1|pd|google|ht_affiliate|allow|allow|allow|allow
-1|pd|page|ht_affiliate|allow|allow|deny|allow
-2|ic|open|ht_affiliate|deny|deny|deny|deny
-2|ic|google|ht_affiliate|deny|deny|deny|deny
-2|ic|page|ht_affiliate|deny|deny|deny|deny
-3|op|open|ht_affiliate|deny|deny|deny|deny
-3|op|google|ht_affiliate|deny|deny|deny|deny
-5|und|open|ht_affiliate|deny|deny|deny|deny
-5|und|google|ht_affiliate|deny|deny|deny|deny
-5|und|page|ht_affiliate|deny|deny|deny|deny
-7|ic-world|open|ht_affiliate|allow|allow|allow|allow
-7|ic-world|google|ht_affiliate|allow|allow|allow|allow
-7|ic-world|page|ht_affiliate|allow|allow|deny|allow
-8|nobody|open|ht_affiliate|deny|deny|deny|deny
-8|nobody|google|ht_affiliate|deny|deny|deny|deny
-8|nobody|page|ht_affiliate|deny|deny|deny|deny
-9|pdus|open|ht_affiliate - NONUS|deny|deny|deny|deny
-9|pdus|google|ht_affiliate - NONUS|deny|deny|deny|deny
-9|pdus|page|ht_affiliate - NONUS|deny|deny|deny|deny
-9|pdus|open|ht_affiliate - US|allow_by_us_geo_ipaddr|allow|allow|allow
-9|pdus|google|ht_affiliate - US|allow_by_us_geo_ipaddr|allow|allow|allow
-9|pdus|page|ht_affiliate - US|allow_by_us_geo_ipaddr|allow|deny|allow
-10|cc-by-3.0|open|ht_affiliate|allow|allow|allow|deny
-10|cc-by-3.0|google|ht_affiliate|allow|allow|allow|deny
-11|cc-by-nd-3.0|open|ht_affiliate|allow|allow|allow|deny
-11|cc-by-nd-3.0|google|ht_affiliate|allow|allow|allow|deny
-12|cc-by-nc-nd-3.0|open|ht_affiliate|allow|allow|allow|deny
-12|cc-by-nc-nd-3.0|google|ht_affiliate|allow|allow|allow|deny
-12|cc-by-nc-nd-3.0|page|ht_affiliate|allow|allow|allow|deny
-13|cc-by-nc-3.0|open|ht_affiliate|allow|allow|allow|deny
-13|cc-by-nc-3.0|google|ht_affiliate|allow|allow|allow|deny
-13|cc-by-nc-3.0|page|ht_affiliate|allow|allow|allow|deny
-14|cc-by-nc-sa-3.0|open|ht_affiliate|allow|allow|allow|deny
-14|cc-by-nc-sa-3.0|google|ht_affiliate|allow|allow|allow|deny
-15|cc-by-sa-3.0|google|ht_affiliate|allow|allow|allow|deny
-17|cc-zero|open|ht_affiliate|allow|allow|allow|deny
-17|cc-zero|google|ht_affiliate|allow|allow|allow|deny
-17|cc-zero|page|ht_affiliate|allow|allow|allow|deny
-18|und-world|page+lowres|ht_affiliate|allow|allow|deny|allow
-19|icus|open|ht_affiliate - NONUS|allow_nonus_aff_by_ipaddr|allow|allow|allow
-19|icus|google|ht_affiliate - NONUS|allow_nonus_aff_by_ipaddr|allow|allow|allow
-19|icus|open|ht_affiliate - US|deny|deny|deny|deny
-19|icus|google|ht_affiliate - US|deny|deny|deny|deny
-20|cc-by-4.0|open|ht_affiliate|allow|allow|allow|deny
-20|cc-by-4.0|google|ht_affiliate|allow|allow|allow|deny
-21|cc-by-nd-4.0|open|ht_affiliate|allow|allow|allow|deny
-21|cc-by-nd-4.0|google|ht_affiliate|allow|allow|allow|deny
-22|cc-by-nc-nd-4.0|open|ht_affiliate|allow|allow|allow|deny
-22|cc-by-nc-nd-4.0|google|ht_affiliate|allow|allow|allow|deny
-22|cc-by-nc-nd-4.0|page|ht_affiliate|allow|allow|allow|deny
-23|cc-by-nc-4.0|open|ht_affiliate|allow|allow|allow|deny
-23|cc-by-nc-4.0|google|ht_affiliate|allow|allow|allow|deny
-24|cc-by-nc-sa-4.0|open|ht_affiliate|allow|allow|allow|deny
-24|cc-by-nc-sa-4.0|google|ht_affiliate|allow|allow|allow|deny
-25|cc-by-sa-4.0|open|ht_affiliate|allow|allow|allow|deny
-25|cc-by-sa-4.0|google|ht_affiliate|allow|allow|allow|deny
-26|pd-pvt|open|ht_affiliate|deny|deny|deny|deny
-26|pd-pvt|google|ht_affiliate|deny|deny|deny|deny
-27|supp|open|ht_affiliate|deny|deny|deny|deny
-27|supp|google|ht_affiliate|deny|deny|deny|deny

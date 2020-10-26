@@ -1,0 +1,60 @@
+Attribute Code	Attribute	Access Profile	Access Type	Can access volume?	Can download single page?	Can download multiple pages?	Can view multiple plaintext?
+1	pd	open	emergency_access_affiliate	allow	allow	allow	deny
+1	pd	google	emergency_access_affiliate	allow	allow	allow	deny
+1	pd	page	emergency_access_affiliate	allow	allow	deny	deny
+2	ic	open	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+2	ic	google	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+2	ic	page	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+3	op	open	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+3	op	google	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+5	und	open	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+5	und	google	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+5	und	page	emergency_access_affiliate	allow_emergency_access_by_holdings	deny	deny	deny
+7	ic-world	open	emergency_access_affiliate	allow	allow	allow	deny
+7	ic-world	google	emergency_access_affiliate	allow	allow	allow	deny
+7	ic-world	page	emergency_access_affiliate	allow	allow	deny	deny
+8	nobody	open	emergency_access_affiliate	deny	deny	deny	deny
+8	nobody	google	emergency_access_affiliate	deny	deny	deny	deny
+8	nobody	page	emergency_access_affiliate	deny	deny	deny	deny
+9	pdus	open	emergency_access_affiliate - NONUS	allow_us_aff_by_ipaddr_or_emergency_access_by_holdings	deny	deny	deny
+9	pdus	google	emergency_access_affiliate - NONUS	allow_us_aff_by_ipaddr_or_emergency_access_by_holdings	deny	deny	deny
+9	pdus	page	emergency_access_affiliate - NONUS	allow_us_aff_by_ipaddr_or_emergency_access_by_holdings	deny	deny	deny
+9	pdus	open	emergency_access_affiliate - US	allow_us_aff_by_ipaddr_or_emergency_access_by_holdings	allow	allow	deny
+9	pdus	google	emergency_access_affiliate - US	allow_us_aff_by_ipaddr_or_emergency_access_by_holdings	allow	allow	deny
+9	pdus	page	emergency_access_affiliate - US	allow_us_aff_by_ipaddr_or_emergency_access_by_holdings	allow	deny	deny
+10	cc-by-3.0	open	emergency_access_affiliate	allow	allow	allow	deny
+10	cc-by-3.0	google	emergency_access_affiliate	allow	allow	allow	deny
+11	cc-by-nd-3.0	open	emergency_access_affiliate	allow	allow	allow	deny
+11	cc-by-nd-3.0	google	emergency_access_affiliate	allow	allow	allow	deny
+12	cc-by-nc-nd-3.0	open	emergency_access_affiliate	allow	allow	allow	deny
+12	cc-by-nc-nd-3.0	google	emergency_access_affiliate	allow	allow	allow	deny
+12	cc-by-nc-nd-3.0	page	emergency_access_affiliate	allow	allow	allow	deny
+13	cc-by-nc-3.0	open	emergency_access_affiliate	allow	allow	allow	deny
+13	cc-by-nc-3.0	google	emergency_access_affiliate	allow	allow	allow	deny
+13	cc-by-nc-3.0	page	emergency_access_affiliate	allow	allow	allow	deny
+14	cc-by-nc-sa-3.0	open	emergency_access_affiliate	allow	allow	allow	deny
+14	cc-by-nc-sa-3.0	google	emergency_access_affiliate	allow	allow	allow	deny
+15	cc-by-sa-3.0	google	emergency_access_affiliate	allow	allow	allow	deny
+17	cc-zero	open	emergency_access_affiliate	allow	allow	allow	deny
+17	cc-zero	google	emergency_access_affiliate	allow	allow	allow	deny
+17	cc-zero	page	emergency_access_affiliate	allow	allow	allow	deny
+18	und-world	page+lowres	emergency_access_affiliate	allow	allow	deny	deny
+19	icus	open	emergency_access_affiliate	allow_emergency_access_by_holdings_by_geo_ipaddr	allow	allow	deny
+19	icus	google	emergency_access_affiliate	allow_emergency_access_by_holdings_by_geo_ipaddr	allow	allow	deny
+20	cc-by-4.0	open	emergency_access_affiliate	allow	allow	allow	deny
+20	cc-by-4.0	google	emergency_access_affiliate	allow	allow	allow	deny
+21	cc-by-nd-4.0	open	emergency_access_affiliate	allow	allow	allow	deny
+21	cc-by-nd-4.0	google	emergency_access_affiliate	allow	allow	allow	deny
+22	cc-by-nc-nd-4.0	open	emergency_access_affiliate	allow	allow	allow	deny
+22	cc-by-nc-nd-4.0	google	emergency_access_affiliate	allow	allow	allow	deny
+22	cc-by-nc-nd-4.0	page	emergency_access_affiliate	allow	allow	allow	deny
+23	cc-by-nc-4.0	open	emergency_access_affiliate	allow	allow	allow	deny
+23	cc-by-nc-4.0	google	emergency_access_affiliate	allow	allow	allow	deny
+24	cc-by-nc-sa-4.0	open	emergency_access_affiliate	allow	allow	allow	deny
+24	cc-by-nc-sa-4.0	google	emergency_access_affiliate	allow	allow	allow	deny
+25	cc-by-sa-4.0	open	emergency_access_affiliate	allow	allow	allow	deny
+25	cc-by-sa-4.0	google	emergency_access_affiliate	allow	allow	allow	deny
+26	pd-pvt	open	emergency_access_affiliate	deny	deny	deny	deny
+26	pd-pvt	google	emergency_access_affiliate	deny	deny	deny	deny
+27	supp	open	emergency_access_affiliate	deny	deny	deny	deny
+27	supp	google	emergency_access_affiliate	deny	deny	deny	deny
