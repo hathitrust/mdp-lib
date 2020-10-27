@@ -27,7 +27,7 @@ use feature qw(say);
 #---- MONEKYPATCHES
 no warnings 'redefine';
 local *Auth::Auth::affiliation_is_hathitrust = sub {
-    return 1;
+    return 0;
 };
 
 local *Auth::Auth::auth_sys_is_SHIBBOLETH = sub {
@@ -62,21 +62,13 @@ $ENV{HTTP_HOST} = q{babel.hathitrust.org};
 $ENV{SERVER_ADDR} = q{141.213.128.185};
 $ENV{SERVER_PORT} = q{443};
 $ENV{AUTH_TYPE} = q{shibboleth};
-$ENV{affiliation} = q{member@umich.edu};
+$ENV{affiliation} = q{member@nfb.org};
 
-sub setup_us_institution {
-    $ENV{REMOTE_USER} = 'user@umich.edu';
-    $ENV{eppn} = q{user@umich.edu};
-    $ENV{umichCosignFactor} = q{UMICH.EDU};
-    $ENV{Shib_Identity_Provider} = Auth::Auth::get_umich_IdP_entity_id();    
-}
-
-sub setup_nonus_instition {
-    $ENV{REMOTE_USER} = 'user@ox.ac.edu';
-    $ENV{eppn} = q{user@ox.ac.edu};
-    delete $ENV{umichCosignFactor};
-    $ENV{Shib_Identity_Provider} = q{https://registry.shibboleth.ox.ac.uk/idp};
-    $ENV{affiliation} = q{member@ox.ac.edu};
+sub setup_institution {
+    $ENV{REMOTE_USER} = 'user';
+    $ENV{eppn} = q{user@nfb.org};
+    $ENV{Shib_Identity_Provider} = q{pumex-idp};
+    $ENV{affiliation} = q{member@nfb.org};
 }
 
 sub test_attr {
@@ -95,7 +87,7 @@ sub test_attr {
 
 my $num_tests = 0;
 
-my $tests = Test::File::load_data("$FindBin::Bin/data/access/ht_affiliate.tsv");
+my $tests = Test::File::load_data("$FindBin::Bin/data/access/enhanced_text_user.tsv");
 
 foreach my $test ( @$tests ) {
     my ( 
@@ -109,16 +101,10 @@ foreach my $test ( @$tests ) {
         $expected_download_plaintext
     ) = @$test;
 
-    my $location = $access_type =~ m,NONUS, ? 'NONUS' : 'US';
-    if ( $location eq 'US' ) { setup_us_institution(); }
-    else { setup_nonus_instition(); }
+    my $location = 'US';
+    setup_institution();
 
-    if ( $expected_volume eq 'allow_by_us_geo_ipaddr' ) {
-        $expected_volume = ( $location eq 'NONUS' ) ? 'deny' : 'allow';
-    } elsif ( $expected_volume eq 'allow_nonus_aff_by_ipaddr' ) {
-        $expected_volume = ( $location eq 'NONUS' ) ? 'allow' : 'deny';
-    }
-    is(test_attr($attr, $access_profile, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + profile=$access_profile");
+    is(test_attr($attr, $access_profile, $location), $expected_volume, "enhanced_text_user + attr=$attr + location=$location + profile=$access_profile");
     $num_tests += 1;
 }
 
@@ -129,21 +115,13 @@ sub mock_institutions {
     my ( $C ) = @_;
 
     my $inst_ref = { entityIDs => {} };
-    $$inst_ref{entityIDs}{Auth::Auth::get_umich_IdP_entity_id()} = {
-        sdrinst => 'uom',
-        inst_id => 'umich',
-        entityID => Auth::Auth::get_umich_IdP_entity_id(),
+    $$inst_ref{entityIDs}{'pumex-idp'} = {
+        sdrinst => 'nfb',
+        inst_id => 'nfb',
+        entityID => q{pumex-idp},
         enabled => 1,
-        allowed_affiliations => q{^(alum|member)@umich.edu},
+        allowed_affiliations => q{^(alum|member)@nfb.org},
         us => 1,
-    };
-    $$inst_ref{entityIDs}{q{https://registry.shibboleth.ox.ac.uk/idp}} = {
-        sdrinst => 'ox',
-        inst_id => 'ox',
-        entityID => q{https://registry.shibboleth.ox.ac.uk/idp},
-        enabled => 1,
-        allowed_affiliations => q{^(alum|member)@ox.ac.uk},
-        us => 0,
     };
     bless $inst_ref, 'Institutions';
     $C->set_object('Institutions', $inst_ref);
@@ -153,7 +131,7 @@ sub mock_acls {
     my ( $C ) = @_;
 
     my $acl_ref = {};
-    $$acl_ref{'bjensen'} = { userid => 'bjensen' };
+    $$acl_ref{'user@umich.edu'} = { userid => 'user@umich.edu', role => 'corrections', usertype => 'staff', access => 'total', expires => '2040-12-31 23:59:59' };
     bless $acl_ref, 'Auth::ACL';
     $C->set_object('Auth::ACL', $acl_ref);
 }

@@ -35,7 +35,21 @@ local *Auth::Auth::auth_sys_is_SHIBBOLETH = sub {
 };
 
 local *Auth::Auth::affiliation_has_emergency_access = sub {
-    return 0;
+    return 1;
+};
+
+local *Access::Holdings::id_is_held = sub {
+    my ( $C, $id, $inst ) = @_;
+    # pretend that no google books are held by the institution
+    return ( $id =~ m,google, ) ? 0 : 1;
+};
+
+local *Access::Rights::_assert_access_exclusivity = sub {
+    return 'allow';
+};
+
+local *Access::Rights::_check_access_exclusivity = sub {
+    return 'allow';
 };
 #---- MONEKYPATCHES
 
@@ -79,6 +93,7 @@ sub setup_nonus_instition {
     $ENV{affiliation} = q{member@ox.ac.edu};
 }
 
+
 sub test_attr {
     my ( $attr, $access_profile, $location ) = @_;
     my $id = "test.$attr\_$access_profile";
@@ -95,7 +110,7 @@ sub test_attr {
 
 my $num_tests = 0;
 
-my $tests = Test::File::load_data("$FindBin::Bin/data/access/ht_affiliate.tsv");
+my $tests = Test::File::load_data("$FindBin::Bin/data/access/emergency_access_affiliate.tsv");
 
 foreach my $test ( @$tests ) {
     my ( 
@@ -113,12 +128,21 @@ foreach my $test ( @$tests ) {
     if ( $location eq 'US' ) { setup_us_institution(); }
     else { setup_nonus_instition(); }
 
-    if ( $expected_volume eq 'allow_by_us_geo_ipaddr' ) {
-        $expected_volume = ( $location eq 'NONUS' ) ? 'deny' : 'allow';
-    } elsif ( $expected_volume eq 'allow_nonus_aff_by_ipaddr' ) {
-        $expected_volume = ( $location eq 'NONUS' ) ? 'allow' : 'deny';
+    my $original_expected_volume = $expected_volume;
+    if ( $expected_volume eq 'allow_emergency_access_by_holdings' ) {
+        $expected_volume = ( $access_profile eq 'google' ) ? 'deny' : 'allow';
+    } elsif ( $expected_volume eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings' ) {
+        if ( $location eq 'NONUS' ) {
+            $expected_volume = ( $access_profile eq 'google' ) ? 'deny' : 'allow';
+        } else {
+            # item does not have to be held
+            $expected_volume = 'allow';
+        }
+    } elsif ( $expected_volume eq 'allow_emergency_access_by_holdings_by_geo_ipaddr' ) {
+        $expected_volume = ( $access_profile eq 'google' ) ? 'deny' : 'allow';
     }
-    is(test_attr($attr, $access_profile, $location), $expected_volume, "ht_affiliate + attr=$attr + location=$location + profile=$access_profile");
+
+    is(test_attr($attr, $access_profile, $location), $expected_volume, "emergency_access_affiliate + attr=$attr + location=$location + profile=$access_profile / $original_expected_volume");
     $num_tests += 1;
 }
 
@@ -135,6 +159,7 @@ sub mock_institutions {
         entityID => Auth::Auth::get_umich_IdP_entity_id(),
         enabled => 1,
         allowed_affiliations => q{^(alum|member)@umich.edu},
+        emergency_status => 1,
         us => 1,
     };
     $$inst_ref{entityIDs}{q{https://registry.shibboleth.ox.ac.uk/idp}} = {
@@ -143,6 +168,7 @@ sub mock_institutions {
         entityID => q{https://registry.shibboleth.ox.ac.uk/idp},
         enabled => 1,
         allowed_affiliations => q{^(alum|member)@ox.ac.uk},
+        emergency_status => 1,
         us => 0,
     };
     bless $inst_ref, 'Institutions';
@@ -153,7 +179,7 @@ sub mock_acls {
     my ( $C ) = @_;
 
     my $acl_ref = {};
-    $$acl_ref{'bjensen'} = { userid => 'bjensen' };
+    $$acl_ref{'bjensen@umich.edu'} = { userid => 'bjensen@umich.edu', role => 'ssdproxy', usertype => 'external', access => 'normal', expires => '2040-12-31 23:59:59' };
     bless $acl_ref, 'Auth::ACL';
     $C->set_object('Auth::ACL', $acl_ref);
 }

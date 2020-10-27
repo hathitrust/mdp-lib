@@ -90,8 +90,6 @@ foreach my $test ( @$tests ) {
     ) = @$test;
 
     my $location = $access_type =~ m,NONUS, ? 'NONUS' : 'US';
-    # if ( $location eq 'US' ) { setup_us_institution(); }
-    # else { setup_nonus_instition(); }
 
     if ( $expected_volume eq 'allow_by_us_geo_ipaddr' ) {
         $expected_volume = ( $location eq 'NONUS' ) ? 'deny' : 'allow';
