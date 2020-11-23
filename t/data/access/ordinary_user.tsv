@@ -1,0 +1,62 @@
+Attribute Code	Attribute	Access Profile	Access Type	Can access volume?	Can download single page?	Can download multiple pages?	Can view multiple plaintext?
+1	pd	open	ordinary_user	allow	allow	allow	deny
+1	pd	google	ordinary_user	allow	allow	deny	deny
+1	pd	page	ordinary_user	allow	allow	deny	deny
+2	ic	open	ordinary_user	deny	deny	deny	deny
+2	ic	google	ordinary_user	deny	deny	deny	deny
+2	ic	page	ordinary_user	deny	deny	deny	deny
+3	op	open	ordinary_user	deny	deny	deny	deny
+3	op	google	ordinary_user	deny	deny	deny	deny
+5	und	open	ordinary_user	deny	deny	deny	deny
+5	und	google	ordinary_user	deny	deny	deny	deny
+5	und	page	ordinary_user	deny	deny	deny	deny
+7	ic-world	open	ordinary_user	allow	allow	allow	deny
+7	ic-world	google	ordinary_user	allow	allow	deny	deny
+7	ic-world	page	ordinary_user	allow	allow	deny	deny
+8	nobody	open	ordinary_user	deny	deny	deny	deny
+8	nobody	google	ordinary_user	deny	deny	deny	deny
+8	nobody	page	ordinary_user	deny	deny	deny	deny
+10	cc-by-3.0	open	ordinary_user	allow	allow	allow	deny
+10	cc-by-3.0	google	ordinary_user	allow	allow	allow	deny
+11	cc-by-nd-3.0	open	ordinary_user	allow	allow	allow	deny
+11	cc-by-nd-3.0	google	ordinary_user	allow	allow	allow	deny
+12	cc-by-nc-nd-3.0	open	ordinary_user	allow	allow	allow	deny
+12	cc-by-nc-nd-3.0	google	ordinary_user	allow	allow	allow	deny
+12	cc-by-nc-nd-3.0	page	ordinary_user	allow	allow	allow	deny
+13	cc-by-nc-3.0	open	ordinary_user	allow	allow	allow	deny
+13	cc-by-nc-3.0	google	ordinary_user	allow	allow	allow	deny
+13	cc-by-nc-3.0	page	ordinary_user	allow	allow	allow	deny
+14	cc-by-nc-sa-3.0	open	ordinary_user	allow	allow	allow	deny
+14	cc-by-nc-sa-3.0	google	ordinary_user	allow	allow	allow	deny
+15	cc-by-sa-3.0	google	ordinary_user	allow	allow	allow	deny
+17	cc-zero	open	ordinary_user	allow	allow	allow	deny
+17	cc-zero	google	ordinary_user	allow	allow	allow	deny
+17	cc-zero	page	ordinary_user	allow	allow	allow	deny
+18	und-world	page+lowres	ordinary_user	allow	allow	deny	deny
+20	cc-by-4.0	open	ordinary_user	allow	allow	allow	deny
+20	cc-by-4.0	google	ordinary_user	allow	allow	allow	deny
+21	cc-by-nd-4.0	open	ordinary_user	allow	allow	allow	deny
+21	cc-by-nd-4.0	google	ordinary_user	allow	allow	allow	deny
+22	cc-by-nc-nd-4.0	open	ordinary_user	allow	allow	allow	deny
+22	cc-by-nc-nd-4.0	google	ordinary_user	allow	allow	allow	deny
+22	cc-by-nc-nd-4.0	page	ordinary_user	allow	allow	allow	deny
+23	cc-by-nc-4.0	open	ordinary_user	allow	allow	allow	deny
+23	cc-by-nc-4.0	google	ordinary_user	allow	allow	allow	deny
+24	cc-by-nc-sa-4.0	open	ordinary_user	allow	allow	allow	deny
+24	cc-by-nc-sa-4.0	google	ordinary_user	allow	allow	allow	deny
+25	cc-by-sa-4.0	open	ordinary_user	allow	allow	allow	deny
+25	cc-by-sa-4.0	google	ordinary_user	allow	allow	allow	deny
+26	pd-pvt	open	ordinary_user	deny	deny	deny	deny
+26	pd-pvt	google	ordinary_user	deny	deny	deny	deny
+27	supp	open	ordinary_user	deny	deny	deny	deny
+27	supp	google	ordinary_user	deny	deny	deny	deny
+9	pdus	open	ordinary_user - NONUS	deny	deny	deny	deny
+9	pdus	google	ordinary_user - NONUS	deny	deny	deny	deny
+9	pdus	page	ordinary_user - NONUS	deny	deny	deny	deny
+19	icus	open	ordinary_user - NONUS	allow_by_nonus_geo_ipaddr	allow	allow	deny
+19	icus	google	ordinary_user - NONUS	allow_by_nonus_geo_ipaddr	allow	deny	deny
+9	pdus	open	ordinary_user - US	allow_by_us_geo_ipaddr	allow	allow	deny
+9	pdus	google	ordinary_user - US	allow_by_us_geo_ipaddr	allow	deny	deny
+9	pdus	page	ordinary_user - US	allow_by_us_geo_ipaddr	allow	deny	deny
+19	icus	open	ordinary_user - US	deny	deny	deny	deny
+19	icus	google	ordinary_user - US	deny	deny	deny	deny
