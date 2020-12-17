@@ -148,7 +148,7 @@ sub validate_url_params
         }
         else
         {
-            silent_ASSERT(0, qq{Invalid URL parameter="$p"});
+            $cgi->delete($p);
         }
     }
 }
