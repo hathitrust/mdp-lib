@@ -302,6 +302,9 @@ sub __check_validation {
     if ($id eq 'r') {
         $id = randomize_id($id);
     }
+    elsif ($id eq 'open') {
+        $id = randomize_id($id, 1);
+    }
     else {
         # Set up '1', '1g', '2', ... as easy IDs to remember
         $id = $g_default_debug_ids{$id} if (grep(/^$id$/, keys %g_default_debug_ids));
@@ -364,15 +367,21 @@ If id=r replace with a random id.  Warning: SLOW on the order of 10 seconds.
 # ---------------------------------------------------------------------
 sub randomize_id {
     my $id = shift;
+    my $totally_open_source = shift;
 
     my $C = new Context;
     my $dbh = $C->get_object('Database')->get_DBH();
     my ($statement, $sth);
     $statement = qq{SELECT count(*) FROM rights_current WHERE attr=1};
+    my $source_expr = '';
+    if ( $totally_open_source ) {
+        $statement .= q{ AND source != 1};
+        $source_expr = q{ AND source != 1 };
+    }
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     my $count = $sth->fetchrow_array;
     my $rand_int = int(rand()*$count) + 1;
-    $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current WHERE attr=1 LIMIT 1 OFFSET $rand_int};
+    $statement = qq{SELECT CONCAT(namespace, '.', id) FROM rights_current WHERE attr=1 $source_expr LIMIT 1 OFFSET $rand_int};
     $sth = DbUtils::prep_n_execute($dbh, $statement);
     $id = $sth->fetchrow_array || $g_default_debug_ids{1};
 
