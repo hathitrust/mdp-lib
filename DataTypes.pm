@@ -74,6 +74,14 @@ our %dataTypeMatrix =
      _type    => q{audio},
      _subtype => q{audio},
     }],
+
+    q{http://www.hathitrust.org/documents/hathitrust-emma-mets-profile1.0.xml} => 
+    [{
+      _xpath   => q{},
+      _value   => q{},
+      _type    => q{emma},
+      _subtype => q{emma},
+    }],
   );
 
 
