@@ -575,7 +575,40 @@ sub get_single_page_PDF_access_status {
         my $access_type = $self->get_access_type($C);
         if ( $access_type == $RightsGlobals::ENHANCED_TEXT_USER || 
              $access_type == $RightsGlobals::EMERGENCY_ACCESS_AFFILIATE ) {
-            # but ENHANCED_TEXT_USER affiliations can only single-page download
+            # but ENHANCED_TEXT_USER and EMERGENCY_ACCESS_AFFILIATE 
+            # affiliations can only single-page download
+            # what ordinary users can download
+            my $rights_attribute = $self->get_rights_attribute($C, $id);
+            my $initial_access_status =
+                _determine_initial_access_status($rights_attribute, $RightsGlobals::ORDINARY_USER);
+
+            $status =
+                _Check_final_access_status($C, $initial_access_status, $id);
+
+        }
+    }
+
+    # clear the error message if $status eq 'allow'
+    $message = '' if ( $status eq 'allow' );
+
+    return ($message, $status);
+}
+
+sub get_remediated_items_access_status {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+
+    my ($message, $status)= ('RESTRICTED_SOURCE', 'deny');
+    my $auth = $C->get_object('Auth');
+
+    if ( $self->check_final_access_status($C, $id) eq 'allow' ) {
+        # you can read the book, so you can download single page PDFs
+        $status = 'allow';
+        my $access_type = $self->get_access_type($C);
+        if ( $access_type == $RightsGlobals::EMERGENCY_ACCESS_AFFILIATE ) {
+            # but EMERGENCY_ACCESS_AFFILIATE affiliations can only download
             # what ordinary users can download
             my $rights_attribute = $self->get_rights_attribute($C, $id);
             my $initial_access_status =
