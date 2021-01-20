@@ -71,6 +71,8 @@ use base 'MdpItem';
 use Debug::DUtils;
 use Utils;
 
+use constant EMMA_NS => q{https://emma.lib.virginia.edu/schema};
+
 sub quack {
     my $self = shift;
     return "COIN COIN";
@@ -161,7 +163,11 @@ sub SetSources {
     my $self = shift;
     my $root = $self->_GetMetsRoot();
 
-    # NOP
+    # track the repository id
+    my $xpc = XML::LibXML::XPathContext->new($root);
+    $xpc->registerNs('emma', EMMA_NS);
+    my $recordId = $xpc->findvalue('//emma:emma_repositoryRecordId');
+    $self->Set('repositoryRecordId', $recordId);
 }
 
 sub GetRemediatedFileId {
