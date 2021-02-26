@@ -81,7 +81,7 @@ sub __Load_Institution_Hash {
 
     $Institution_Hash->{$selector}{$value} = $ref_to_arr_of_hashref->[0];
 
-    __munge_template($Institution_Hash->{$selector}{$value});
+    __munge_template($Institution_Hash->{$selector}{$value}) if ( $$Institution_Hash{$selector}{$value} );
     
     ___set_I_ref($C, $Institution_Hash);
 
