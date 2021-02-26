@@ -93,6 +93,8 @@ my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
 my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
 my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
 
+my $ENTITLEMENT_COMMON_LIB_TERMS = 'urn:mace:dir:entitlement:common-lib-terms';
+
 my $NON_HT_AFFILIATED_ENTITY_IDS = {};
 $$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
 
@@ -859,6 +861,41 @@ sub get_eduPersonUnScopedAffiliation {
 
 # ---------------------------------------------------------------------
 
+=item get_eduPersonEntitlement
+
+Return value object for $ENV{entitlement}
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_eduPersonEntitlement {
+    my $self = shift;
+    my $C = shift;
+
+    return Auth::Auth::Entitlement->new(
+        $self->has_expected_shibboleth_entityID($C) ? $ENV{entitlement} : ''
+    );
+}
+
+# ---------------------------------------------------------------------
+
+=item has_expected_shibboleth_entityID
+
+Check that the entityID maps to a known institution.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub has_expected_shibboleth_entityID {
+    my $self = shift;
+    my $C = shift;
+    my $entity_id = shift;
+
+    return Institutions::get_institution_entityID_field_val($C, $entity_id, 'inst_id') ? 1 : 0;
+}
+
+# ---------------------------------------------------------------------
+
 =item get_eduPersonPrincipalName
 
 This is the eduPersonPrincipalName, e.g. janedoe@umich.edu
@@ -1094,7 +1131,8 @@ sub get_shibboleth_entityID {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $entity_id = $ENV{Shib_Identity_Provider} || $ENV{'Shib-Identity-Provider'}
+        $entity_id = $ENV{Shib_Identity_Provider} || $ENV{'Shib-Identity-Provider'};
+        $entity_id = '' unless ( $self->has_expected_shibboleth_entityID($C, $entity_id) );
     }
 
     return $entity_id;
@@ -1207,10 +1245,11 @@ sub affiliation_is_hathitrust {
     my $is_hathitrust = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
+        my $has_common_entitlement = $self->get_eduPersonEntitlement($C)->has_entitlement($ENTITLEMENT_COMMON_LIB_TERMS);
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
         my $entity_id = lc($self->get_shibboleth_entityID($C));
         # If there's a scoped affiliation then they're hathitrust
-        $is_hathitrust = ( $aff ne '' ) && ( ! defined $$NON_HT_AFFILIATED_ENTITY_IDS{$entity_id} );
+        $is_hathitrust = ( $has_common_entitlement || $aff ne '' ) && ( ! defined $$NON_HT_AFFILIATED_ENTITY_IDS{$entity_id} );
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend) {
@@ -1463,6 +1502,43 @@ sub set_isa_new_login {
 sub is_cosign_active {
     my $self = shift;
     return Utils::is_cosign_active();
+}
+
+# ---------------------------------------------------------------------
+
+=item Auth::Auth::Entitlement
+
+Data clas for handing the $ENV{entitlements} string.
+
+=cut
+
+# ---------------------------------------------------------------------
+package Auth::Auth::Entitlement;
+
+sub new {
+    my $class = shift;
+    my $entitlement = shift;
+
+    my $self = {};
+    $$self{entitlement_map} = {};
+    bless $self, $class;
+
+    if ( $entitlement ) {
+        $$self{entitlement_map} = map { $_ => 1 } split(/\s*;\s*/, $entitlement);
+    }
+
+    return $self;
+}
+
+sub has_entitlement {
+    my $self = shift;
+    my ( $check_entitlement ) = @_;
+    return $$self{entitlement_map}{$check_entitlement} || 0;
+}
+
+sub entitlements {
+    my $self = shift;
+    return [ sort keys %{ $$self{entitlement_map} } ];
 }
 
 
