@@ -33,6 +33,7 @@ print "\n";
 #                 );
 #runtests map { File::Spec->catdir($ENV{SDRROOT}, $_); } @test_files;
 my @test_files = glob("$FindBin::Bin/../t/*.t");
+@test_files = @ARGV if ( scalar @ARGV );
 runtests @test_files;
 
 foreach my $i (0 .. 9)
