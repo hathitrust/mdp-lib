@@ -1,0 +1,21 @@
+name: Run CI
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+
+jobs:
+  # Run tests
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build docker image
+        run: docker-compose build
+
+      - name: Run tests
+        run: docker-compose run test
