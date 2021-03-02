@@ -243,6 +243,8 @@ sub mock_institutions {
         allowed_affiliations => q{^(alum|member)@ox.ac.uk},
         us => 0,
     };
+    $$inst_ref{entityIDs}{q{gmail.com}} = {
+    };
     bless $inst_ref, 'Institutions';
     $C->set_object('Institutions', $inst_ref);
 }
