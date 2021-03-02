@@ -87,13 +87,13 @@ use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
 # University of Michigan entity ID (until we are %100 shibboleth
-my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
+our $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
 
 # eduPersonEntitlement attribute values that qualify as print disabled
-my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
-my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
+our $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
+our $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
 
-my $ENTITLEMENT_COMMON_LIB_TERMS = 'urn:mace:dir:entitlement:common-lib-terms';
+our $ENTITLEMENT_COMMON_LIB_TERMS = 'urn:mace:dir:entitlement:common-lib-terms';
 
 my $NON_HT_AFFILIATED_ENTITY_IDS = {};
 $$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
@@ -145,9 +145,10 @@ sub __debug_auth {
                                     . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
                                       . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
                                         . q{ is-emergency-access-affiliate=} . $self->affiliation_has_emergency_access($C)
-                                          . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                                            . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
-                                              . q{ print-disabled=} . $self->user_is_print_disabled($C);
+                                          . q{ print-disabled-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                                            . q{ computed-entitlements=} . $self->get_eduPersonEntitlement($C)->to_s
+                                              . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                                . q{ print-disabled=} . $self->user_is_print_disabled($C);
 
               $self->{__debug_auth_printed} = 1;
               return $auth_str;
@@ -872,8 +873,10 @@ sub get_eduPersonEntitlement {
     my $self = shift;
     my $C = shift;
 
+    my $entity_id = $self->get_shibboleth_entityID($C);
+
     return Auth::Auth::Entitlement->new(
-        $self->has_expected_shibboleth_entityID($C) ? $ENV{entitlement} : ''
+        $entity_id ? $ENV{entitlement} : ''
     );
 }
 
@@ -1524,7 +1527,7 @@ sub new {
     bless $self, $class;
 
     if ( $entitlement ) {
-        $$self{entitlement_map} = map { $_ => 1 } split(/\s*;\s*/, $entitlement);
+        $$self{entitlement_map} = { map { $_ => 1 } split(/\s*;\s*/, $entitlement) };
     }
 
     return $self;
@@ -1539,6 +1542,11 @@ sub has_entitlement {
 sub entitlements {
     my $self = shift;
     return [ sort keys %{ $$self{entitlement_map} } ];
+}
+
+sub to_s {
+    my $self = shift;
+    return join(';', @{ $self->entitlements });
 }
 
 
