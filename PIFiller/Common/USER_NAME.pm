@@ -66,12 +66,19 @@ sub handle_USER_ID_PI
     return $user_id;
 }
 
+use Auth::Auth;
 sub handle_USER_AFFILIATION_PI
     : PI_handler(USER_AFFILIATION) {
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+    my $affiliation;
+
+    if ( $auth->get_eduPersonEntitlement($C)->has_entitlement($Auth::Auth::ENTITLEMENT_COMMON_LIB_TERMS) ) {
+        $affiliation = 'Member';
+    } else {
+        $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+    }
 
     my $check = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
     my $activated = $C->get_object('Session')->get_persistent('activated_role');
