@@ -286,7 +286,7 @@ sub get_institution_list {
     my $ref_to_arr_of_hashref = $sth->fetchall_arrayref({});
 
     foreach my $ref ( @$ref_to_arr_of_hashref ) {
-        next unless ( defined $$ref{template} && defined $$ref{entityID} );
+        next unless ( defined $$ref{entityID} );
         __munge_template($ref);
     }
 
