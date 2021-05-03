@@ -130,7 +130,7 @@ sub get_google_id_by_namespace {
                              $barcode
                             );
 
-    return (defined $grin_prefix) ? $grin_prefix . ':' . $barcode : undef;
+    return (defined $grin_prefix) ? $grin_prefix . ':' . ( uc $barcode ) : undef;
 }
 
 # ---------------------------------------------------------------------
