@@ -157,6 +157,8 @@ sub __map_UCAL_GRIN_prefix {
       if ( $barcode =~ m/^31378\d{9}$/ );
     return 'UCD'
       if ( $barcode =~ m/^31175\d{9}$/ );
+    return 'UCR'
+      if ( $barcode =~ m/^31210\d{9}$/ );
     return 'UCLA'
       if ( $barcode =~ m/^l\d{10}|31158\d{9}$/ );
     return 'SRLF'
@@ -167,8 +169,8 @@ sub __map_UCAL_GRIN_prefix {
       if ( $barcode =~ m/^.1970\d{9}$/ );
     return 'UCSB'
       if ( $barcode =~ m/^.1205\d{9}$/ );
-    return 'UCB'
-      if ( $barcode =~ m/^\d{10}$/ );
+    return 'UCBK'
+      if ( length($barcode) == 10 );
 
     # No matches
     return 'UCAL';
