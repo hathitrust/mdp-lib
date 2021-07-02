@@ -68,8 +68,9 @@ my %g_skin_map =
      'crmsworld' => '/pt/web/crms',
      'mobile'   =>  '/pt/web/mobile',
      'mobilewayf' => '/wayf/web/mobile',
-     'alicorn'   => '/pt/web/alicorn',
      'unicorn'   => '/pt/web/unicorn',
+     'alicorn'   => '/pt/web/alicorn',
+     '2019'      => '/pt/web/alicorn',
      '2021'      => '/pt/web/2021',
     );
 
