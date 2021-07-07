@@ -1757,6 +1757,9 @@ sub GetFilePathMaybeExtract {
 
     my $fileSystemLocation = $self->Get( 'filesystemlocation' );
 
+    $$self{__timestamps} = {} unless ref($$self{__timestamps});
+    $$self{__timestamps}{"x$fileName"} = Time::HiRes::time();
+
     if ($self->ItemIsZipped())
     {
         # Extract file to the input cache location
@@ -1775,6 +1778,7 @@ sub GetFilePathMaybeExtract {
         $filePath = $fileSystemLocation . qq{/$fileName};
     }
 
+    $$self{__timestamps}{"x$fileName"} = Time::HiRes::time() - $$self{__timestamps}{$fileName};
     return ($fileName, $filePath);
 }
 
