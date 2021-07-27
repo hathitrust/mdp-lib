@@ -339,7 +339,7 @@ sub _initialize {
 
     my $itemFileSystemLocation = Identifier::get_item_location($id);
     $self->Set( 'filesystemlocation', $itemFileSystemLocation );
-    silent_ASSERT( -d $itemFileSystemLocation, qq{Invalid document id provided.});
+    silent_ASSERT( -d $itemFileSystemLocation, qq{Invalid document id provided; can't find $itemFileSystemLocation});
 
     my $stripped_id = Identifier::get_pairtree_id_wo_namespace($id);
 
