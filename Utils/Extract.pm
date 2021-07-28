@@ -37,7 +37,7 @@ END {
 }
 
 # Handle > 2G zips
-my $UNZIP_PROG = "/l/local/bin/unzip";
+my $UNZIP_PROG = "/usr/bin/unzip";
 
 # zip return codes
 use constant NO_ERRORS => 0;
