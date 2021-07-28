@@ -39,6 +39,9 @@ use DataTypes;
 
 use Utils::Cache::Storable;
 
+use Utils::Logger;
+use Time::HiRes qw();
+
 use XML::LibXML;
 
 # Global variables
@@ -235,6 +238,9 @@ sub GetMdpItem {
     my $class = shift;
     my ($C, $id, $itemFileSystemLocation) = @_;
 
+    my $time0 = Time::HiRes::time();
+    my $cache_status;
+
     $itemFileSystemLocation = Identifier::get_item_location($id) unless ($itemFileSystemLocation);
 
     my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) =
@@ -259,11 +265,13 @@ sub GetMdpItem {
         }
 
         DEBUG('cache, all', qq{<h3>Using cached mdpItem object for id="$id"</h3>});
+        $cache_status = 'hit';
     }
     else {
         $mdpItem = $class->new($C, $id);
 
         DEBUG('cache,all', qq{<h3>metadata status=} . ($mdpItem->MetadataFailure() ? 'fail' : 'OK') . qq{</h3>});
+        $cache_status = 'miss';
 
         # don't cache if we've got a metadatafailure or cache was not ititialized because ignored
         if ($cache_mdpItem && ! $mdpItem->MetadataFailure()) {
@@ -281,6 +289,10 @@ sub GetMdpItem {
     if (DEBUG('noocr')) {
         $mdpItem->Set('has_ocr', 0);
     }
+
+    my $delta = Time::HiRes::time() - $time0;
+    Utils::Logger::__Log_benchmark($C, 
+        [["id", $id],["delta",$delta],["label","GetMdpItem"],["cache",$cache_status]], 'mdpitem');
 
     return $mdpItem;
 }

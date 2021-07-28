@@ -36,7 +36,7 @@ use Time::HiRes;
 
 
 # ------- Configuration variables --------
-my $logging_enabled = 1;
+our $logging_enabled = 1;
 
 # ---------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ sub __Log_string {
     my $optional_logfile_pattern = shift;
     my $optional_logfile_key = shift;
 
-    exit 0 if (! $logging_enabled);
+    return unless ( $logging_enabled );
 
     my $config = ref($C) eq 'Context' ? $C->get_object('MdpConfig') : $C;
 
@@ -89,23 +89,26 @@ sub __Log_string {
         $logfile =~ s,$optional_logfile_pattern,$optional_logfile_key,;
     }
     $logfile .= qq{.$ENV{SERVER_ADDR}};
+    $logfile .= qq{.$$};
+    $logfile .= q{.} . Utils::Time::iso_Time('hour');
     
     Utils::mkdir_path($logdir);
 
     my $logfile_path = $logdir . '/' . $logfile;
 
-    # Obtain an exclusive lock to protect access to the logfile when
-    # multiple producers are writing to the logfile for the same shard
-    my $lock_file = $logfile_path . '.sem';
+    # # Obtain an exclusive lock to protect access to the logfile when
+    # # multiple producers are writing to the logfile for the same shard
+    # # my $lock_file = $logfile_path . '.sem';
+    # my $lock_file = "/ram/" . $logfile . ".sem";
 
-    # --- BEGIN CRITICAL SECTION ---
-    my $sem;
-    my $tries = 0;
-    while (! ($sem = new Semaphore($lock_file))) {
-        $tries++;
-        return if ($tries > MAX_TRIES);
-        Time::HiRes::sleep(0.5);
-    }
+    # # --- BEGIN CRITICAL SECTION ---
+    # my $sem;
+    # my $tries = 0;
+    # while (! ($sem = new Semaphore($lock_file))) {
+    #     $tries++;
+    #     return if ($tries > MAX_TRIES);
+    #     Time::HiRes::sleep(0.5);
+    # }
 
     if (open(LOG, ">>:encoding(UTF-8)", $logfile_path)) {
         LOG->autoflush(1);
@@ -114,8 +117,50 @@ sub __Log_string {
         chmod(0666, $logfile_path) if (-o $logfile_path);
     }
 
-    $sem->unlock();
+    # $sem->unlock();
     # --- END CRITICAL SECTION ---
+}
+
+sub __Log_struct {
+    my $C = shift;
+    my $message = shift;
+    my $logfile_key = shift;
+    my $optional_dir_pattern = shift;
+    my $optional_dir_key = shift;
+    my $optional_logfile_pattern = shift;
+    my $optional_logfile_key = shift;
+
+    return unless ( $logging_enabled );
+
+    # get the singleton
+    unless ( ref $C ) { $C = new Context; }
+
+    if ( $$message[0][0] ne 'datetime' ) {
+        unshift @$message, ['datetime', Utils::Time::iso_Time()];
+    }
+
+    require JSON::XS;
+    my $json = JSON::XS->new()->utf8(1)->allow_nonref(1);
+    my $s = '{';
+    while ( scalar @$message ) {
+        my $kv = shift @$message;
+        my ( $key, $value ) = @$kv;
+        my $suffix = scalar @$message ? "," : "";
+        $s .= sprintf(qq{%s:%s%s}, $json->encode($key), $json->encode($value), $suffix)
+    }
+    $s .= '}';
+
+    __Log_string($C, $s, $logfile_key, $optional_dir_pattern, $optional_dir_key, $optional_logfile_pattern, $optional_logfile_key);
+
+}
+
+sub __Log_benchmark {
+    my ( $C, $message, $app_name ) = @_;
+    __Log_struct($C, 
+        $message, 
+        'benchmark_logfile', 
+        qr(slip/run-___RUN___|___QUERY___), 'benchmark',
+        qr(___APP_NAME___), $app_name);
 }
 
 # ---------------------------------------------------------------------
@@ -129,7 +174,8 @@ Description
 # ---------------------------------------------------------------------
 sub __Log_simple {
     my $s = shift;
-    exit 0 if (! $logging_enabled);
+    return unless ( $logging_enabled );
+
 
     my $date = Utils::Time::iso_Time('date');
     my $time = Utils::Time::iso_Time('time');
