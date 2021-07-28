@@ -163,6 +163,9 @@ RUN cpan \
   Test::Memory::Cycle \
   Mozilla::CA
 
+RUN mkdir -p /l/local/bin
+RUN ln -s /usr/bin/unzip /l/local/bin/unzip
+
 RUN mkdir /htapps
 RUN mkdir /htapps/babel
 RUN mkdir /htapps/babel/mdp-lib
