@@ -90,6 +90,7 @@ sub __Log_string {
     }
     $logfile .= qq{.$ENV{SERVER_ADDR}};
     $logfile .= qq{.$$};
+    $logfile .= q{.} . Utils::Time::iso_Time('hour');
     
     Utils::mkdir_path($logdir);
 
