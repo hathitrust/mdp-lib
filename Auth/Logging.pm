@@ -385,11 +385,6 @@ sub log_access {
     }
 
     push @$message, @$tuples if ( ref($tuples) );
-
-    if ( ref($mdpItem) ) {
-        push @$message, [ 'd', $$mdpItem{__timestamps} ];
-    }
-
     # my $s = join('|', map { join('=', @$_) } @$message);
     require JSON::XS;
     my $json = JSON::XS->new()->utf8(1)->allow_nonref(1);

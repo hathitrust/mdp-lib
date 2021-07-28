@@ -25,9 +25,12 @@ use Utils;
 use Utils::Logger;
 use Identifier;
 use Debug::DUtils;
+use Utils::Logger;
 
 # Perl
 use IPC::Run;
+use Time::HiRes qw();
+use File::Basename qw(basename dirname);
 
 END {
     __handle_EndBlock_cleanup();
@@ -40,6 +43,8 @@ my $UNZIP_PROG = "/l/local/bin/unzip";
 use constant NO_ERRORS => 0;
 use constant NO_ERRORS_CAUTION_WARNING => 1;
 use constant NO_ERRORS_NO_MATCHING_FILES => 11;
+
+my $time0;
 
 # ---------------------------------------------------------------------
 
@@ -137,7 +142,7 @@ sub get_formatted_path {
     my ($prefix, $suffix, $delta) = @_;
 
     $delta = 0 || $delta;
-    $suffix = qq{-_-$suffix} if ( $suffix );
+    $suffix = $suffix ? qq{-_-$suffix} : '';
 
     ASSERT(($prefix !~ m,-_-[12]-_-,), qq{ERROR: prefix contains '-_-[12]-_-' characters } . __get_df_report('/ram'));
     my $path = $prefix . qq{-_-1-_-$$} . q{-_-2-_-} . (time() + $delta) . $suffix;
@@ -195,27 +200,10 @@ sub extract_file_to_temp_cache {
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
     $input_cache_dir = __get_tmpdir($stripped_pairtree_id, $suffix) unless ( $input_cache_dir );
 
-    my @yes;
     my @unzip;
-    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
-    push @yes, "echo", "n";
-    # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, "$stripped_pairtree_id/$filename";
 
-    my $stderr;
-    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>>", \$stderr;
-
-    my $system_retval = $? >> 8;
-
-    my $cmd = join(' ', @unzip);
-    DEBUG('doc', qq{UNZIP: $cmd});
-
-    soft_ASSERT((-e qq{$input_cache_dir/$filename}, 
-        qq{Could not extract $filename to $input_cache_dir} . "\n" . 
-        $cmd . "\n" . 
-        qq{code=$system_retval} . "\n" . 
-        $stderr . "\n" . 
-        __get_df_report('/ram')));
+    __run($id, \@unzip, "$input_cache_dir/$filename");
 
     return
       (-e qq{$input_cache_dir/$filename})
@@ -246,21 +234,11 @@ sub extract_filelist_to_temp_cache {
 
     my @filenames = map{ "$stripped_pairtree_id/$_" } @$filelist_arr_ref;
 
-    my @yes;
     my @unzip;
-    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
-    push @yes, "echo", "n";
     # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, @filenames;
 
-    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
-
-    my $system_retval = $? >> 8;
-    my $cmd = join(' ', @unzip);
-
-    __extract_report($system_retval, $error_file, $cmd);
-
-    DEBUG('doc', qq{UNZIP: $cmd});
+    __run($id, \@unzip);
 
     return $input_cache_dir;
 }
@@ -316,10 +294,7 @@ sub extract_dir_to_temp_cache {
     my $input_cache_dir = __get_tmpdir($stripped_pairtree_id);
     my $error_file = Utils::get_tmp_logdir() . '/extract-error';
 
-    my @yes;
     my @unzip;
-    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
-    push @yes, "echo", "n";
     # -j: just filenames, not full paths, -qq: very quiet
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, @$patterns_arr_ref;
 
@@ -327,18 +302,47 @@ sub extract_dir_to_temp_cache {
         push @unzip, "-x", @$exclude_patterns_arr_ref;
     }
 
-    IPC::Run::run \@yes, '|',  \@unzip, ">", "/dev/null", "2>", "$error_file";
-
-    my $system_retval = $? >> 8;
-    my $cmd = join(' ', @unzip);
-
-    __extract_report($system_retval, $error_file, $cmd);
-
-    DEBUG('doc', qq{UNZIP: $cmd});
+    __run($id, \@unzip);
 
     return $input_cache_dir;
 }
 
+sub __run {
+    my $id = shift;
+    my $unzip = shift;
+    my $test_filename = shift;
+
+    my $error_file = Utils::get_tmp_logdir() . '/extract-error';
+
+    my @yes;
+    # Pipe echo to unzip so it won't hang on a user prompt when ramdisk is full
+    push @yes, "echo", "n";
+
+    my $stderr;
+    my $time0 = Time::HiRes::time();
+    IPC::Run::run \@yes, '|',  $unzip, ">", "/dev/null", "2>>", \$stderr;
+    my $system_retval = $? >> 8;
+
+    my $cmd = join(' ', @$unzip);
+    DEBUG('doc', qq{UNZIP: $cmd});
+
+    if ( $test_filename ) {
+        $stderr = '' unless ( $stderr );
+        my $filename = basename($test_filename);
+        my $input_cache_dir = dirname($test_filename);
+        soft_ASSERT((-e $test_filename, 
+            qq{Could not extract $filename to $input_cache_dir} . "\n" . 
+            $cmd . "\n" . 
+            qq{code=$system_retval} . "\n" . 
+            $stderr . "\n" . 
+            __get_df_report('/ram')));
+    }
+
+    __extract_report($system_retval, $error_file, $cmd);
+
+    my $delta = Time::HiRes::time() - $time0;
+    Utils::Logger::__Log_benchmark(undef, [["id", $id],["delta",$delta],["label","__run"],["cmd",$cmd]], 'extract');
+}
 
 1;
 
