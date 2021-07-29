@@ -81,6 +81,7 @@ sub __Log_string {
     if (defined($optional_dir_key) && defined($optional_dir_pattern)) {
         $logdir =~ s,$optional_dir_pattern,$optional_dir_key,;
     }
+    $logdir .= q{/} . Utils::Time::iso_Time('hour');
 
     my $logfile = $config->get($logfile_key);
     my $date = Utils::Time::iso_Time('date');
@@ -90,7 +91,6 @@ sub __Log_string {
     }
     $logfile .= qq{.$ENV{SERVER_ADDR}};
     $logfile .= qq{.$$};
-    $logfile .= q{.} . Utils::Time::iso_Time('hour');
     
     Utils::mkdir_path($logdir);
 
