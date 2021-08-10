@@ -59,13 +59,15 @@ sub id_is_held {
 
         my $sth;
 
-        # my $SELECT_clause = qq{SELECT copy_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
+        # The lock ID depends on the item format:
+        #   single part monograph (cluster_id present, no n_enum): cluster_id
+        #   multi-part monograph (cluster_id and n_enum both present): cluster_id:n_enum
+        #   serial (cluster id will not be present): volume_id
         my $SELECT_clause = <<EOT;
-          SELECT COALESCE(cluster_id,h.volume_id) AS lock_id, 
-                 sum(copy_count) 
+          SELECT lock_id,
+                 sum(copy_count)
           FROM holdings_htitem_htmember h 
           JOIN ht_institutions t ON h.member_id = t.inst_id
-          LEFT OUTER JOIN holdings_cluster_htitem_jn c ON h.volume_id = c.volume_id 
           WHERE h.volume_id = ? AND mapto_inst_id = ?
           GROUP BY h.volume_id, mapto_inst_id;
 EOT
@@ -116,8 +118,7 @@ sub id_is_held_and_BRLM {
         my $dbh = $C->get_object('Database')->get_DBH($C);
 
         my $sth;
-        # my $SELECT_clause = qq{SELECT access_count FROM holdings_htitem_htmember WHERE volume_id=? AND member_id=?};
-        my $SELECT_clause = qq{SELECT COALESCE(cluster_id,h.volume_id) AS lock_id, access_count FROM holdings_htitem_htmember h LEFT OUTER JOIN holdings_cluster_htitem_jn c ON h.volume_id = c.volume_id WHERE h.volume_id = ? AND member_id = ?};
+        my $SELECT_clause = qq{SELECT lock_id, access_count FROM holdings_htitem_htmember h WHERE h.volume_id = ? AND member_id = ?};
         eval {
             $sth = DbUtils::prep_n_execute($dbh, $SELECT_clause, $id, $inst);
         };
