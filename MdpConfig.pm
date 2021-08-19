@@ -32,6 +32,10 @@ my $config = new MdpConfig($primary_config_filename,
 
 $config->get('db_hostname');
 
+# Need to override a value?
+
+$config->set('db_hostname', $ENV[DB_HOSTNAME]);
+
 =head1 METHODS
 
 =over 8
@@ -149,7 +153,31 @@ sub get {
     else {
         return $val;
     }
+
+
 }
+
+
+# ---------------------------------------------------------------------
+
+=item set($key, $val)
+
+Set (and thus override) a configuation parameter
+
+=cut
+
+# ---------------------------------------------------------------------
+
+sub set {
+    my $self = shift;
+    my $key = shift;
+    my $value = shift;
+
+    my $config = $self->{'config'};
+    $config->{_}{$key} = $value;
+    return $value;
+}
+
 
 # ---------------------------------------------------------------------
 
