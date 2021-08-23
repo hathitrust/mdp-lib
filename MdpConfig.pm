@@ -30,11 +30,19 @@ use MdpConfig;
 my $config = new MdpConfig($primary_config_filename,
                            [$secondary_config_filename, $tertiary_config_filename]);
 
+# What do we have?
+
+if ($config->has("possible_key")) { ... }
+my $keys = $config->keys();
+
+# Get a value
+
 $config->get('db_hostname');
 
 # Need to override a value?
 
 $config->override('db_hostname', $ENV[DB_HOSTNAME]);
+$config->override_from_hashref(\%kv_pairs);
 
 =head1 METHODS
 
