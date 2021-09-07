@@ -1510,7 +1510,7 @@ sub ProcessOwnerIds {
         my $source_METS_filename = Utils::Extract::extract_file_to_temp_cache($id, $file_sys_location, $source_mets);
 
         # If there is a Google METS, read and parse and get OWNERID
-        # attribute value
+        # values
 
         if ($source_METS_filename) {
             my $metsXmlRef = Utils::read_file($source_METS_filename, 1);
@@ -1519,16 +1519,42 @@ sub ProcessOwnerIds {
                 my $tree = $parser->parse_string($$metsXmlRef);
                 my $root = $tree->getDocumentElement();
 
+                my @techmd_els = $root->findnodes(qq{//METS:techMD[.//METS:mdWrap[\@LABEL="candidates"]]});
+                return unless ( scalar @techmd_els );
+
+                my $techmd_ownerid_map = {};
+                foreach my $techmd_el ( @techmd_els ) {
+                    my $id = $techmd_el->getAttribute('ID');
+                    my @tmp = ();
+                    foreach my $ownerid_el ( $techmd_el->findnodes(qq{.//gbs:ownerID}) ) {
+                        push @tmp, $ownerid_el->textContent;
+                    }
+                    $$techmd_ownerid_map{$id} = [ sort @tmp ];
+                }
+
                 foreach my $file ( $root->findnodes(qq{//METS:file[\@OWNERID]}) ) {
                     my $ownerid = $file->getAttribute('OWNERID');
                     next unless ( $ownerid );
-                    my @ownerids = split(/ /, $ownerid);
+
                     my $fileid = $file->getAttribute('ID');
+
+                    my @admids = split(/ /, $file->getAttribute('ADMID'));
+                    my $admid;
+                    foreach ( @admids ) {
+                        if ( defined $$techmd_ownerid_map{$_} ) {
+                            $admid = $_;
+                            last;
+                        }
+                    }
+                    next unless ( $admid );
+
                     my $seq = $root->findvalue(qq{//METS:structMap[\@TYPE="physical"]//METS:div[METS:fptr[\@FILEID="$fileid"]]/\@ORDER});
-                    $$seq_map{$seq} = $ownerids[0];
-                    foreach my $ownerid ( @ownerids ) {
+                    foreach my $ownerid ( @{ $$techmd_ownerid_map{$admid} } ) {
                         $$ownerid_map{$ownerid} = $seq;
                     }
+
+                    # map the sequence to the ownerid in use
+                    $$seq_map{$seq} = $ownerid;
                 }
             }
         }
