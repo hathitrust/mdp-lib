@@ -1591,7 +1591,7 @@ sub GetSequenceForOwnerId {
     my $self = shift;
     my ( $ownerid ) = @_;
     my $retval = $self->Get('ownerid_seq')->{$ownerid};
-    return $retval;
+    return $self->GetVirtualPageSequence($retval);
 }
 
 # ---------------------------------------------------------------------
