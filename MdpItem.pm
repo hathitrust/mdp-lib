@@ -188,7 +188,7 @@ sub __handle_mdpitem_cache_setup {
         $cache_max_age = $config->get('mdpitem_max_age') || 0;
     }
 
-    my $cache_key = qq{mdpitem};
+    my $cache_key = qq{mdpitem.b};
     my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
     my $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age, GetMetsXmlModTime($id));
 
@@ -250,8 +250,7 @@ sub GetMdpItem {
     # mdpitem for the id being requested, we have everything we need
     # and can return
 
-    # if the cached verison has metadatafailure == 1, re-compute
-
+    # if the cached verison has metadatafailure == 1, re-compute    
     if ($mdpItem  && ($mdpItem->Get('id') eq $id) && (! $mdpItem->MetadataFailure())) {
         # item was already cached and we have it in $mdpItem.  Test to
         # see if the item files got zipped since the last time we
@@ -361,6 +360,7 @@ sub _initialize {
     $self->SetItemType();
     $self->SetMarkupLanguage();
     $self->SetPageInfo();
+    $self->ProcessOwnerIds();
 }
 
 
@@ -1491,6 +1491,106 @@ sub GetItemCover {
     my $seq;
     $seq = $self->HasTitleFeature() || $self->HasTOCFeature() || $self->HasFirstContentFeature() || $self->HasBookCoverFeature() || 1;
     return $seq;
+}
+
+sub ProcessOwnerIds {
+    my $self = shift;
+
+    my $id = $self->GetId();
+    my $root = $self->_GetMetsRoot();
+    my $source_mets = $root->findvalue(q{//METS:fileGrp[@USE='source METS']//METS:FLocat/@xlink:href});
+    my $zipfile = $self->Get('zipfile');
+
+    my $seq_map = {};
+    my $ownerid_map = {};
+
+    if (defined $zipfile && defined $source_mets) {
+        my $file_sys_location = $self->Get( 'filesystemlocation' );
+
+        my $source_METS_filename = Utils::Extract::extract_file_to_temp_cache($id, $file_sys_location, $source_mets);
+
+        # If there is a Google METS, read and parse and get OWNERID
+        # values
+
+        if ($source_METS_filename) {
+            my $metsXmlRef = Utils::read_file($source_METS_filename, 1);
+            if ($$metsXmlRef) {
+                my $parser = XML::LibXML->new();
+                my $tree = $parser->parse_string($$metsXmlRef);
+                my $root = $tree->getDocumentElement();
+
+                my @techmd_els = $root->findnodes(qq{//METS:techMD[.//METS:mdWrap[\@LABEL="candidates"]]});
+                return unless ( scalar @techmd_els );
+
+                my $techmd_ownerid_map = {};
+                foreach my $techmd_el ( @techmd_els ) {
+                    my $id = $techmd_el->getAttribute('ID');
+                    my @tmp = ();
+                    foreach my $ownerid_el ( $techmd_el->findnodes(qq{.//gbs:ownerID}) ) {
+                        push @tmp, $ownerid_el->textContent;
+                    }
+                    $$techmd_ownerid_map{$id} = [ sort @tmp ];
+                }
+
+                foreach my $file ( $root->findnodes(qq{//METS:file[\@OWNERID]}) ) {
+                    my $ownerid = $file->getAttribute('OWNERID');
+                    next unless ( $ownerid );
+
+                    my $fileid = $file->getAttribute('ID');
+
+                    my @admids = split(/ /, $file->getAttribute('ADMID'));
+                    my $admid;
+                    foreach ( @admids ) {
+                        if ( defined $$techmd_ownerid_map{$_} ) {
+                            $admid = $_;
+                            last;
+                        }
+                    }
+                    next unless ( $admid );
+
+                    my $seq = $root->findvalue(qq{//METS:structMap[\@TYPE="physical"]//METS:div[METS:fptr[\@FILEID="$fileid"]]/\@ORDER});
+                    foreach my $ownerid ( @{ $$techmd_ownerid_map{$admid} } ) {
+                        $$ownerid_map{$ownerid} = $seq;
+                    }
+
+                    # map the sequence to the ownerid in use
+                    $$seq_map{$seq} = $ownerid;
+                }
+            }
+        }
+    }
+
+    $self->Set('seq_ownerid', $seq_map);
+    $self->Set('ownerid_seq', $ownerid_map);
+}
+
+sub GetSequence2OwnerIdMap {    
+    my $self = shift;
+    return $self->Get('seq_ownerid');
+}
+
+sub GetOwnerId2SequenceMap {    
+    my $self = shift;
+    return $self->Get('ownerid_seq');
+}
+
+sub HasOwnerId {
+    my $self = shift;
+    return scalar @{ $self->Get('seq_ownerid') } > 0;
+}
+
+sub GetOwnerIdForSequence {
+    my $self = shift;
+    my ( $seq ) = @_;
+    my $retval = $self->Get('seq_ownerid')->{$seq};
+    return $retval;
+}
+
+sub GetSequenceForOwnerId {
+    my $self = shift;
+    my ( $ownerid ) = @_;
+    my $retval = $self->Get('ownerid_seq')->{$ownerid};
+    return $retval;
 }
 
 # ---------------------------------------------------------------------

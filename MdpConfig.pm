@@ -71,14 +71,14 @@ sub new {
     $self->{primary_config_file} = $primary_config_filename;
     $self->add_config_from_file($primary_config_filename, 'primary_config');
 
-    if (defined($secondary_config_filename)) {
+    if (defined($secondary_config_filename) && -e $secondary_config_filename) {
         $self->{secondary_config_file} = $secondary_config_filename;
         $self->add_config_from_file($secondary_config_filename, 'secondary_config');
     }
 
-    if (defined($tertiary_config_filename)) {
+    if (defined($tertiary_config_filename) && -e $tertiary_config_filename) {
         $self->{tertiary_config_file} = $tertiary_config_filename;
-        $self->add_config_from_file($secondary_config_filename, 'tertiary_config');
+        $self->add_config_from_file( $tertiary_config_filename, 'tertiary_config' );
     }
 
     return $self;
