@@ -1582,7 +1582,8 @@ sub HasOwnerId {
 sub GetOwnerIdForSequence {
     my $self = shift;
     my ( $seq ) = @_;
-    my $retval = $self->Get('seq_ownerid')->{$seq};
+    my $physical_seq = $self->GetPhysicalPageSequence($seq);    
+    my $retval = $self->Get('seq_ownerid')->{$physical_seq};
     return $retval;
 }
 
