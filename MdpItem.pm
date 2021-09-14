@@ -43,6 +43,7 @@ use Utils::Logger;
 use Time::HiRes qw();
 
 use XML::LibXML;
+use List::Util qw(first);
 
 # Global variables
 
@@ -1532,6 +1533,16 @@ sub ProcessOwnerIds {
                     $$techmd_ownerid_map{$id} = [ sort @tmp ];
                 }
 
+                # cache all the fileid -> seq mappings
+                # this captures more than we need for ownerid, but is much much faster
+                my $struct_map = {};
+                foreach my $div ( $root->findnodes(qq{//METS:structMap[\@TYPE="physical"]//METS:div[\@ORDER]}) ) {
+                    my $seq = $div->getAttribute('ORDER');
+                    foreach my $file_el ( $div->findnodes(q{METS:fptr}) ) {
+                        $$struct_map{$file_el->getAttribute('FILEID')} = $seq;
+                    }
+                }
+
                 foreach my $file ( $root->findnodes(qq{//METS:file[\@OWNERID]}) ) {
                     my $ownerid = $file->getAttribute('OWNERID');
                     next unless ( $ownerid );
@@ -1539,16 +1550,11 @@ sub ProcessOwnerIds {
                     my $fileid = $file->getAttribute('ID');
 
                     my @admids = split(/ /, $file->getAttribute('ADMID'));
-                    my $admid;
-                    foreach ( @admids ) {
-                        if ( defined $$techmd_ownerid_map{$_} ) {
-                            $admid = $_;
-                            last;
-                        }
-                    }
+                    my $admid = first { defined($$techmd_ownerid_map{$_}) } @admids;
                     next unless ( $admid );
 
-                    my $seq = $root->findvalue(qq{//METS:structMap[\@TYPE="physical"]//METS:div[METS:fptr[\@FILEID="$fileid"]]/\@ORDER});
+                    # equivalent of //METS:structMap[\@TYPE="physical"]//METS:div[METS:fptr[\@FILEID="$fileid"]]/\@ORDER
+                    my $seq = $$struct_map{$fileid};
                     foreach my $ownerid ( @{ $$techmd_ownerid_map{$admid} } ) {
                         $$ownerid_map{$ownerid} = $seq;
                     }
