@@ -4,7 +4,7 @@ use JSON::XS;
 use Carp;
 
 sub load {
-    my ( $app, $specific ) = @_;
+    my ( $app, $specific, $wantarray ) = @_;
 
     my $settings_base = $app;
     $settings_base .= "/$specific" if ( $specific );
@@ -34,7 +34,7 @@ sub load {
     }
 
     # NOOP
-    return {};
+    return $wantarray ? [] : {};
 }
 
 1;
