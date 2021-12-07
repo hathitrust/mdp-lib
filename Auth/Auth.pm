@@ -1211,9 +1211,13 @@ sub get_switchable_roles {
     my $self = shift;
     my $C = shift;
 
+    my $check_possible = 1;
+
     return grep { 
-        my $method = $$_{method}; 
-        $self->$method($C, 1) 
+        if ( $$_{enabled} || defined $ENV{HT_DEV} ) {
+            my $method = $$_{method}; 
+            $self->$method( $C, $check_possible );
+        }
     } @$SWITCHABLE_ROLES;
 }
 
@@ -1222,8 +1226,10 @@ sub get_activated_switchable_role {
     my $C = shift;
 
     return first { 
-        my $method = $$_{method}; 
-        $self->$method($C); 
+        if ( $$_{enabled} || defined $ENV{HT_DEV} ) {
+            my $method = $$_{method}; 
+            $self->$method($C); 
+        }
     } $self->get_switchable_roles($C);
 }
 
