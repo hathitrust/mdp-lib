@@ -295,6 +295,27 @@ sub S___total_access_using_DEBUG_super {
 
 # ---------------------------------------------------------------------
 
+=item S___total_access_using_DEBUG_supercalifragilisticexpialidocious
+
+This predicate allows a user with access=total and using
+DEBUG('supercalifragilisticexpialidocious') to gain access 
+restricted materials while not being
+able to alter attribute values returned from
+__get_user_attributes(). Intended for CRMS users.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub S___total_access_using_DEBUG_supercalifragilisticexpialidocious {
+    __load_access_control_list();
+
+    my $total = DEBUG('supercalifragilisticexpialidocious')
+      && __a_Authorized_core( { access => 'total' }, 'unmasked' );
+    return $total;
+}
+
+# ---------------------------------------------------------------------
+
 =item S___superuser_role
 
 This predicate allows a user with role=superuser to:

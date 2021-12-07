@@ -1235,6 +1235,12 @@ sub _determine_access_type {
     elsif (DEBUG('ssd', 'SSD access forced') ) {
         $access_type = $RightsGlobals::SSD_USER;
     }
+    elsif (Auth::ACL::S___total_access_using_DEBUG_supercalifragilisticexpialidocious) {
+
+        # access=total user with access enabled via debug=supercalifragilisticexpialidocious,
+        # e.g. users with role=crms
+        $access_type = $RightsGlobals::HT_TOTAL_USER;
+    }
     elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
         # access=total user with access enabled via debug=super,
         # e.g. users with role=crms
