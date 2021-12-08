@@ -2,7 +2,6 @@
 #
 # Apache::Session::Store::MySQL::InnoDB
 # Implements session object storage via MySQL InnoDB
-# Copyright(c) 1998, 1999, 2000 Jeffrey William Baker (jwbaker@acm.org)
 # Distribute under the Perl License
 #
 ############################################################################
@@ -37,11 +36,6 @@ sub connection {
         $self->{dbh} = $session->{args}->{Handle};
         $self->{commit} = $session->{args}->{Commit};
         
-        # if ( $self->{dbh}->{AutoCommit} == 1 && $self->{commit} ) {
-        #     $self->{dbh}->begin_work;
-        #     # $self->{dbh}->{AutoCommit} = 0;
-        # }
-
         return;
     }
 
@@ -74,12 +68,6 @@ sub materialize {
     $self->connection($session);
 
     local $self->{dbh}->{RaiseError} = 1;
-
-    # if (!defined $self->{materialize_sth}) {
-    #     $self->{materialize_sth} = 
-    #         $self->{dbh}->prepare_cached(qq{
-    #             SELECT a_session FROM $self->{'table_name'} WHERE id = ? FOR UPDATE});
-    # }
 
     if (!defined $self->{materialize_sth}) {
         $self->{materialize_sth} = 
@@ -128,16 +116,6 @@ sub update {
     
     $self->connection($session);
     eval {
-        # my @tmp = ();
-        # my ($package, $filename, $line, $subroutine) = caller(1);
-        # push @tmp, $subroutine;
-        # ($package, $filename, $line, $subroutine) = caller(2);
-        # push @tmp, $subroutine;
-        # ($package, $filename, $line, $subroutine) = caller(3);
-        # push @tmp, $subroutine;
-        # ($package, $filename, $line, $subroutine) = caller(4);
-        # push @tmp, $subroutine;
-        # print STDERR "SESSION UPDATE : $$session{data}{_session_id} : $ENV{REQUEST_URI} : @tmp\n";
         $self->_begin_work;
         $self->SUPER::update($session);
         $self->_commit;
@@ -189,11 +167,6 @@ sub _rollback {
 
 sub DESTROY {
     my $self = shift;
-
-    # if ($self->{commit} ) {
-    #     print STDERR "STILL COMMITING : " . $self->{dbh}->{AutoCommit} . "\n";
-    #     $self->{dbh}->commit;
-    # }
     
     if ($self->{disconnect}) {
         $self->{dbh}->disconnect;
@@ -222,7 +195,7 @@ Apache::Session::Store::MySQL::InnoDB - Store persistent data in a MySQL InnoDB 
 =head1 DESCRIPTION
 
 Apache::Session::Store::MySQL::InnoDB fulfills the storage interface of
-Apache::Session. Session data is stored in a Postgres database.
+Apache::Session. Session data is stored in a MySQL InnoDB table.
 
 =head1 SCHEMA
 
@@ -237,7 +210,7 @@ To create this schema, you can execute this command using the psql program:
  CREATE TABLE sessions (
     id char(32) not null primary key,
     a_session text
- );
+ ) ENGINE=InnoDB;
 
 If you use some other command, ensure that there is a unique index on the
 table's id column.
@@ -278,11 +251,7 @@ Instead, you may pass in an already-opened DBI handle to your database.
 
 =head1 AUTHOR
 
-This module was based on the Apache::Session Postgres support.
-
-This modules was written by Jeffrey William Baker <jwbaker@acm.org>
-
-A fix for the commit policy was contributed by Michael Schout <mschout@gkg.net>
+This module was based on the Apache::Session MySQL support.
 
 =head1 SEE ALSO
 

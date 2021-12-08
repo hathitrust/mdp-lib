@@ -169,9 +169,8 @@ sub __get_language_code {
 
     # get the language out of the results first
     my $language;
-    # <arr name="language008"><str>eng</str></arr>
-    ( $language = $$marcxml_ref ) =~ s,.*?<str name="language008">(.*)</str>.*,$1,;
-    # $language =~ s,<str>,,; $language =~ s,</str>,,;
+    ( $language = $$marcxml_ref ) =~ s,.*?<str name="language008">([^>]+)</str>.*,$1,;
+
     return $language;
 }
 

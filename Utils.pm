@@ -37,6 +37,8 @@ BEGIN
                              min
                              max
                             );
+
+    $ENV{'SERVER_ADDR'} = '127.0.0.1' unless ( defined $ENV{'SERVER_ADDR'} );
 }
 
 use Carp;
@@ -90,7 +92,7 @@ sub Get_Remote_User {
 sub Get_Legacy_Remote_User {
     my $remote_user = '';
     if ( Get_Identity_Provider() eq 'https://shibboleth.umich.edu/idp/shibboleth' ) {
-        if ( $ENV{umichCosignFactor} =~ m,^UMICH.EDU, ) {
+        if ( $ENV{umichCosignFactor} =~ m,UMICH.EDU, ) {
             # remove the @umich.edu
             $remote_user = substr(lc $ENV{eppn}, 0, -10);
         } else {
@@ -1143,7 +1145,6 @@ sub HTTP_hostname
     return $ENV{'HTTP_HOST'} ? $ENV{'HTTP_HOST'} : 'localhost';
 }
 
-
 # ---------------------------------------------------------------------
 
 =item remove_truncated_tags
@@ -1372,6 +1373,7 @@ sub get_user_status_cookie
     my $institution = $auth->get_institution_code($C, 'mapped');
     my $institution_name = $auth->get_institution_name($C, 'mapped');
     my $print_disabled = $auth->get_eduPersonEntitlement_print_disabled($C);
+    my $emergency_affiliation = $auth->affiliation_has_emergency_access($C);
     my $auth_type;
     if ( $auth->auth_sys_is_SHIBBOLETH($C) ) {
         $auth_type = 'shibboleth';
@@ -1379,7 +1381,14 @@ sub get_user_status_cookie
     elsif ( $auth->auth_sys_is_COSIGN($C) ) {
         $auth_type = 'cosign';
     }
-    my $status = { authType => $auth_type, displayName => $displayName, institution => $institution, affiliation => $institution_name, u => $print_disabled };
+    my $status = { 
+        authType => $auth_type, 
+        displayName => $displayName, 
+        institution => $institution, 
+        affiliation => $institution_name, 
+        u => $print_disabled,
+        x => $emergency_affiliation,
+    };
 
     my $cookie = new CGI::Cookie(
         -name => "HTstatus",

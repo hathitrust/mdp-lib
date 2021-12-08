@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+
+  mariadb:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d/
+    # To talk to the DB from the local machine, uncomment and use
+    # -h 127.0.0.1 -P 52000
+    #ports:
+    #  - "52000:3306"
+
+  test:
+    build: .
+    volumes:
+      - .:/htapps/babel/mdp-lib
+      - ./etc:/htapps/babel/etc
+      - ./etc:/htapps/test.babel/etc
+    environment:
+      - SDRROOT=/htapps/babel
+      - HT_DEV=
+      - HTTP_HOST=
+      - SDRDATAROOT=/htapps/babel
+      - MARIADB_USER=mdp-lib
+      - REMOTE_ADDR=127.0.0.1
+      - HTTP_HOST=127.0.0.1
+      - SDRVIEW=sample
+    depends_on:
+      - mariadb
+    links:
+      - mariadb
+    command: bash -c "cd /htapps/babel/mdp-lib && bin/wait-for --timeout=60 mariadb:3306 -- t/test.pl"

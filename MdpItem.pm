@@ -39,7 +39,11 @@ use DataTypes;
 
 use Utils::Cache::Storable;
 
+use Utils::Logger;
+use Time::HiRes qw();
+
 use XML::LibXML;
+use List::Util qw(first);
 
 # Global variables
 
@@ -185,7 +189,7 @@ sub __handle_mdpitem_cache_setup {
         $cache_max_age = $config->get('mdpitem_max_age') || 0;
     }
 
-    my $cache_key = qq{mdpitem};
+    my $cache_key = qq{mdpitem.b};
     my $cache_dir = Utils::get_true_cache_dir($C, 'mdpitem_cache_dir');
     my $cache = Utils::Cache::Storable->new($cache_dir, $cache_max_age, GetMetsXmlModTime($id));
 
@@ -235,6 +239,9 @@ sub GetMdpItem {
     my $class = shift;
     my ($C, $id, $itemFileSystemLocation) = @_;
 
+    my $time0 = Time::HiRes::time();
+    my $cache_status;
+
     $itemFileSystemLocation = Identifier::get_item_location($id) unless ($itemFileSystemLocation);
 
     my ($cache, $cache_key, $cache_mdpItem, $ignore_existing_cache, $mdpItem) =
@@ -244,8 +251,7 @@ sub GetMdpItem {
     # mdpitem for the id being requested, we have everything we need
     # and can return
 
-    # if the cached verison has metadatafailure == 1, re-compute
-
+    # if the cached verison has metadatafailure == 1, re-compute    
     if ($mdpItem  && ($mdpItem->Get('id') eq $id) && (! $mdpItem->MetadataFailure())) {
         # item was already cached and we have it in $mdpItem.  Test to
         # see if the item files got zipped since the last time we
@@ -259,11 +265,13 @@ sub GetMdpItem {
         }
 
         DEBUG('cache, all', qq{<h3>Using cached mdpItem object for id="$id"</h3>});
+        $cache_status = 'hit';
     }
     else {
         $mdpItem = $class->new($C, $id);
 
         DEBUG('cache,all', qq{<h3>metadata status=} . ($mdpItem->MetadataFailure() ? 'fail' : 'OK') . qq{</h3>});
+        $cache_status = 'miss';
 
         # don't cache if we've got a metadatafailure or cache was not ititialized because ignored
         if ($cache_mdpItem && ! $mdpItem->MetadataFailure()) {
@@ -281,6 +289,10 @@ sub GetMdpItem {
     if (DEBUG('noocr')) {
         $mdpItem->Set('has_ocr', 0);
     }
+
+    my $delta = Time::HiRes::time() - $time0;
+    Utils::Logger::__Log_benchmark($C, 
+        [["id", $id],["delta",$delta],["label","GetMdpItem"],["cache",$cache_status]], 'mdpitem');
 
     return $mdpItem;
 }
@@ -327,7 +339,7 @@ sub _initialize {
 
     my $itemFileSystemLocation = Identifier::get_item_location($id);
     $self->Set( 'filesystemlocation', $itemFileSystemLocation );
-    silent_ASSERT( -d $itemFileSystemLocation, qq{Invalid document id provided.});
+    silent_ASSERT( -d $itemFileSystemLocation, qq{Invalid document id provided; can't find $itemFileSystemLocation});
 
     my $stripped_id = Identifier::get_pairtree_id_wo_namespace($id);
 
@@ -349,6 +361,7 @@ sub _initialize {
     $self->SetItemType();
     $self->SetMarkupLanguage();
     $self->SetPageInfo();
+    $self->ProcessOwnerIds();
 }
 
 
@@ -1479,6 +1492,112 @@ sub GetItemCover {
     my $seq;
     $seq = $self->HasTitleFeature() || $self->HasTOCFeature() || $self->HasFirstContentFeature() || $self->HasBookCoverFeature() || 1;
     return $seq;
+}
+
+sub ProcessOwnerIds {
+    my $self = shift;
+
+    my $id = $self->GetId();
+    my $root = $self->_GetMetsRoot();
+    my $source_mets = $root->findvalue(q{//METS:fileGrp[@USE='source METS']//METS:FLocat/@xlink:href});
+    my $zipfile = $self->Get('zipfile');
+
+    my $seq_map = {};
+    my $ownerid_map = {};
+
+    if (defined $zipfile && defined $source_mets) {
+        my $file_sys_location = $self->Get( 'filesystemlocation' );
+
+        my $source_METS_filename = Utils::Extract::extract_file_to_temp_cache($id, $file_sys_location, $source_mets);
+
+        # If there is a Google METS, read and parse and get OWNERID
+        # values
+
+        if ($source_METS_filename) {
+            my $metsXmlRef = Utils::read_file($source_METS_filename, 1);
+            if ($$metsXmlRef) {
+                my $parser = XML::LibXML->new();
+                my $tree = $parser->parse_string($$metsXmlRef);
+                my $root = $tree->getDocumentElement();
+
+                my @techmd_els = $root->findnodes(qq{//METS:techMD[.//METS:mdWrap[\@LABEL="candidates"]]});
+                return unless ( scalar @techmd_els );
+
+                my $techmd_ownerid_map = {};
+                foreach my $techmd_el ( @techmd_els ) {
+                    my $id = $techmd_el->getAttribute('ID');
+                    my @tmp = ();
+                    foreach my $ownerid_el ( $techmd_el->findnodes(qq{.//gbs:ownerID}) ) {
+                        push @tmp, $ownerid_el->textContent;
+                    }
+                    $$techmd_ownerid_map{$id} = [ sort @tmp ];
+                }
+
+                # cache all the fileid -> seq mappings
+                # this captures more than we need for ownerid, but is much much faster
+                my $struct_map = {};
+                foreach my $div ( $root->findnodes(qq{//METS:structMap[\@TYPE="physical"]//METS:div[\@ORDER]}) ) {
+                    my $seq = $div->getAttribute('ORDER');
+                    foreach my $file_el ( $div->findnodes(q{METS:fptr}) ) {
+                        $$struct_map{$file_el->getAttribute('FILEID')} = $seq;
+                    }
+                }
+
+                foreach my $file ( $root->findnodes(qq{//METS:file[\@OWNERID]}) ) {
+                    my $ownerid = $file->getAttribute('OWNERID');
+                    next unless ( $ownerid );
+
+                    my $fileid = $file->getAttribute('ID');
+
+                    my @admids = split(/ /, $file->getAttribute('ADMID'));
+                    my $admid = first { defined($$techmd_ownerid_map{$_}) } @admids;
+                    next unless ( $admid );
+
+                    # equivalent of //METS:structMap[\@TYPE="physical"]//METS:div[METS:fptr[\@FILEID="$fileid"]]/\@ORDER
+                    my $seq = $$struct_map{$fileid};
+                    foreach my $ownerid ( @{ $$techmd_ownerid_map{$admid} } ) {
+                        $$ownerid_map{$ownerid} = $seq;
+                    }
+
+                    # map the sequence to the ownerid in use
+                    $$seq_map{$seq} = $ownerid;
+                }
+            }
+        }
+    }
+
+    $self->Set('seq_ownerid', $seq_map);
+    $self->Set('ownerid_seq', $ownerid_map);
+}
+
+sub GetSequence2OwnerIdMap {    
+    my $self = shift;
+    return $self->Get('seq_ownerid');
+}
+
+sub GetOwnerId2SequenceMap {    
+    my $self = shift;
+    return $self->Get('ownerid_seq');
+}
+
+sub HasOwnerId {
+    my $self = shift;
+    return scalar @{ $self->Get('seq_ownerid') } > 0;
+}
+
+sub GetOwnerIdForSequence {
+    my $self = shift;
+    my ( $seq ) = @_;
+    my $physical_seq = $self->GetPhysicalPageSequence($seq);    
+    my $retval = $self->Get('seq_ownerid')->{$physical_seq};
+    return $retval;
+}
+
+sub GetSequenceForOwnerId {
+    my $self = shift;
+    my ( $ownerid ) = @_;
+    my $retval = $self->Get('ownerid_seq')->{$ownerid};
+    return $self->GetVirtualPageSequence($retval);
 }
 
 # ---------------------------------------------------------------------

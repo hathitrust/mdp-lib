@@ -168,6 +168,14 @@ sub iso_Time {
         $isoTime = sprintf("%02d:%02d:%02d", $hou, $min, $sec);
         $isoTime .= " $zon" if ($include_zone);
     }
+    elsif ($what eq 'hhmm') {
+        $isoTime = sprintf("%02d:%02d", $hou, $min);
+        $isoTime .= " $zon" if ($include_zone);
+    }
+    elsif ($what eq 'hour') {
+        $isoTime = sprintf("%02d", $hou);
+        $isoTime .= " $zon" if ($include_zone);
+    }
     elsif  ($what eq 'datetime') {
         $isoTime = sprintf("%4d-%02d-%02d %02d:%02d:%02d", $yea, $mon, $day, $hou, $min, $sec);
         $isoTime .= " $zon" if ($include_zone);

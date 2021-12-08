@@ -72,6 +72,7 @@ use warnings;
 
 use File::Basename;
 use XML::LibXML;
+use List::Util qw(first);
 
 use Utils;
 use Debug::DUtils;
@@ -82,16 +83,20 @@ use Institutions;
 
 use Context;
 
+use Utils::Settings;
+
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
 use constant FRIEND => 'friend';
 
 # University of Michigan entity ID (until we are %100 shibboleth
-my $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
+our $UMICH_ENTITY_ID = 'https://shibboleth.umich.edu/idp/shibboleth';
 
 # eduPersonEntitlement attribute values that qualify as print disabled
-my $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
-my $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
+our $ENTITLEMENT_PRINT_DISABLED_VALUE = 'http://www.hathitrust.org/access/enhancedText';
+our $ENTITLEMENT_PRINT_DISABLED_PROXY_VALUE = 'http://www.hathitrust.org/access/enhancedTextProxy';
+
+our $ENTITLEMENT_COMMON_LIB_TERMS = 'urn:mace:dir:entitlement:common-lib-terms';
 
 my $NON_HT_AFFILIATED_ENTITY_IDS = {};
 $$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
@@ -100,6 +105,8 @@ $$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
 # for print disabled status
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
+
+our $SWITCHABLE_ROLES = Utils::Settings::load( 'mdp-lib', 'switches', 1 );
 
 sub new {
     my $class = shift;
@@ -140,12 +147,13 @@ sub __debug_auth {
                               . q{ prioritized-scoped-affiliation=} . $self->get_eduPersonScopedAffiliation($C)
                                 . q{ institution code=} . $self->get_institution_code($C) . q{ institution-code (mapped)=} . $self->get_institution_code($C, 1)
                                   . q{ institution name=} . $self->get_institution_name($C) . q{ institution-name (mapped)=} . $self->get_institution_name($C, 1)
-                                    . q{ is-umich=} . $self->affiliation_is_umich($C)
+                                    . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
                                       . q{ is-hathitrust=} . $self->affiliation_is_hathitrust($C)
-                                        . q{ environment-entitlement=} . ($ENV{entitlement} || '')
-                                          . q{ computed-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
-                                            . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
-                                              . q{ print-disabled=} . $self->user_is_print_disabled($C);
+                                        . q{ is-emergency-access-affiliate=} . $self->affiliation_has_emergency_access($C)
+                                          . q{ print-disabled-entitlement=} . $self->get_eduPersonEntitlement_print_disabled($C)
+                                            . q{ computed-entitlements=} . $self->get_eduPersonEntitlement($C)->to_s
+                                              . q{ print-disabled-proxy=} . $self->user_is_print_disabled_proxy($C)
+                                                . q{ print-disabled=} . $self->user_is_print_disabled($C);
 
               $self->{__debug_auth_printed} = 1;
               return $auth_str;
@@ -177,15 +185,12 @@ sub _initialize {
             $self->__debug_auth($C, $ses);
         }
         else {
-            # Not authenticated: THIS MAY BE CONDITION X:
-            # See pod (above).
             $self->__debug_auth($C, $ses);
-            if ( $self->is_cosign_active ) {
-                $self->handle_possible_redirect($C, $was_logged_in_via);
+            if ( my $redirect_to = $self->handle_possible_auth_renewal($C, $was_logged_in_via) ) {
+                $self->do_redirect($C, $redirect_to);
             } else {
-                $self->handle_possible_auth_expiration($C, $was_logged_in_via);                
+                $self->handle_possible_auth_expiration($C, $was_logged_in_via);
             }
-            # POSSIBLY NOTREACHED
         }
     }
 }
@@ -242,6 +247,30 @@ sub handle_possible_auth_expiration {
         $ses->set_persistent('authenticated_via', '');
         my $redirect_to = $self->get_SHIBBOLETH_login_href($cgi);
     }
+}
+
+sub handle_possible_auth_renewal {
+    my $self = shift;
+    my ( $C, $was_logged_in_via ) = @_;
+    my $redirect_to;
+    if ( $was_logged_in_via eq 'shibboleth' ) {
+        my $ses = $C->get_object('Session');
+        my $entity_id = $ses->get_persistent('entity_id') || '';
+        my $could_renew = 
+            ( $ENV{REQUEST_URI} =~ m,/cgi/(ssd|mb|ls), )
+            ||
+            ( $ENV{REQUEST_URI} =~ m,/cgi/pt, && $ENV{QUERY_STRING} !~ m,a=, );
+
+        if ( $entity_id && $could_renew ) {
+            my $cgi = $C->get_object('CGI');
+            my $target = CGI::self_url($cgi);
+            my $inst_code = Institutions::get_institution_entityID_field_val($C, $entity_id, 'inst_id', 1);
+            $redirect_to = Institutions::get_institution_entityID_field_val($C, $entity_id, 'template', 1);
+            $redirect_to =~ s,___HOST___,$ENV{SERVER_NAME},;
+            $redirect_to =~ s,___TARGET___,$target,;
+        }
+    }
+    return $redirect_to;
 }
 
 sub handle_possible_auth_2fa {
@@ -385,6 +414,8 @@ sub set_auth_sys {
     my $ses = shift;
     $ses->set_persistent('authenticated_via', lc($ENV{AUTH_TYPE} || ''));
     $ses->set_persistent('logged_out', 0) if ( $ENV{AUTH_TYPE} );
+    $ses->set_persistent('entity_id', $ENV{'Shib-Identity-Provider'} || $ENV{'Shib_Identity_Provider'})
+        if ( $ENV{AUTH_TYPE} );
 }
 
 # ---------------------------------------------------------------------
@@ -631,7 +662,7 @@ sub get_institution_2fa_authcontext_class_ref {
 
     my $authContextClassRef;
     $authContextClassRef = Institutions::get_institution_entityID_field_val($C, $entity_id, 'shib_authncontext_class', $mapped);
-    
+
     return $authContextClassRef;
 }
 
@@ -725,33 +756,61 @@ sub __get_prioritized_scoped_affiliation {
         my @scoped_affiliations = split(/\s*;\s*/, lc $environment);
         @scoped_affiliations = map {lc($_)} @scoped_affiliations;
 
-        my %aff_hash = ();
         if (scalar @scoped_affiliations) {
-            foreach my $scoped_affiliation (@scoped_affiliations) {
-                next unless ( $scoped_affiliation =~ m,$allowed_affiliations,i );
-                my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
-
-                if ($affiliation && $security_domain) {
-                    $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
-
-                    my $scoped_affiliations_ref = $aff_hash{$affiliation};
-                    push( @$scoped_affiliations_ref, $scoped_affiliation );
-                    $aff_hash{$affiliation} = $scoped_affiliations_ref;
-                }
-            }
+            my $aff_data = $self->__get_scoped_affiliations($C, $allowed_affiliations);
+            my $aff_hash = $$aff_data{data};
+            my $aff_array = $$aff_data{index};
 
             foreach my $affiliation (@affiliation_priorities) {
-                my $scoped_affiliations_ref = $aff_hash{$affiliation} || [];
+                my $scoped_affiliations_ref = $$aff_hash{$affiliation} || [];
                 if (scalar @$scoped_affiliations_ref) {
                     $eduPerson_scoped_affiliation = shift @$scoped_affiliations_ref;
                     last;
                 }
             }
-        }
 
+            if ( ! $eduPerson_scoped_affiliation && scalar @$aff_array ) {
+                # did not find a prioritized affiliation, but we've recorded
+                # an allowed affiliation in ht_institutions
+                $eduPerson_scoped_affiliation = shift @{ $$aff_hash{$$aff_array[0]}  };
+            }
+        }
     }
 
     return ( $$self{__eduPerson_scoped_affiliation} = $eduPerson_scoped_affiliation );
+}
+
+sub __get_scoped_affiliations {
+    my $self = shift;
+    my $C = shift;
+    my $allowed_affiliations = shift;
+
+    my $environment = $ENV{affiliation} || '';
+
+    my @scoped_affiliations = split(/\s*;\s*/, lc $environment);
+    @scoped_affiliations = map {lc($_)} @scoped_affiliations;
+
+    my %aff_hash = (); my $aff_array = [];
+    if (scalar @scoped_affiliations) {
+        foreach my $scoped_affiliation (@scoped_affiliations) {
+            next unless ( $scoped_affiliation =~ m,$allowed_affiliations,i );
+            my ($affiliation, $security_domain) = split(/@/, $scoped_affiliation);
+
+            if ($affiliation && $security_domain) {
+                # $aff_hash{$affiliation} = [] unless (exists $aff_hash{$affiliation});
+                unless (exists $aff_hash{$affiliation}) {
+                    $aff_hash{$affiliation} = [];
+                    push @$aff_array, $affiliation;
+                }
+
+                my $scoped_affiliations_ref = $aff_hash{$affiliation};
+                push( @$scoped_affiliations_ref, $scoped_affiliation );
+                $aff_hash{$affiliation} = $scoped_affiliations_ref;
+            }
+        }
+    }
+
+    return { data => \%aff_hash, index => $aff_array };
 }
 
 # ---------------------------------------------------------------------
@@ -804,6 +863,43 @@ sub get_eduPersonUnScopedAffiliation {
     $eduPersonUnScopedAffiliation = '' unless ($eduPersonUnScopedAffiliation);
 
     return $eduPersonUnScopedAffiliation;
+}
+
+# ---------------------------------------------------------------------
+
+=item get_eduPersonEntitlement
+
+Return value object for $ENV{entitlement}
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_eduPersonEntitlement {
+    my $self = shift;
+    my $C = shift;
+
+    my $entity_id = $self->get_shibboleth_entityID($C);
+
+    return Auth::Auth::Entitlement->new(
+        $entity_id ? $ENV{entitlement} : ''
+    );
+}
+
+# ---------------------------------------------------------------------
+
+=item has_expected_shibboleth_entityID
+
+Check that the entityID maps to a known institution.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub has_expected_shibboleth_entityID {
+    my $self = shift;
+    my $C = shift;
+    my $entity_id = shift;
+
+    return Institutions::get_institution_entityID_field_val($C, $entity_id, 'inst_id') ? 1 : 0;
 }
 
 # ---------------------------------------------------------------------
@@ -951,6 +1047,7 @@ Description
 sub user_is_print_disabled_proxy {
     my $self = shift;
     my $C = shift;
+    my $check_possible = shift;
 
     # ACL test
     my $is_proxy = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
@@ -958,6 +1055,14 @@ sub user_is_print_disabled_proxy {
     unless ($is_proxy) {
         my $entitlement = $self->__get_shibboleth_print_disability_entitlement($C);
         $is_proxy = ($entitlement eq 'ssdproxy');
+    }
+
+    return $is_proxy if ( $check_possible );
+
+    if ( $is_proxy ) {
+        # check that the user has toggled this setting
+        my $activated = $C->get_object('Session')->get_persistent('activated_role') eq 'enhancedTextProxy';
+        unless ( $activated ) { $is_proxy = 0; }
     }
 
     return $is_proxy;
@@ -989,6 +1094,29 @@ sub user_is_print_disabled {
     }
 
     return $is_disabled;
+}
+
+sub user_has_total_access {
+    my $self = shift;
+    my $C    = shift;
+    my $check_possible = shift;
+
+    # ACL test
+    my $has_total_access =
+      Auth::ACL::a_Authorized( { access => 'total' }, 'unmasked' );
+
+    return $has_total_access if ( $check_possible );
+
+    if ($has_total_access) {
+
+        # check that the user has toggled this setting
+        my $activated_role =
+          $C->get_object('Session')->get_persistent('activated_role');
+        my $activated = defined $activated_role && $activated_role eq 'totalAccess';
+        unless ($activated) { $has_total_access = 0; }
+    }
+
+    return $has_total_access;
 }
 
 # ---------------------------------------------------------------------
@@ -1037,7 +1165,8 @@ sub get_shibboleth_entityID {
         }
     }
     elsif ($self->auth_sys_is_SHIBBOLETH($C)) {
-        $entity_id = $ENV{Shib_Identity_Provider} || $ENV{'Shib-Identity-Provider'}
+        $entity_id = $ENV{Shib_Identity_Provider} || $ENV{'Shib-Identity-Provider'};
+        $entity_id = '' unless ( $self->has_expected_shibboleth_entityID($C, $entity_id) );
     }
 
     return $entity_id;
@@ -1074,6 +1203,34 @@ sub get_eduPersonTargetedID {
     $targeted_id = $ENV{persistent_id} if ( defined $ENV{persistent_id} );
     $targeted_id = $ENV{'persistent-id'} if ( defined $ENV{'persistent-id'} );
     return ( split(/;/, $targeted_id) )[0] || '';
+}
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+sub get_switchable_roles {
+    my $self = shift;
+    my $C = shift;
+
+    my $check_possible = 1;
+
+    return grep { 
+        if ( $$_{enabled} || defined $ENV{HT_DEV} ) {
+            my $method = $$_{method}; 
+            $self->$method( $C, $check_possible );
+        }
+    } @$SWITCHABLE_ROLES;
+}
+
+sub get_activated_switchable_role {
+    my $self = shift;
+    my $C = shift;
+
+    return first { 
+        if ( $$_{enabled} || defined $ENV{HT_DEV} ) {
+            my $method = $$_{method}; 
+            $self->$method($C); 
+        }
+    } $self->get_switchable_roles($C);
 }
 
 # ---------------------------------------------------------------------
@@ -1133,42 +1290,6 @@ sub __get_displayName {
 
 # ---------------------------------------------------------------------
 
-=item affiliation_is_umich
-
-This currently is for in-copyright out-of-print-brittle extended
-access not limited to being "in a library"
-
-=cut
-
-# ---------------------------------------------------------------------
-sub affiliation_is_umich {
-    my $self = shift;
-    my $C = shift;
-
-    my $is_umich = 0;
-
-    if ($self->auth_sys_is_SHIBBOLETH($C)) {
-        my $aff = $self->get_eduPersonScopedAffiliation($C);
-        $is_umich = (lc($aff) =~ m,umich.edu$,);
-    }
-    elsif ($self->auth_sys_is_COSIGN($C)) {
-        if (! $self->login_realm_is_friend()) {
-            $is_umich = 1;
-        }
-        else {
-            $is_umich = 0;
-        }
-    }
-    else {
-        $is_umich = 0;
-    }
-
-    return $is_umich;
-}
-
-
-# ---------------------------------------------------------------------
-
 =item affiliation_is_hathitrust
 
 This affiliation may provide for expanded services such as full book
@@ -1186,10 +1307,11 @@ sub affiliation_is_hathitrust {
     my $is_hathitrust = 0;
 
     if ($self->auth_sys_is_SHIBBOLETH($C)) {
+        my $has_common_entitlement = $self->get_eduPersonEntitlement($C)->has_entitlement($ENTITLEMENT_COMMON_LIB_TERMS);
         my $aff = lc($self->get_eduPersonScopedAffiliation($C));
         my $entity_id = lc($self->get_shibboleth_entityID($C));
         # If there's a scoped affiliation then they're hathitrust
-        $is_hathitrust = ( $aff ne '' ) && ( ! defined $$NON_HT_AFFILIATED_ENTITY_IDS{$entity_id} );
+        $is_hathitrust = ( $has_common_entitlement || $aff ne '' ) && ( ! defined $$NON_HT_AFFILIATED_ENTITY_IDS{$entity_id} );
     }
     elsif ($self->auth_sys_is_COSIGN($C)) {
         if (! $self->login_realm_is_friend) {
@@ -1234,6 +1356,31 @@ sub affiliation_is_enhanced_text_user {
     }
 
     return $is_enhanced_text_user;
+}
+
+sub affiliation_has_emergency_access {
+    my $self = shift;
+    my $C = shift;
+
+    return 1 if (DEBUG('emergency'));
+
+    my $is_emergency_access_user = 0;
+    if ($self->auth_sys_is_SHIBBOLETH($C)) {
+        my $entity_id = $self->get_shibboleth_entityID($C);
+        if ($entity_id) {
+            my $emergency_status = Institutions::get_institution_entityID_field_val($C, $entity_id, 'emergency_status') || "";
+            if ( $emergency_status eq "1" ) {
+                $is_emergency_access_user = 1;
+            } elsif ( $emergency_status =~ m,\@, ) {
+                # checking affiliations
+                my $check = $self->__get_scoped_affiliations($C, $emergency_status);
+                $is_emergency_access_user = ( scalar @{$$check{index}} > 0 );
+            }
+        }
+    }
+
+    return $is_emergency_access_user;
+
 }
 
 # ---------------------------------------------------------------------
@@ -1417,6 +1564,48 @@ sub set_isa_new_login {
 sub is_cosign_active {
     my $self = shift;
     return Utils::is_cosign_active();
+}
+
+# ---------------------------------------------------------------------
+
+=item Auth::Auth::Entitlement
+
+Data clas for handing the $ENV{entitlements} string.
+
+=cut
+
+# ---------------------------------------------------------------------
+package Auth::Auth::Entitlement;
+
+sub new {
+    my $class = shift;
+    my $entitlement = shift;
+
+    my $self = {};
+    $$self{entitlement_map} = {};
+    bless $self, $class;
+
+    if ( $entitlement ) {
+        $$self{entitlement_map} = { map { $_ => 1 } split(/\s*;\s*/, $entitlement) };
+    }
+
+    return $self;
+}
+
+sub has_entitlement {
+    my $self = shift;
+    my ( $check_entitlement ) = @_;
+    return $$self{entitlement_map}{$check_entitlement} || 0;
+}
+
+sub entitlements {
+    my $self = shift;
+    return [ sort keys %{ $$self{entitlement_map} } ];
+}
+
+sub to_s {
+    my $self = shift;
+    return join(';', @{ $self->entitlements });
 }
 
 

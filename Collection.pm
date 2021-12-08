@@ -1172,6 +1172,21 @@ sub get_coll_data_for_items_and_user {
     return $result;
 }
 
+sub get_coll_data_for_item_in_features {
+    my $self = shift;
+    my $id = shift;
+
+    my $coll_table = $self->get_coll_table_name;
+    my $coll_item_table = $self->get_coll_item_table_name;
+    my $dbh = $self->get_dbh;
+
+    my $statement = qq{SELECT $coll_table.MColl_ID, $coll_table.collname FROM $coll_table, $coll_item_table WHERE $coll_table.featured NOT LIKE '' AND $coll_table.MColl_ID=$coll_item_table.MColl_ID AND extern_item_id=? ORDER BY $coll_table.collname};
+    my $sth = DbUtils::prep_n_execute($dbh, $statement, $id);
+    my $ref_to_ary_of_hashref = $sth->fetchall_arrayref({});
+
+    return $ref_to_ary_of_hashref;
+}
+
 # ---------------------------------------------------------------------
 
 =item count_full_text

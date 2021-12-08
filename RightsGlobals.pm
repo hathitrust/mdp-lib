@@ -99,11 +99,11 @@ our $ORDINARY_USER       = 2;
 our $SSD_USER            = 3;
 our $SSD_PROXY_USER      = 4;
 our $LIBRARY_IPADDR_USER = 5;
-our $UM_AFFILIATE        = 6;
 our $HT_AFFILIATE        = 7;
 our $ENHANCED_TEXT_USER  = 8;
+our $EMERGENCY_ACCESS_AFFILIATE = 9;
 
-@g_access_types = ($HT_TOTAL_USER .. $ENHANCED_TEXT_USER);
+@g_access_types = ($HT_TOTAL_USER .. $EMERGENCY_ACCESS_AFFILIATE);
 
 %g_access_type_names =
     (
@@ -112,9 +112,9 @@ our $ENHANCED_TEXT_USER  = 8;
      $SSD_USER               => 'ssd_user',
      $SSD_PROXY_USER         => 'ssd_proxy_user',
      $LIBRARY_IPADDR_USER    => 'in_library_user',
-     $UM_AFFILIATE           => 'um_affiliate',
      $HT_AFFILIATE           => 'ht_affiliate',
      $ENHANCED_TEXT_USER     => 'enhanced_text_user',
+     $EMERGENCY_ACCESS_AFFILIATE  => 'emergency_access_affiliate',
     );
 
 %g_attribute_names =
@@ -252,9 +252,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow',
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow',
-           $UM_AFFILIATE          => 'allow',
            $HT_AFFILIATE          => 'allow',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow',
           },
    # in-copyright
    '2' => {
@@ -263,9 +263,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow_ssd_by_holdings',
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'deny',
-           $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow_emergency_access_by_holdings',
           },
    # OP out-of-print (implies in-copyright). (Was OPB out-of-print, brittle) @OPB
    # ----------------------------------------------------------------------------
@@ -281,9 +281,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow_ssd_by_holdings', # US implied
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow_by_held_BRLM', # US + exclusivity implied
-           $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow_emergency_access_by_holdings',
           },
    # copyright-orphaned (implies in-copyright)
    '4' => {
@@ -292,9 +292,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow_ssd_by_holdings',
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow_orph_by_holdings_by_agreement',
-           $UM_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
            $HT_AFFILIATE          => 'allow_orph_by_holdings_by_agreement',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow_emergency_access_by_holdings',
           },
    # undetermined copyright status
    '5' => {
@@ -303,9 +303,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow_ssd_by_holdings',
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'deny',
-           $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow_emergency_access_by_holdings',
           },
    # available to UM affiliates and UM walk-in patrons (all
    # campuses), these moved to 7 (world) so then are equivalent to 7
@@ -316,9 +316,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow',
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow',
-           $UM_AFFILIATE          => 'allow',
            $HT_AFFILIATE          => 'allow',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow',
           },
    # available to everyone in the world
    '7' => {
@@ -327,9 +327,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow',
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow',
-           $UM_AFFILIATE          => 'allow',
            $HT_AFFILIATE          => 'allow',
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow',
           },
    # available to no one in the world
    '8' => {
@@ -338,9 +338,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'deny',
            $SSD_PROXY_USER        => 'deny',
            $LIBRARY_IPADDR_USER   => 'deny',
-           $UM_AFFILIATE          => 'deny',
            $HT_AFFILIATE          => 'deny',
            $ENHANCED_TEXT_USER    => 'deny',
+           $EMERGENCY_ACCESS_AFFILIATE => 'deny',
           },
    # available if IP is US or affiliated with a US partner at any
    # IP address
@@ -350,9 +350,9 @@ our $ENHANCED_TEXT_USER  = 8;
            $SSD_USER              => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
            $SSD_PROXY_USER        => 'allow',
            $LIBRARY_IPADDR_USER   => 'allow', # US IP by definition, currently
-           $UM_AFFILIATE          => 'allow', # US affiliate any IP
-           $HT_AFFILIATE          => 'allow_us_aff_by_ipaddr', # only US affiliate any IP or US IP only
+           $HT_AFFILIATE          => 'allow_by_us_geo_ipaddr', # US IP only
            $ENHANCED_TEXT_USER    => 'allow',
+           $EMERGENCY_ACCESS_AFFILIATE => 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings',
           },
    # available to everyone in the world http://creativecommons.org/licenses/by/3.0/
    '10' => {
@@ -361,9 +361,9 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nd/3.0/
    '11' => {
@@ -372,9 +372,9 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/3.0/
    '12' => {
@@ -383,10 +383,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc/3.0/
    '13' => {
             $HT_TOTAL_USER         => 'allow',
@@ -394,9 +394,9 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/3.0/
    '14' => {
@@ -405,10 +405,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by-sa/3.0/
    '15' => {
             $HT_TOTAL_USER         => 'allow',
@@ -416,9 +416,9 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
            },
    # orphan candidate (implied in-copyright)
    '16' => {
@@ -427,10 +427,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow_ssd_by_holdings',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'deny',
-            $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow_emergency_access_by_holdings',
+         },
    # available to everyone in the world http://creativecommons.org/publicdomain/zero/1.0/
    '17' => {
             $HT_TOTAL_USER         => 'allow',
@@ -438,10 +438,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world
    '18' => {
             $HT_TOTAL_USER         => 'allow',
@@ -449,9 +449,9 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
            },
    # available if IP is non-US or affiliated with non-US partner at
    # any IP address
@@ -461,10 +461,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow_ssd_by_holdings_by_geo_ipaddr', # US IP + held or non-US IP
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'deny', # US IP address by definition, currently
-            $UM_AFFILIATE          => 'allow_by_nonus_geo_ipaddr', # non-US IP only
             $HT_AFFILIATE          => 'allow_nonus_aff_by_ipaddr', # only non-US affiliate any IP or non-US IP only
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow_emergency_access_by_holdings_by_geo_ipaddr',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by/4.0/
    '20' => {
             $HT_TOTAL_USER         => 'allow',
@@ -472,9 +472,9 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
            },
    # available to everyone in the world http://creativecommons.org/licenses/by-nd/4.0/
    '21' => {
@@ -483,10 +483,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-nd/4.0/
    '22' => {
             $HT_TOTAL_USER         => 'allow',
@@ -494,10 +494,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc/4.0/
    '23' => {
             $HT_TOTAL_USER         => 'allow',
@@ -505,10 +505,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by-nc-sa/4.0/
    '24' => {
             $HT_TOTAL_USER         => 'allow',
@@ -516,10 +516,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # available to everyone in the world http://creativecommons.org/licenses/by-sa/4.0/
    '25' => {
             $HT_TOTAL_USER         => 'allow',
@@ -527,10 +527,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'allow',
             $SSD_PROXY_USER        => 'allow',
             $LIBRARY_IPADDR_USER   => 'allow',
-            $UM_AFFILIATE          => 'allow',
             $HT_AFFILIATE          => 'allow',
             $ENHANCED_TEXT_USER    => 'allow',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'allow',
+          },
    # not available to view but searchable, more restrictive than ic(2) but less than nobody(8)
    '26' => {
             $HT_TOTAL_USER         => 'allow',
@@ -538,10 +538,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'deny',
             $SSD_PROXY_USER        => 'deny',
             $LIBRARY_IPADDR_USER   => 'deny',
-            $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
             $ENHANCED_TEXT_USER    => 'deny',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'deny',
+          },
    # not available to view, not searchable, more restrictive than nobody(8)
    '27' => {
             $HT_TOTAL_USER         => 'allow',
@@ -549,10 +549,10 @@ our $ENHANCED_TEXT_USER  = 8;
             $SSD_USER              => 'deny',
             $SSD_PROXY_USER        => 'deny',
             $LIBRARY_IPADDR_USER   => 'deny',
-            $UM_AFFILIATE          => 'deny',
             $HT_AFFILIATE          => 'deny',
             $ENHANCED_TEXT_USER    => 'deny',
-           },
+            $EMERGENCY_ACCESS_AFFILIATE => 'deny',
+          },
   );
 
 # ---------------------------------------------------------------------
@@ -604,6 +604,9 @@ $g_suppressed_attribute_value = 27;
     );
 
 %g_pdus_country_codes_hash = map { $_ => 1 } @g_pdus_country_codes;
+%g_attributes = map { $g_attribute_keys{$_} => $_ } keys %g_attribute_keys;
+%g_sources = map { $g_source_names{$_} => $_ } keys %g_source_names;
+%g_access_profiles = map { $g_access_profile_names{$_} => $_ } keys %g_access_profile_names;
 
 1;
 

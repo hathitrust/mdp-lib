@@ -66,17 +66,48 @@ sub handle_USER_ID_PI
     return $user_id;
 }
 
+use Auth::Auth;
 sub handle_USER_AFFILIATION_PI
     : PI_handler(USER_AFFILIATION) {
     my ($C, $act, $piParamHashRef) = @_;
 
     my $auth = $C->get_object('Auth');
-    my $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+    my $affiliation;
+
+    if ( $auth->get_eduPersonEntitlement($C)->has_entitlement($Auth::Auth::ENTITLEMENT_COMMON_LIB_TERMS) ) {
+        $affiliation = 'Member';
+    } else {
+        $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
+    }
+
     $affiliation = CGI::escape($affiliation);
+
+    my $config = $auth->get_activated_switchable_role($C);
+    if ( $config ) {
+        $affiliation = $$config{label};
+    }
 
     return $affiliation;
 }
 
+sub handle_USER_HAS_ROLE_TOGGLES_PI
+    : PI_handler(USER_HAS_ROLE_TOGGLES) {
+
+    my ($C, $act, $piParamHashRef) = @_;
+
+    my $retval;
+
+    my $auth = $C->get_object('Auth');
+
+    my @switchable_roles = $auth->get_switchable_roles($C);
+    my $config = $auth->get_activated_switchable_role($C);
+    if ( scalar @switchable_roles ) {
+        my $activated = ref $config ? $$config{role} : '';
+        $retval = qq{<UserHasRoleToggles activated="$activated">TRUE</UserHasRoleToggles>};
+    }
+
+    return $retval;
+}
 
 
 

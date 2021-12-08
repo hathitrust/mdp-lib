@@ -551,7 +551,7 @@ sub P_output_data_HTTP {
     my $charset = 'UTF-8';
     
     Utils::add_header($C, 'Content-type' => qq{$content_type; charset=$charset});
-    
+
     unless ( $status == 404 ) {
         my $ses = $C->get_object('Session', 1);
         if ($ses) {
@@ -564,6 +564,15 @@ sub P_output_data_HTTP {
             my $cookie = Utils::get_user_status_cookie($C, $auth);
             Utils::add_header($C, 'Cookie' => $cookie);
         }        
+
+        if ( ! $ENV{REMOTE_USER} ) {
+            if ($ses) {
+                my $entity_id;
+                if ( $entity_id = $ses->get_persistent('entity_id') ) {
+                    Utils::add_header($C, 'X-HathiTrust-Renew', $entity_id);
+                }
+            }
+        }
     }
 
     my $headers_ref = $C->get_object('HTTP::Headers');

@@ -108,10 +108,6 @@ use Debug::DUtils;
 use Database;
 use DbUtils;
 
-# 141.213.171.72-141.213.171.87
-# 141.213.175.72-141.213.175.87
-my $library_vpn_range = q{^141\.213\.17[15]\.(7[2-9]|8[0-7])$};
-
 # blocked
 my $iprestrict_all = 'notanipaddress';
 
@@ -121,7 +117,6 @@ my $iprestrict_none = '.*';
 # 
 
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
-my $GLOBAL_EXPIRE_DATE = '2014-12-31 23:59:59';
 
 my $do_restrict_to_identity_provider = 0;
 
@@ -295,6 +290,27 @@ sub S___total_access_using_DEBUG_super {
     __load_access_control_list();
 
     my $total = DEBUG('super') && __a_Authorized_core( {access => 'total'}, 'unmasked' );
+    return $total;
+}
+
+# ---------------------------------------------------------------------
+
+=item S___total_access_using_DEBUG_supercalifragilisticexpialidocious
+
+This predicate allows a user with access=total and using
+DEBUG('supercalifragilisticexpialidocious') to gain access 
+restricted materials while not being
+able to alter attribute values returned from
+__get_user_attributes(). Intended for CRMS users.
+
+=cut
+
+# ---------------------------------------------------------------------
+sub S___total_access_using_DEBUG_supercalifragilisticexpialidocious {
+    __load_access_control_list();
+
+    my $total = DEBUG('supercalifragilisticexpialidocious')
+      && __a_Authorized_core( { access => 'total' }, 'unmasked' );
     return $total;
 }
 
@@ -529,7 +545,7 @@ sub ___attribute_mapping {
     my $expires = $hashref->{expires};
 
     # Mapping from UI value to internal superuser
-    if ( grep(/^$role$/, (qw/staffdeveloper staffsysadmin/)) ) {
+    if ( defined($role) && grep(/^$role$/, (qw/staffdeveloper staffsysadmin/)) ) {
         $role = $hashref->{role} = 'superuser';
     }
 
@@ -541,11 +557,11 @@ sub ___attribute_mapping {
     # "no access" IP address or some other value in special cases
     # (SSD, Multi-Factored Auth) below.
     #
-    if ($usertype eq 'student') {
+    if (defined $usertype && $usertype eq 'student') {
         if ($role eq 'ssd') {
             $iprestrict = $hashref->{iprestrict} = $iprestrict_none;
         }
-    } elsif ($mfa) {
+    } elsif (defined $mfa && $mfa) {
       $iprestrict = $hashref->{iprestrict} = $iprestrict_none;      
     } elsif (!defined $iprestrict) {
       $iprestrict = $hashref->{iprestrict} = $iprestrict_all;

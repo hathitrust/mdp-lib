@@ -71,6 +71,7 @@ sub authorize {
 
     # Make the perl compiler happy about an uninitialized value.
     $ENV{'DEBUG'} = '' if (! exists $ENV{'DEBUG'});
+    $ENV{'QUERY_STRING'} = '' if ( ! exists $ENV{'QUERY_STRING'} );
 
     #
     # If debugging from the command line / perl debugger in a
@@ -79,13 +80,20 @@ sub authorize {
     # be set using debug=hathi|nonhathi (which see) under a web
     # browser.
     #
+
     if (
         ($ENV{'HT_DEV'} =~ m,[a-z]+,)
         &&
-        (! defined($ENV{'HTTP_HOST'}))
-        &&
-        $ENV{'TERM'}
-       ) {
+        ( 
+            ( $ENV{QUERY_STRING} =~ m,debug=.*sdrinst.*, )
+            ||
+            (
+                (! defined($ENV{'HTTP_HOST'}))
+                &&
+                $ENV{'TERM'}
+            )
+       )) {
+
         my $authfile_read = 0;
         my $auth_file = $ENV{'SDRROOT'} . $classpath . '/SDR';
         my $fail_msg =

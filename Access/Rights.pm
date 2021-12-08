@@ -78,8 +78,12 @@ use RightsGlobals;
 use Access::Holdings;
 use Access::Orphans;
 
+use Utils::Time;
+
 my $OK_ID  = 0;
 my $BAD_ID = 1;
+
+our $__granted = 0;
 
 sub new {
     my $class = shift;
@@ -243,7 +247,6 @@ sub assert_final_access_status {
     if (defined($self->{finalaccessstatus})) {
         return $self->{finalaccessstatus};
     }
-
     my $rights_attribute = $self->get_rights_attribute($C, $id);
     my $access_type = _determine_access_type($C);
 
@@ -333,8 +336,8 @@ sub check_final_access_status {
 
     $self->_validate_id($id);
 
-    if (defined($self->{finalaccessstatus})) {
-        return $self->{finalaccessstatus};
+    if (defined($self->{checkfinalaccessstatus})) {
+        return $self->{checkfinalaccessstatus};
     }
 
     my $rights_attribute = $self->get_rights_attribute($C, $id);
@@ -346,7 +349,7 @@ sub check_final_access_status {
     my $final_access_status =
         _Check_final_access_status($C, $initial_access_status, $id);
 
-    $self->{finalaccessstatus} = $final_access_status;
+    $self->{checkfinalaccessstatus} = $final_access_status;
 
     return $final_access_status;
 }
@@ -375,6 +378,18 @@ sub check_final_access_status_by_attribute {
     return $final_access_status;
 }
 
+sub check_initial_access_status_by_attribute {
+    my $self = shift;
+    my ($C, $rights_attribute, $id) = @_;
+
+    $self->_validate_id($id);
+
+    my $access_type = _determine_access_type($C);
+    my $initial_access_status =
+        _determine_initial_access_status($rights_attribute, $access_type);
+
+    return $initial_access_status;
+}
 # ---------------------------------------------------------------------
 
 =item PUBLIC: get_POD_access_status
@@ -519,7 +534,7 @@ sub get_full_PDF_access_status {
     }
 
     # Apr 2103 ssdproxy can generate full PDF when item is held
-    # Apr 2016 ssdproxy can generate full PDF regardless - 
+    # Apr 2016 ssdproxy can generate full PDF regardless -
     # - 2013 code left here in case this decision is reversed
     if ($auth->user_is_print_disabled_proxy($C)) {
         # my $institution = $auth->get_institution_code($C, 'mapped');
@@ -558,8 +573,42 @@ sub get_single_page_PDF_access_status {
         # you can read the book, so you can download single page PDFs
         $status = 'allow';
         my $access_type = $self->get_access_type($C);
-        if ( $access_type == $RightsGlobals::ENHANCED_TEXT_USER ) {
-            # but ENHANCED_TEXT_USER affiliations can only single-page download 
+        if ( $access_type == $RightsGlobals::ENHANCED_TEXT_USER || 
+             $access_type == $RightsGlobals::EMERGENCY_ACCESS_AFFILIATE ) {
+            # but ENHANCED_TEXT_USER and EMERGENCY_ACCESS_AFFILIATE 
+            # affiliations can only single-page download
+            # what ordinary users can download
+            my $rights_attribute = $self->get_rights_attribute($C, $id);
+            my $initial_access_status =
+                _determine_initial_access_status($rights_attribute, $RightsGlobals::ORDINARY_USER);
+
+            $status =
+                _Check_final_access_status($C, $initial_access_status, $id);
+
+        }
+    }
+
+    # clear the error message if $status eq 'allow'
+    $message = '' if ( $status eq 'allow' );
+
+    return ($message, $status);
+}
+
+sub get_remediated_items_access_status {
+    my $self = shift;
+    my ($C, $id) = @_;
+
+    $self->_validate_id($id);
+
+    my ($message, $status)= ('RESTRICTED_SOURCE', 'deny');
+    my $auth = $C->get_object('Auth');
+
+    if ( $self->check_final_access_status($C, $id) eq 'allow' ) {
+        # you can read the book, so you can download single page PDFs
+        $status = 'allow';
+        my $access_type = $self->get_access_type($C);
+        if ( $access_type == $RightsGlobals::EMERGENCY_ACCESS_AFFILIATE ) {
+            # but EMERGENCY_ACCESS_AFFILIATE affiliations can only download
             # what ordinary users can download
             my $rights_attribute = $self->get_rights_attribute($C, $id);
             my $initial_access_status =
@@ -1011,6 +1060,16 @@ sub _Assert_final_access_status {
     elsif ($initial_access_status eq 'allow_ssd_by_holdings_by_geo_ipaddr') {
         ($final_access_status, $granted, $owner, $expires) = _resolve_ssd_access_by_held_by_GeoIP($C, $id, 1);
     }
+    elsif
+      ($initial_access_status eq 'allow_emergency_access_by_holdings') {
+        ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held($C, $id, 1);
+    }
+    elsif ($initial_access_status eq 'allow_emergency_access_by_holdings_by_geo_ipaddr') {
+        ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 1, 'US');
+    }
+    elsif ($initial_access_status eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings') {
+        ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 1, 'NONUS');
+    }
 
     ___final_access_status_check($final_access_status);
 
@@ -1105,6 +1164,34 @@ sub _Check_final_access_status {
             $final_access_status = 'allow';
         }
     }
+    elsif
+      ($initial_access_status eq 'allow_emergency_access_by_holdings') {
+        if (defined($id)) {
+            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held($C, $id, 0);
+        }
+        else {
+            # downstream must filter on holdings
+            $final_access_status = 'allow';
+        }
+    }
+    elsif ($initial_access_status eq 'allow_emergency_access_by_holdings_by_geo_ipaddr') {
+        if (defined($id)) {
+            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 0, 'US');
+        }
+        else {
+            # downstream must filter on holdings
+            $final_access_status = 'allow';
+        }
+    }
+    elsif ($initial_access_status eq 'allow_us_aff_by_ipaddr_or_emergency_access_by_holdings') {
+        if (defined($id)) {
+            ($final_access_status, $granted, $owner, $expires) = _resolve_emergency_access_by_held_by_GeoIP($C, $id, 0, 'NONUS');
+        }
+        else {
+            # downstream must filter on holdings
+            $final_access_status = 'allow';
+        }
+    }
 
     ___final_access_status_check($final_access_status);
 
@@ -1142,9 +1229,24 @@ sub _determine_access_type {
         # coordinate with Auth::ACL
         $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
     }
+    elsif (DEBUG('inlib', 'In-library user-type access forced') ) {
+        $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
+    }
+    elsif (DEBUG('ssd', 'SSD access forced') ) {
+        $access_type = $RightsGlobals::SSD_USER;
+    }
+    elsif (Auth::ACL::S___total_access_using_DEBUG_supercalifragilisticexpialidocious) {
+
+        # access=total user with access enabled via debug=supercalifragilisticexpialidocious,
+        # e.g. users with role=crms
+        $access_type = $RightsGlobals::HT_TOTAL_USER;
+    }
     elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
         # access=total user with access enabled via debug=super,
         # e.g. users with role=crms
+        $access_type = $RightsGlobals::HT_TOTAL_USER;
+    }
+    elsif ( $auth->user_has_total_access($C) ) {
         $access_type = $RightsGlobals::HT_TOTAL_USER;
     }
     elsif ($auth->user_is_print_disabled_proxy($C)) {
@@ -1153,18 +1255,17 @@ sub _determine_access_type {
     elsif ( $auth->user_is_print_disabled($C) ) {
         $access_type = $RightsGlobals::SSD_USER;
     }
+    elsif ($auth->affiliation_is_enhanced_text_user($C)) {
+        $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
+    }
+    elsif ($auth->affiliation_has_emergency_access($C)) {
+        $access_type = $RightsGlobals::EMERGENCY_ACCESS_AFFILIATE;
+    }
     elsif ($auth->is_in_library()) {
         # full pd PDF + brittle book access limited by number held and
         # 24h exclusivity. UM only (by IP) until Shibboleth library-walk-in
         # entitlement is implemented.
         $access_type = $RightsGlobals::LIBRARY_IPADDR_USER;
-    }
-    elsif ($auth->affiliation_is_umich($C)) {
-        # full pd PDF on or off-campus + some DLPS ic works
-        $access_type = $RightsGlobals::UM_AFFILIATE;
-    }
-    elsif ($auth->affiliation_is_enhanced_text_user($C)) {
-        $access_type = $RightsGlobals::ENHANCED_TEXT_USER;
     }
     elsif ($auth->affiliation_is_hathitrust($C)) {
         # full pd PDF
@@ -1332,9 +1433,9 @@ sub _resolve_access_by_GeoIP {
     my $PROXIED_ADDR = proxied_address() || 0;
     my $proxy_detected = $PROXIED_ADDR;
 
-    my $REMOTE_ADDR = $ENV{REMOTE_ADDR};
+    my $REMOTE_ADDR = $ENV{REMOTE_ADDR} || '0.0.0.0';
 
-    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR );
+    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR ) || '';
     my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
 
@@ -1433,15 +1534,17 @@ determination when an ID is available.
 
 # ---------------------------------------------------------------------
 sub _check_access_exclusivity {
-    my ($C, $id, $brlm) = @_;
+    my ($C, $id, $brlm, $really) = @_;
 
     my ($status, $granted, $owner, $expires) = ('allow', 0, undef, '0000-00-00 00:00:00');
 
+    $__granted = 0;
     if (defined($id)) {
         ($granted, $owner, $expires) =
-          Auth::Exclusive::check_exclusive_access($C, $id, $brlm);
+          Auth::Exclusive::check_exclusive_access($C, $id, $brlm, $really);
         if ($granted) {
             $status = 'allow';
+            $__granted = 1;
         }
         else {
             $status = 'deny';
@@ -1517,7 +1620,15 @@ sub _resolve_access_by_held_BRLM {
     my $US_status = _resolve_access_by_GeoIP($C, 'US');
     if ($US_status eq 'allow') {
         if ($assert_ownership) {
-            ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id, 1);
+            # ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id, 1);
+            ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id, 1, 1);
+            if ( $status eq 'deny' ) {
+                my $checkout = $C->get_object('Session')->get_transient_subkey('checkouts', $id);
+                $status = 'allow' if ( $checkout );
+            }
+            if ( $status eq 'allow' ) {
+                ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+            }
         }
         else {
             ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id, 1);
@@ -1573,6 +1684,42 @@ sub _resolve_ssd_access_by_held {
     return ($status, $granted, $owner, $expires);
 }
 
+sub _resolve_emergency_access_by_held {
+    my ($C, $id, $assert_ownership) = @_;
+
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+    my $inst = 'not defined';
+    my $held = 0;
+
+    my $US_status = _resolve_access_by_GeoIP($C, 'US');
+    if (1 || $US_status eq 'allow') {
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
+        $held = Access::Holdings::id_is_held($C, $id, $inst);
+        if ($held) {
+            # new
+            $status = 'allow';
+            if (1) {
+                if ($assert_ownership) {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id, 0, 1);
+                    if ( $status eq 'deny' ) {
+                        my $checkout = $C->get_object('Session')->get_transient_subkey('checkouts', $id);
+                        $status = 'allow' if ( $checkout );
+                    }
+                    if ( $status eq 'allow' ) {
+                        ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+                    }
+                }
+                else {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+                }
+            }
+        }
+    }
+
+    DEBUG('pt,auth,all,held,notheld', qq{<h5>Emergency Access access=$status Holdings institution=$inst held=$held"</h5>});
+
+    return ($status, $granted, $owner, $expires);
+}
 
 # ---------------------------------------------------------------------
 
@@ -1627,6 +1774,52 @@ sub _resolve_ssd_access_by_held_by_GeoIP {
 
 
     DEBUG('pt,auth,all,held,notheld', qq{<h5>SSD ICUS access=$status Holdings institution=$inst held=$held"</h5>});
+
+    return ($status, $granted, $owner, $expires);
+}
+
+sub _resolve_emergency_access_by_held_by_GeoIP {
+    my ($C, $id, $assert_ownership, $required_location) = @_;
+
+    my ($status, $granted, $owner, $expires) = ('deny', 0, undef, '0000-00-00 00:00:00');
+    my $inst = 'not defined';
+    my $held = 0;
+
+    my $geoip_status = _resolve_access_by_GeoIP($C, $required_location);
+    if ($geoip_status eq 'allow') {
+        $inst = $C->get_object('Auth')->get_institution_code($C, 'mapped');
+        $held = Access::Holdings::id_is_held($C, $id, $inst);
+        if ($held) {
+            # new
+            $status = 'allow';
+            # obsolete
+            if (1) {
+                if ($assert_ownership) {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id, 0, 1);
+                    if ( $status eq 'deny' ) {
+                        my $checkout = $C->get_object('Session')->get_transient_subkey('checkouts', $id);
+                        if ( $checkout ) {
+                            ($status, $granted, $owner, $expires) = _assert_access_exclusivity($C, $id);
+                        }
+                    }
+                }
+                else {
+                    ($status, $granted, $owner, $expires) = _check_access_exclusivity($C, $id);
+                }
+            }
+        }
+    }
+    else {
+        # User in at (1) non-US IP or a (2) originating at a US IP
+        # through a blacklisted US proxy. No exclusivity or holdings
+        # requirements if (1). If (2), do we really care if a print
+        # disabled user is trying to get non-exclusive non-held access
+        # by using a blacklisted US proxy?  Executive decision: NO.
+        $status = 'allow';
+    }
+
+
+    DEBUG('pt,auth,all,held,notheld', qq{<h5>Emergency Access ICUS access=$status Holdings institution=$inst held=$held"</h5>});
 
     return ($status, $granted, $owner, $expires);
 }

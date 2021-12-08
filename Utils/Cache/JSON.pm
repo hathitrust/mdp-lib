@@ -54,7 +54,7 @@ sub instantiate
     
     my $data;
     {
-        local $RS = undef;
+        local $/ = undef;
         my $fh;
         croak "Cannot open $keyFileName" if not open($fh, '<:utf8', $keyFileName);
         $data = <$fh>;

@@ -27,7 +27,10 @@ use DBI;
 use Net::DNS;
 use Debug::DUtils;
 
+use Utils::Settings;
+
 my $resolver = new Net::DNS::Resolver;
+my $settings = Utils::Settings::load('mdp-lib', 'proxy');
 
 # Default send() is UDP (datagram) unless $resolver->usevc(1). However
 # there seem to be codepaths that will forct TCP so set tcp_timeout
@@ -37,13 +40,6 @@ $resolver->tcp_timeout(1);
 $resolver->retrans(0);
 $resolver->retry(0);
 
-my %blacklist_services =
-  (
-   '__IPADDRESS__.cbl.abuseat.org' => '127.0.0.2',
-   '__IPADDRESS__.dnsbl.njabl.org' => '127.0.0.9',
-   '__IPADDRESS__.__PORT__.__SERVER__.ip-port.exitlist.torproject.org' => '127.0.0.2',
-  );
-
 # Eliminate some calls out to DNS
 my %ip_address_cache = ();
 
@@ -52,7 +48,7 @@ sub blacklisted {
 
     # Check cache
     if (defined $ip_address_cache{$ip_addr}) {
-        DEBUG('proxy', qq{<pre>return cached blacklist=$blacklist</pre>});
+        DEBUG('proxy', qq{<pre>return cached blacklist=$ip_address_cache{$ip_addr}</pre>});
         return $ip_address_cache{$ip_addr};
     }
     
@@ -97,9 +93,10 @@ sub __bl_check_db {
 sub __bl_check_services {
     my ($ip_addr, $server_addr, $port) = @_;
 
-    my $blacklist = 0;
+    my $blacklist = 0; my $blacklist_services;
+    return $blacklist unless ( defined ( $blacklist_services =  $$settings{blacklist_services} ) );
 
-    foreach my $serv (keys %blacklist_services) {
+    foreach my $serv (keys %{ $blacklist_services }) {
         my $r_ip_addr = __reverse_ip($ip_addr);
         my $r_server_addr = __reverse_ip($server_addr);
 
@@ -120,12 +117,16 @@ sub __bl_check_services {
 
         eval {
             if (defined $query) {
-                my $answer = $query->{answer}[0];
-                if (defined $answer) {
-                    my $address = $answer->address;
-                    if ($address eq $blacklist_services{$serv}) {
-                        $blacklist = 1;
-                        last;
+                my $answers = $query->answer;
+                if ( defined $answers && scalar @$answers ) {
+                    foreach my $answer ( @$answers ) {
+                        my $address = $answer->address;
+                        my $possible = $$blacklist_services{$serv};
+                        if ( ref($possible) && grep(/$address/, @$possible) ) {
+                            return 1;
+                        } elsif ( $possible eq $address ) {
+                            return 1;
+                        }
                     }
                 }
             }
