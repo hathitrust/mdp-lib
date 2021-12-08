@@ -1246,6 +1246,9 @@ sub _determine_access_type {
         # e.g. users with role=crms
         $access_type = $RightsGlobals::HT_TOTAL_USER;
     }
+    elsif ( $auth->user_has_total_access($C) ) {
+        $access_type = $RightsGlobals::HT_TOTAL_USER;
+    }
     elsif ($auth->user_is_print_disabled_proxy($C)) {
         $access_type = $RightsGlobals::SSD_PROXY_USER;
     }

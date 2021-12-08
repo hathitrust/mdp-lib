@@ -80,13 +80,12 @@ sub handle_USER_AFFILIATION_PI
         $affiliation = ucfirst($auth->get_eduPersonUnScopedAffiliation($C) || 'Guest');
     }
 
-    my $check = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
-    my $activated = $C->get_object('Session')->get_persistent('activated_role');
-    if ( $check && $activated && $activated eq 'ssdproxy' ) {
-        $affiliation = 'ATRS';
-    }
-
     $affiliation = CGI::escape($affiliation);
+
+    my $config = $auth->get_activated_switchable_role($C);
+    if ( $config ) {
+        $affiliation = $$config{label};
+    }
 
     return $affiliation;
 }
@@ -99,15 +98,14 @@ sub handle_USER_HAS_ROLE_TOGGLES_PI
     my $retval;
 
     my $auth = $C->get_object('Auth');
-    # limited to ATRS users
-    my $check = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
-    if ( $check ) {
-        my $activated = '';
-        if ( $C->get_object('Session')->get_persistent('activated_role') eq 'ssdproxy' ) {
-            $activated = 'enhancedTextProxy';
-        }
+
+    my @switchable_roles = $auth->get_switchable_roles($C);
+    my $config = $auth->get_activated_switchable_role($C);
+    if ( scalar @switchable_roles ) {
+        my $activated = ref $config ? $$config{role} : '';
         $retval = qq{<UserHasRoleToggles activated="$activated">TRUE</UserHasRoleToggles>};
     }
+
     return $retval;
 }
 

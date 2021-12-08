@@ -72,6 +72,7 @@ use warnings;
 
 use File::Basename;
 use XML::LibXML;
+use List::Util qw(first);
 
 use Utils;
 use Debug::DUtils;
@@ -81,6 +82,8 @@ use Auth::Exclusive;
 use Institutions;
 
 use Context;
+
+use Utils::Settings;
 
 use constant COSIGN => 'cosign';
 use constant SHIBBOLETH => 'shibboleth';
@@ -102,6 +105,8 @@ $$NON_HT_AFFILIATED_ENTITY_IDS{'pumex-idp'} = 1;
 # for print disabled status
 my $ENTITLEMENT_VALID_AFFILIATIONS_REGEXP =
   qr,^(member|faculty|staff|student)$,ios;
+
+our $SWITCHABLE_ROLES = Utils::Settings::load( 'mdp-lib', 'switches', 1 );
 
 sub new {
     my $class = shift;
@@ -1042,6 +1047,7 @@ Description
 sub user_is_print_disabled_proxy {
     my $self = shift;
     my $C = shift;
+    my $check_possible = shift;
 
     # ACL test
     my $is_proxy = Auth::ACL::a_Authorized( {role => 'ssdproxy'} );
@@ -1051,9 +1057,11 @@ sub user_is_print_disabled_proxy {
         $is_proxy = ($entitlement eq 'ssdproxy');
     }
 
+    return $is_proxy if ( $check_possible );
+
     if ( $is_proxy ) {
         # check that the user has toggled this setting
-        my $activated = $C->get_object('Session')->get_persistent('activated_role') eq 'ssdproxy';
+        my $activated = $C->get_object('Session')->get_persistent('activated_role') eq 'enhancedTextProxy';
         unless ( $activated ) { $is_proxy = 0; }
     }
 
@@ -1086,6 +1094,29 @@ sub user_is_print_disabled {
     }
 
     return $is_disabled;
+}
+
+sub user_has_total_access {
+    my $self = shift;
+    my $C    = shift;
+    my $check_possible = shift;
+
+    # ACL test
+    my $has_total_access =
+      Auth::ACL::a_Authorized( { access => 'total' }, 'unmasked' );
+
+    return $has_total_access if ( $check_possible );
+
+    if ($has_total_access) {
+
+        # check that the user has toggled this setting
+        my $activated_role =
+          $C->get_object('Session')->get_persistent('activated_role');
+        my $activated = defined $activated_role && $activated_role eq 'totalAccess';
+        unless ($activated) { $has_total_access = 0; }
+    }
+
+    return $has_total_access;
 }
 
 # ---------------------------------------------------------------------
@@ -1172,6 +1203,34 @@ sub get_eduPersonTargetedID {
     $targeted_id = $ENV{persistent_id} if ( defined $ENV{persistent_id} );
     $targeted_id = $ENV{'persistent-id'} if ( defined $ENV{'persistent-id'} );
     return ( split(/;/, $targeted_id) )[0] || '';
+}
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+sub get_switchable_roles {
+    my $self = shift;
+    my $C = shift;
+
+    my $check_possible = 1;
+
+    return grep { 
+        if ( $$_{enabled} || defined $ENV{HT_DEV} ) {
+            my $method = $$_{method}; 
+            $self->$method( $C, $check_possible );
+        }
+    } @$SWITCHABLE_ROLES;
+}
+
+sub get_activated_switchable_role {
+    my $self = shift;
+    my $C = shift;
+
+    return first { 
+        if ( $$_{enabled} || defined $ENV{HT_DEV} ) {
+            my $method = $$_{method}; 
+            $self->$method($C); 
+        }
+    } $self->get_switchable_roles($C);
 }
 
 # ---------------------------------------------------------------------
