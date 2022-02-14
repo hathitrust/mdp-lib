@@ -47,6 +47,7 @@ sub log_incopyright_access  {
     my $Header_Key = 'X-HathiTrust-InCopyright';
 
     my $ar = $C->get_object('Access::Rights');
+    my $auth = $C->get_object('Auth', 1);
     if ( $ar->check_final_access_status($C, $id) eq 'allow' ) {
         # ... serving something
         my $in_copyright = $ar->in_copyright($C, $id);
@@ -54,7 +55,11 @@ sub log_incopyright_access  {
         my $access_type = $ar->get_access_type($C, 'as_string');
 
         {
-            if ( Debug::DUtils::DEBUG('super') ) {
+            if ( 
+                Debug::DUtils::DEBUG('super') || 
+                Debug::DUtils::DEBUG('supercalifragilisticexpialidocious') || 
+                ( ref($auth) && $auth->user_has_total_access($C) )
+            ) {
                 my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
                 if ( $usertype ) {
                     my $role = Auth::ACL::a_GetUserAttributes('role');
