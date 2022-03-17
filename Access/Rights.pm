@@ -1244,10 +1244,15 @@ sub _determine_access_type {
     elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
         # access=total user with access enabled via debug=super,
         # e.g. users with role=crms
-        $access_type = $RightsGlobals::HT_TOTAL_USER;
+        $access_type =
+          Auth::ACL::a_GetUserAttributes('usertype') eq 'staff'
+          ? $RightsGlobals::HT_STAFF_USER
+          : $RightsGlobals::HT_TOTAL_USER;
     }
     elsif ( $auth->user_has_total_access($C) ) {
-        $access_type = $RightsGlobals::HT_TOTAL_USER;
+        $access_type = Auth::ACL::a_GetUserAttributes('usertype') eq 'staff' ?
+            $RightsGlobals::HT_STAFF_USER : 
+            $RightsGlobals::HT_TOTAL_USER;
     }
     elsif ($auth->user_is_print_disabled_proxy($C)) {
         $access_type = $RightsGlobals::SSD_PROXY_USER;
