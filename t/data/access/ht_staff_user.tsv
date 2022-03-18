@@ -13,9 +13,9 @@ Attribute Code	Attribute	Access Profile	Access Type	Can access volume?	Can downl
 7	ic-world	open	ht_total_user	allow	allow	allow	deny
 7	ic-world	google	ht_total_user	allow	allow	allow	deny
 7	ic-world	page	ht_total_user	allow	allow	allow	deny
-8	nobody	open	ht_total_user	allow	deny	deny	deny
-8	nobody	google	ht_total_user	allow	deny	deny	deny
-8	nobody	page	ht_total_user	allow	deny	deny	deny
+8	nobody	open	ht_total_user	allow	allow	deny	deny
+8	nobody	google	ht_total_user	allow	allow	deny	deny
+8	nobody	page	ht_total_user	allow	allow	deny	deny
 9	pdus	open	ht_total_user	allow	allow	allow	deny
 9	pdus	google	ht_total_user	allow	allow	allow	deny
 9	pdus	page	ht_total_user	allow	allow	allow	deny
@@ -51,7 +51,7 @@ Attribute Code	Attribute	Access Profile	Access Type	Can access volume?	Can downl
 24	cc-by-nc-sa-4.0	google	ht_total_user	allow	allow	allow	deny
 25	cc-by-sa-4.0	open	ht_total_user	allow	allow	allow	deny
 25	cc-by-sa-4.0	google	ht_total_user	allow	allow	allow	deny
-26	pd-pvt	open	ht_total_user	allow	deny	deny	deny
-26	pd-pvt	google	ht_total_user	allow	deny	deny	deny
-27	supp	open	ht_total_user	allow	deny	deny	deny
-27	supp	google	ht_total_user	allow	deny	deny	deny
+26	pd-pvt	open	ht_total_user	allow	allow	deny	deny
+26	pd-pvt	google	ht_total_user	allow	allow	deny	deny
+27	supp	open	ht_total_user	allow	allow	deny	deny
+27	supp	google	ht_total_user	allow	allow	deny	deny

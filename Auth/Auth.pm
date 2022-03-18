@@ -311,6 +311,7 @@ sub is_possible_auth_stepup {
     my $retval = 0;
 
     my $config = {};
+    $$config{$RightsGlobals::HT_STAFF_USER} = 1;
     $$config{$RightsGlobals::HT_TOTAL_USER} = 1;
     $$config{$RightsGlobals::SSD_PROXY_USER} = 1;
 

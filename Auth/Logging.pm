@@ -58,7 +58,8 @@ sub log_incopyright_access  {
             if ( 
                 Debug::DUtils::DEBUG('super') || 
                 Debug::DUtils::DEBUG('supercalifragilisticexpialidocious') || 
-                ( ref($auth) && $auth->user_has_total_access($C) )
+                ( ref($auth) && $auth->user_has_total_access($C) ) || 
+                ( ref($auth) && $auth->user_is_print_disabled_proxy($C) )
             ) {
                 my $usertype = Auth::ACL::a_GetUserAttributes('usertype');
                 if ( $usertype ) {
