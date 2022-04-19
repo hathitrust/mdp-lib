@@ -192,12 +192,12 @@ sub _log_access {
     my $inst_name             = $auth->get_institution_name($C) || 'notset';
     my $inst_name_mapped      = $auth->get_institution_name($C, 1) || 'notset';
 
-    require Geo::IP;
-    my $geoIp = Geo::IP->new();
-    my $country_code = $geoIp->country_code_by_addr($remote_addr) || 'notset'; chomp $country_code;
-    my $country_name = $geoIp->country_name_by_addr($remote_addr) || 'notset'; chomp $country_name;
-    my $country_code_prox = $geoIp->country_code_by_addr($proxied_addr) || 'notset'; chomp $country_code_prox;
-    my $country_name_prox = $geoIp->country_name_by_addr($proxied_addr) || 'notset'; chomp $country_name_prox;
+    require Utils::GeoIP;
+
+    my $remote_addr_info = Utils::GeoIP::get_addr_info($C, $remote_addr);
+    my $proxied_addr_info = Utils::GeoIP::get_addr_info($C, $proxied_addr);
+    my $country_code = $remote_addr_info->country_code || 'notset'; chomp $country_code;
+    my $country_code_prox = $proxied_addr_info->country_code || 'notset'; chomp $country_code_prox;
 
     my ($usertype, $role) = (
                              Auth::ACL::a_GetUserAttributes('usertype') || 'notset',
@@ -207,7 +207,7 @@ sub _log_access {
 
     # my $s = qq{$message: app=$app_name id=$id $datetime attr=$attr ic=$ic access_type=$access_type remote_addr=$remote_addr proxied_addr=$proxied_addr http_referer=$http_referer user_agent=$user_agent remote_user(env=$remote_user_from_env processed=$remote_user_processed) auth_type=$auth_type usertype=$usertype role=$role geo_code=$country_code geo_name=$country_name geo_code_proxy=$country_code_prox geo_name_prox=$country_name_prox remote_realm=$remote_realm sdrinst=$sdrinst sdrlib=$sdrlib http_host=$http_host inst_code=$inst_code inst_code_mapped=$inst_code_mapped inst_name=$inst_name inst_name_mapped=$inst_name_mapped };
 
-    my $s .= qq{$message|app=$app_name|id=$id|datetime=$datetime|attr=$attr|ic=$ic|access_type=$access_type|remote_addr=$remote_addr|proxied_addr=$proxied_addr|request_uri=$request_uri|http_referer=$http_referer|user_agent=$user_agent|remote_user_env=$remote_user_from_env|remote_user_processed=$remote_user_processed|auth_type=$auth_type|usertype=$usertype|role=$role|sdrinst=$sdrinst|sdrlib=$sdrlib|http_host=$http_host|inst_code=$inst_code|inst_code_mapped=$inst_code_mapped|inst_name=$inst_name|inst_name_mapped=$inst_name_mapped|geo_code=$country_code|geo_name=$country_name|geo_code_proxy=$country_code_prox|geo_name_proxy=$country_name_prox};
+    my $s .= qq{$message|app=$app_name|id=$id|datetime=$datetime|attr=$attr|ic=$ic|access_type=$access_type|remote_addr=$remote_addr|proxied_addr=$proxied_addr|request_uri=$request_uri|http_referer=$http_referer|user_agent=$user_agent|remote_user_env=$remote_user_from_env|remote_user_processed=$remote_user_processed|auth_type=$auth_type|usertype=$usertype|role=$role|sdrinst=$sdrinst|sdrlib=$sdrlib|http_host=$http_host|inst_code=$inst_code|inst_code_mapped=$inst_code_mapped|inst_name=$inst_name|inst_name_mapped=$inst_name_mapped|geo_code=$country_code|geo_name=-|geo_code_proxy=$country_code_prox|geo_name_proxy=-};
 
     if ($auth_type eq 'shibboleth') {
         my $affiliation = $ENV{affiliation} || 'notset';
@@ -340,14 +340,14 @@ sub log_access {
     # my $inst_name             = $auth->get_institution_name($C) || undef;
     # my $inst_name_mapped      = $auth->get_institution_name($C, 1) || undef;
 
-    require Geo::IP;
-    my $geoIp = Geo::IP->new();
-    my $geo_code = $geoIp->country_code_by_addr($remote_addr) || undef; chomp $geo_code if ( $geo_code );
-    # my $geo_name = $geoIp->country_name_by_addr($remote_addr) || undef; chomp $geo_name if ( $geo_name );
+    require Utils::GeoIP;
+
+    my $remote_addr_info = Utils::GeoIP::get_addr_info( $C, $remote_addr );
+    my $geo_code = $remote_addr_info->country_code;
     my ( $geo_code_proxy, $geo_name_proxy );
     if ( $proxied_addr ) {
-        $geo_code_proxy = $geoIp->country_code_by_addr($proxied_addr) || undef; chomp $geo_code_proxy if ( $geo_code_proxy );
-        # $geo_name_proxy = $geoIp->country_name_by_addr($proxied_addr) || undef; chomp $geo_name_proxy if ( $geo_name_proxy );
+        my $proxied_addr_info = Utils::GeoIP::get_addr_info( $C, $proxied_addr );
+        $geo_code_proxy = $proxied_addr_info->country_code || undef; chomp $geo_code_proxy if ( $geo_code_proxy );
     }
 
 

@@ -1427,10 +1427,9 @@ sub _resolve_access_by_GeoIP {
 
     return 'allow' if ( ! defined $ENV{REMOTE_ADDR} && ! defined $ENV{HTTP_HOST} );
 
-    my $status = 'deny';
+    require Utils::GeoIP;
 
-    require "Geo/IP.pm";
-    my $geoIP = Geo::IP->new();
+    my $status = 'deny';
 
     # If there's a proxy involved force both proxy and client to be
     # coterminous geographically.  It's the best we can do since all
@@ -1440,12 +1439,15 @@ sub _resolve_access_by_GeoIP {
 
     my $REMOTE_ADDR = $ENV{REMOTE_ADDR} || '0.0.0.0';
 
-    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR ) || '';
-    my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
+    my $remote_addr_info = Utils::GeoIP::get_addr_info($C, $REMOTE_ADDR);
+    my $proxied_addr_info = Utils::GeoIP::get_addr_info($C, $PROXIED_ADDR);
+
+    my $remote_addr_country_code = $remote_addr_info->country_code;
+    my $remote_addr_is_US = $remote_addr_info->is_US;
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
 
-    my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
-    my $proxied_addr_is_US = $proxied_addr_country_code ? ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) ) : undef;
+    my $proxied_addr_country_code = $proxied_addr_info->country_code;
+    my $proxied_addr_is_US = $proxied_addr_info->is_US;
     my $proxied_addr_is_nonUS = ! $proxied_addr_is_US;
 
     my $IPADDR = 0;
