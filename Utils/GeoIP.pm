@@ -1,7 +1,5 @@
 package Utils::GeoIP;
 
-our $db;
-
 sub get_addr_info {
     my ( $C, $ip_addr ) = @_;
 
@@ -9,15 +7,12 @@ sub get_addr_info {
         return Utils::GeoIP::Info::Null->new;
     }
 
-    unless ($db) {
-        $db = IP::Geolocation::MMDB->new(
-            file => q{/htapps/babel/geoip/GeoIP2-Country.mmdb} );
-    }
-
     my $session = $C->get_object( 'Session', 1 );
     if ( $session && $session->get_persistent_subkey( 'addr_info', $ip_addr ) ) {
-        return $session->get_persistent_subkey('addr_info', $ip_addr);
+        return $session->get_persistent_subkey( 'addr_info', $ip_addr );
     }
+
+    my $db = get_db($C);
 
     my $info = Utils::GeoIP::Info->new($db, $ip_addr);
     $session->set_persistent_subkey('addr_info', $ip_addr, $info) if ( $session );
@@ -25,10 +20,20 @@ sub get_addr_info {
     return $info;
 }
 
+sub get_db {
+    my ( $C ) = @_;
+    my $db;
+    unless ( $db = $C->get_object('IP::Geolocation::MMDB', 1) ) {
+        $db = IP::Geolocation::MMDB->new(
+            file => q{/htapps/babel/geoip/GeoIP2-Country.mmdb} );
+        $C->set_object('IP::Geolocation::MMDB', $db);
+    }
+
+    return $db;
+}
+
 package Utils::GeoIP::Info;
 
-use lib qq{$ENV{SDRROOT}/sandbox/perl5/lib/perl5};
-use local::lib "$ENV{SDRROOT}/sandbox/perl5";
 use IP::Geolocation::MMDB;
 
 use RightsGlobals;
