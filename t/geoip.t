@@ -5,17 +5,15 @@ use warnings;
 use Test::More;
 use FindBin;
 use lib "$FindBin::Bin/lib";
-use Geo::IP;
+use IP::Geolocation::MMDB;
 
-my $geoip = Geo::IP->new();
+my $geoip = IP::Geolocation::MMDB->new( file => '/pretend/GeoIP2-Country.mmdb' );
 
 $ENV{TEST_GEO_IP_COUNTRY_CODE} = 'US';
-is('US', $geoip->country_code_by_addr());
-is('Geo::IP_stub_US', $geoip->country_name_by_addr());
+is('US', $geoip->getcc('0.0.0.0'));
 
 $ENV{TEST_GEO_IP_COUNTRY_CODE} = 'UK';
-is('UK', $geoip->country_code_by_addr());
-is('Geo::IP_stub_UK', $geoip->country_name_by_addr());
+is('UK', $geoip->getcc('0.0.0.0'));
 
 done_testing();
 
