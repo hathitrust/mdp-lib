@@ -391,7 +391,13 @@ sub log_access {
     }
 
     push @$message, @$tuples if ( ref($tuples) );
-    # my $s = join('|', map { join('=', @$_) } @$message);
+
+    if ( !$ENV{REMOTE_USER} && ref($session) ) {
+        if ( my $entity_id = $session->get_persistent('entity_id') ) {
+            push @$message, [ 'lost_auth', $entity_id ];
+        }
+    }
+
     require JSON::XS;
     my $json = JSON::XS->new()->utf8(1)->allow_nonref(1);
     my $s = '{';

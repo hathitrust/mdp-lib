@@ -570,6 +570,7 @@ sub P_output_data_HTTP {
                 my $entity_id;
                 if ( $entity_id = $ses->get_persistent('entity_id') ) {
                     Utils::add_header($C, 'X-HathiTrust-Renew', $entity_id);
+                    Utils::add_header($C, 'X-HathiTrust-InCopyright', "lost_auth=$entity_id");
                 }
             }
         }
