@@ -776,6 +776,13 @@ sub get_description {
     return $self->get_coll_record($coll_id)->{description};
 }
 
+sub get_contributor_name {
+    my $self    = shift;
+    my $coll_id = shift;
+
+    return $self->get_coll_record($coll_id)->{contributor_name};
+}
+
 
 # ---------------------------------------------------------------------
 
@@ -811,6 +818,12 @@ sub get_coll_contact_info {
     return $self->get_coll_record($coll_id)->{contact_info};
 }
 
+sub get_coll_contact_link {
+    my $self    = shift;
+    my $coll_id = shift;
+    return $self->get_coll_record($coll_id)->{contact_link};
+}
+
 # ---------------------------------------------------------------------
 
 =item _edit_metadata
@@ -838,6 +851,21 @@ sub _edit_metadata {
     if (defined($max_length)) {
         if (length($value) > $max_length) {
             $value = substr($value, 0, $max_length);
+        }
+    }
+
+    if ( $value ) {
+        # sanitize the input
+        require XML::LibXML;
+        require HTML::Entities;
+        my $html_parser = XML::LibXML->new();
+        eval {
+            $value = HTML::Entities::decode_entities($value);
+            my $html_dom = $html_parser->parse_html_string("<div>$value</div>", { recover => 2 });
+            $value = $html_dom->textContent;
+        };
+        if ( my $err = $@ ) {
+            ASSERT($err, qq{Value could be not sanitized $coll_id : $value : $user});
         }
     }
 
@@ -913,6 +941,23 @@ sub edit_description {
     $self-> _edit_metadata($coll_id, 'description', $description, 255);
 }
 
+sub edit_contributor_name {
+    my $self         = shift;
+    my $coll_id      = shift;
+    my $contributor_name = shift;
+
+    $self->_edit_metadata( $coll_id, 'contributor_name', $contributor_name,
+        255 );
+}
+
+sub edit_contact_info {
+    my $self = shift;
+    my $coll_id = shift;
+    my $contact_info = shift;
+
+    $self-> _edit_metadata($coll_id, 'contact_info', $contact_info, 255);
+}
+
 
 #----------------------------------------------------------------------
 
@@ -932,6 +977,40 @@ sub edit_coll_name {
     my $coll_name = shift;
 
     $self->_edit_metadata($coll_id, 'collname', $coll_name, 100);
+}
+
+sub transfer_collection {
+    my $self = shift;
+    my $collid = shift;
+    my $current_owner = shift;
+    my $owner = shift;
+    my $owner_name = shift;
+
+    my $dbh             = $self->get_dbh();
+    my $coll_table_name = $self->get_coll_table_name;
+
+    my $current_expr = join(',', map { '?' } @$current_owner);
+
+    my $statement = <<SQL;
+UPDATE $coll_table_name
+SET owner = ?, owner_name = ?
+WHERE MColl_ID = ? AND owner IN ( $current_expr )
+SQL
+
+    DbUtils::begin_work($dbh);
+    eval {
+        # Add the items
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $owner, $owner_name, $collid, @$current_owner);
+
+        # clear the cache
+        delete $self->{_collection_collid_record}->{$coll_id};
+
+        DbUtils::commit($dbh);
+    };
+    if ( my $err = $@ ) {
+        eval { $dbh->rollback; };
+        ASSERT( 0, qq{Problem with transfer_collection : $field : $err} );
+    }    
 }
 
 
