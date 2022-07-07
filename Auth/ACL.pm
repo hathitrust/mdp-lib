@@ -118,7 +118,7 @@ my $iprestrict_none = '.*';
 
 my $ZERO_TIMESTAMP = '0000-00-00 00:00:00';
 
-my $do_restrict_to_identity_provider = 0;
+my $do_restrict_to_identity_provider = 1;
 
 
 # ---------------------------------------------------------------------
