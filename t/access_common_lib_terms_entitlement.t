@@ -20,6 +20,7 @@ use CGI;
 use Utils;
 
 use Test::File;
+use Test::ACL;
 
 use Data::Dumper;
 use feature qw(say);
@@ -112,7 +113,8 @@ my $member_tests = Test::File::load_data("$FindBin::Bin/data/access/ht_affiliate
 my $ordinary_user_tests = Test::File::load_data("$FindBin::Bin/data/access/ordinary_user.tsv");
 
 mock_institutions($C);
-mock_acls($C);
+Test::ACL::mock_acls($C, { userid => 'bjensen@umich.edu', identity_provider => Auth::Auth::get_umich_IdP_entity_id() });
+
 
 local %ENV = %ENV;
 $ENV{HTTP_HOST} = q{babel.hathitrust.org};
@@ -248,13 +250,3 @@ sub mock_institutions {
     bless $inst_ref, 'Institutions';
     $C->set_object('Institutions', $inst_ref);
 }
-
-sub mock_acls {
-    my ( $C ) = @_;
-
-    my $acl_ref = {};
-    $$acl_ref{'bjensen'} = { userid => 'bjensen' };
-    bless $acl_ref, 'Auth::ACL';
-    $C->set_object('Auth::ACL', $acl_ref);
-}
-
