@@ -78,7 +78,7 @@ sub __get_db_connect_params {
 
     my $conf_file;
     if ($ENV{HT_DEV}) {
-        if ($ENV{SDRVIEW} eq 'sample') {
+        if (defined $ENV{SDRVIEW} && $ENV{SDRVIEW} eq 'sample') {
             $conf_file = ___conf_file($Sample_Access_Config_Root, $_db_user);
         }
         else {
