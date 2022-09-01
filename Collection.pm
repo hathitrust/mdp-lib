@@ -862,7 +862,7 @@ sub _edit_metadata {
         eval {
             $value = HTML::Entities::decode_entities($value);
             my $html_dom = $html_parser->parse_html_string("<div>$value</div>", { recover => 2 });
-            $value = $html_dom->textContent;
+            $value = HTML::Entities::encode_entities($html_dom->textContent);
         };
         if ( my $err = $@ ) {
             ASSERT($err, qq{Value could be not sanitized $coll_id : $value : $user});
