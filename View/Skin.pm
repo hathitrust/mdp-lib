@@ -55,11 +55,6 @@ sub new
 }
 
 use constant DEFAULT_SKIN    => 'default';
-use constant MICHIGAN_SKIN   => 'default';
-use constant WISCONSIN_SKIN  => 'default';
-use constant INDIANA_SKIN    => 'default';
-use constant CALIFORNIA_SKIN => 'default';
-use constant CRMS_SKIN       => 'crms';
 
 
 # ---------------------------------------------------------------------
@@ -91,24 +86,6 @@ sub __get_skin_by_location
     my $C = shift;
 
     my $skin_name = DEFAULT_SKIN;
-
-    my $sdr_inst = $ENV{'SDRINST'};
-    if ($sdr_inst eq 'wisc')
-    {
-        $skin_name = WISCONSIN_SKIN;
-    }
-    elsif ($sdr_inst eq 'uom')
-    {
-        $skin_name = MICHIGAN_SKIN;
-    }
-    elsif ($sdr_inst eq 'ind')
-    {
-        $skin_name = INDIANA_SKIN;
-    }
-    elsif ($sdr_inst eq 'ucal')
-    {
-        $skin_name = CALIFORNIA_SKIN;
-    }
 
     return $skin_name;
 }
@@ -145,24 +122,7 @@ sub get_skin_name
     my $C = shift;
 
     my $skin_name;
-
-    if ($C->has_object('Auth')) {
-        my $auth = $C->get_object('Auth');
-        if ($auth->is_logged_in()) {
-            if ($auth->login_realm_is_friend()) {
-                $skin_name = $self->__get_skin_by_location($C);
-            }
-            else {
-                $skin_name = MICHIGAN_SKIN;
-            }
-        }
-        else {
-            $skin_name = $self->__get_skin_by_location($C);
-        }
-    }
-    else {
-        $skin_name = $self->__get_skin_by_location($C);
-    }
+    $skin_name = DEFAULT_SKIN;
 
     # Debugging URL parameter to force a skin
     my $skin_key = $C->get_object('CGI')->param('skin');

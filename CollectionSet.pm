@@ -1,6 +1,4 @@
 package CollectionSet;
-use Collection;
-
 
 =head1 NAME
 

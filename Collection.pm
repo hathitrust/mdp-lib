@@ -981,7 +981,7 @@ sub edit_coll_name {
 
 sub transfer_collection {
     my $self = shift;
-    my $collid = shift;
+    my $coll_id = shift;
     my $current_owner = shift;
     my $owner = shift;
     my $owner_name = shift;
@@ -1000,7 +1000,7 @@ SQL
     DbUtils::begin_work($dbh);
     eval {
         # Add the items
-        my $sth = DbUtils::prep_n_execute($dbh, $statement, $owner, $owner_name, $collid, @$current_owner);
+        my $sth = DbUtils::prep_n_execute($dbh, $statement, $owner, $owner_name, $coll_id, @$current_owner);
 
         # clear the cache
         delete $self->{_collection_collid_record}->{$coll_id};
@@ -1009,7 +1009,7 @@ SQL
     };
     if ( my $err = $@ ) {
         eval { $dbh->rollback; };
-        ASSERT( 0, qq{Problem with transfer_collection : $field : $err} );
+        ASSERT( 0, qq{Problem with transfer_collection : $owner_name : $coll_id : @$current_owner : $err} );
     }    
 }
 
