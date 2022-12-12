@@ -147,7 +147,7 @@ sub _initialize {
     }
     silent_ASSERT($dbh, qq{database connect failed: } . (DBI->errstr || ''));
 
-    my $charset_cmd = qq{SET NAMES 'UTF8'};
+    my $charset_cmd = qq{SET NAMES 'utf8mb4'};
     silent_ASSERT($dbh->do($charset_cmd), qq{database charset failed: } . (DBI->errstr || ''));
 
     # mysql_auto_reconnect in conjunction with a ping() will reconnect
