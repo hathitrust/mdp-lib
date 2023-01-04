@@ -493,7 +493,7 @@ sub list_colls
 
     $statement = qq{$SELECT $FROM $WHERE $ORDER $LIMIT;};
 
-    DEBUG('dbcoll', qq{sql statement="$statement"});
+    DEBUG('dbcoll', qq{sql statement="$statement" params="@params"});
 
     my $dbh = $self->{'dbh'};
     my $sth = DbUtils::prep_n_execute($dbh, $statement, @params);
