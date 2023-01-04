@@ -187,7 +187,7 @@ sub _initialize {
         else {
             $self->__debug_auth($C, $ses);
             if ( my $redirect_to = $self->handle_possible_auth_renewal($C, $was_logged_in_via) ) {
-                $self->do_redirect($C, $redirect_to);
+                $self->do_redirect($C, $redirect_to, { '-X-HathiTrust-InCopyright' => "lost_auth=" . $ses->get_persistent('entity_id') });
             } else {
                 $self->handle_possible_auth_expiration($C, $was_logged_in_via);
             }
@@ -311,6 +311,7 @@ sub is_possible_auth_stepup {
     my $retval = 0;
 
     my $config = {};
+    $$config{$RightsGlobals::HT_STAFF_USER} = 1;
     $$config{$RightsGlobals::HT_TOTAL_USER} = 1;
     $$config{$RightsGlobals::SSD_PROXY_USER} = 1;
 
@@ -330,9 +331,11 @@ sub is_possible_auth_stepup {
 
 sub do_redirect {
     my $self = shift;
-    my ( $C, $redirect_to ) = @_;
+    my ( $C, $redirect_to, $headers ) = @_;
     my $cgi = $C->get_object('CGI');
-    print $cgi->redirect($redirect_to);
+    $headers = $headers || {};
+    my $args = {-uri => $redirect_to, %$headers};
+    print $cgi->redirect(%$args);
     exit;
 }
 

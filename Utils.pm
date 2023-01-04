@@ -105,8 +105,10 @@ sub Get_Legacy_Remote_User {
 
 sub Get_Remote_User_Names {
     my @usernames = ( Get_Remote_User() );
-    if ( defined $ENV{eppn} && $ENV{eppn} && lc $ENV{eppn} ne $usernames[0] ) {
-        push @usernames, lc $ENV{eppn};
+    if ( defined $ENV{eppn} && $ENV{eppn} ) {
+        foreach my $value ( split(/;/, lc $ENV{eppn} ) ) {
+            push @usernames, $value unless ( grep(/^$value$/, @usernames) );
+        }
     }
     return @usernames;
 }

@@ -62,15 +62,8 @@ use Debug::DUtils;
 my %g_skin_map =
     (
      'default'   => '',
-     'michigan'  => '/web/m/michigan',
-     'wisconsin' => '/web/w/wisconsin',
      'crms'      => '/pt/web/crms',
      'crmsworld' => '/pt/web/crms',
-     'mobile'   =>  '/pt/web/mobile',
-     'mobilewayf' => '/wayf/web/mobile',
-     'unicorn'   => '/pt/web/unicorn',
-     'alicorn'   => '/pt/web/alicorn',
-     '2019'      => '/pt/web/alicorn',
      '2021'      => '/pt/web/2021',
     );
 

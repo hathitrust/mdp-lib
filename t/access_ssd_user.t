@@ -21,6 +21,7 @@ use CGI;
 use Utils;
 
 use Test::File;
+use Test::ACL;
 
 use Data::Dumper;
 use feature qw(say);
@@ -62,7 +63,10 @@ my $auth = Auth::Auth->new($C);
 $C->set_object('Auth', $auth);
 
 mock_institutions($C);
-mock_acls($C);
+Test::ACL::mock_acls($C, [
+    { userid => 'user@umich.edu', role => 'ssd', usertype => 'student', access => 'normal', expires => '2040-12-31 23:59:59', identity_provider => Auth::Auth::get_umich_IdP_entity_id() },
+    { userid => 'user@ox.ac.edu', role => 'ssd', usertype => 'student', access => 'normal', expires => '2040-12-31 23:59:59', identity_provider => q{https://registry.shibboleth.ox.ac.uk/idp} }
+]);
 
 local %ENV = %ENV;
 $ENV{HTTP_HOST} = q{babel.hathitrust.org};
@@ -162,14 +166,3 @@ sub mock_institutions {
     bless $inst_ref, 'Institutions';
     $C->set_object('Institutions', $inst_ref);
 }
-
-sub mock_acls {
-    my ( $C ) = @_;
-
-    my $acl_ref = {};
-    $$acl_ref{'user@umich.edu'} = { userid => 'user@umich.edu', role => 'ssd', usertype => 'student', access => 'normal', expires => '2040-12-31 23:59:59' };
-    $$acl_ref{'user@ox.ac.edu'} = { userid => 'user@ox.ac.edu', role => 'ssd', usertype => 'student', access => 'normal', expires => '2040-12-31 23:59:59' };
-    bless $acl_ref, 'Auth::ACL';
-    $C->set_object('Auth::ACL', $acl_ref);
-}
-

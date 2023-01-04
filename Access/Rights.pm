@@ -1244,10 +1244,15 @@ sub _determine_access_type {
     elsif (Auth::ACL::S___total_access_using_DEBUG_super) {
         # access=total user with access enabled via debug=super,
         # e.g. users with role=crms
-        $access_type = $RightsGlobals::HT_TOTAL_USER;
+        $access_type =
+          Auth::ACL::a_GetUserAttributes('usertype') eq 'staff'
+          ? $RightsGlobals::HT_STAFF_USER
+          : $RightsGlobals::HT_TOTAL_USER;
     }
     elsif ( $auth->user_has_total_access($C) ) {
-        $access_type = $RightsGlobals::HT_TOTAL_USER;
+        $access_type = Auth::ACL::a_GetUserAttributes('usertype') eq 'staff' ?
+            $RightsGlobals::HT_STAFF_USER : 
+            $RightsGlobals::HT_TOTAL_USER;
     }
     elsif ($auth->user_is_print_disabled_proxy($C)) {
         $access_type = $RightsGlobals::SSD_PROXY_USER;
@@ -1422,10 +1427,9 @@ sub _resolve_access_by_GeoIP {
 
     return 'allow' if ( ! defined $ENV{REMOTE_ADDR} && ! defined $ENV{HTTP_HOST} );
 
-    my $status = 'deny';
+    require Utils::GeoIP;
 
-    require "Geo/IP.pm";
-    my $geoIP = Geo::IP->new();
+    my $status = 'deny';
 
     # If there's a proxy involved force both proxy and client to be
     # coterminous geographically.  It's the best we can do since all
@@ -1435,12 +1439,15 @@ sub _resolve_access_by_GeoIP {
 
     my $REMOTE_ADDR = $ENV{REMOTE_ADDR} || '0.0.0.0';
 
-    my $remote_addr_country_code = $geoIP->country_code_by_addr( $REMOTE_ADDR ) || '';
-    my $remote_addr_is_US = ( grep(/^$remote_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) );
+    my $remote_addr_info = Utils::GeoIP::get_addr_info($C, $REMOTE_ADDR);
+    my $proxied_addr_info = Utils::GeoIP::get_addr_info($C, $PROXIED_ADDR);
+
+    my $remote_addr_country_code = $remote_addr_info->country_code;
+    my $remote_addr_is_US = $remote_addr_info->is_US;
     my $remote_addr_is_nonUS = (! $remote_addr_is_US);
 
-    my $proxied_addr_country_code = $geoIP->country_code_by_addr( $PROXIED_ADDR );
-    my $proxied_addr_is_US = $proxied_addr_country_code ? ( grep(/^$proxied_addr_country_code$/, @RightsGlobals::g_pdus_country_codes) ) : undef;
+    my $proxied_addr_country_code = $proxied_addr_info->country_code;
+    my $proxied_addr_is_US = $proxied_addr_info->is_US;
     my $proxied_addr_is_nonUS = ! $proxied_addr_is_US;
 
     my $IPADDR = 0;
