@@ -65,6 +65,7 @@ my %g_skin_map =
      'crms'      => '/pt/web/crms',
      'crmsworld' => '/pt/web/crms',
      '2021'      => '/pt/web/2021',
+     'firebird'  => '<alicorn',
     );
 
 # Map internal coll_ids to a permanent collection name '0000000000' is
@@ -173,7 +174,16 @@ sub get_fallback_path
     my $skin_path = $g_skin_map{$skin_name};
     if ($skin_path)
     {
-        @fallback_path = ($skin_path, @fallback_path);
+        if ( $skin_path =~ m,^<, ) {
+            $skin_path = substr($skin_path, 1);
+            foreach (@fallback_path) {
+                s/$skin_path/$skin_name/g;
+            }
+        } else {
+            my $app_name = $C->get_object('App')->get_app_name;
+            $skin_path =~ s,<app>,$app_name,;
+            @fallback_path = ( $skin_path, @fallback_path );
+        }
     }
     
     return \@fallback_path;
