@@ -274,6 +274,7 @@ sub get_cookie_domain
     my $cgi = shift;
 
     my $virtual_host = HTTP_hostname();
+    return 'localhost' if ( $virtual_host =~ m,^localhost,);
 
     my ($cookie_domain) = ($virtual_host =~ m,^.*(\..+?\..+?)$,);
     if (! $cookie_domain)
