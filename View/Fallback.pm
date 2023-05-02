@@ -62,6 +62,7 @@ use Debug::DUtils;
 my %g_skin_map =
     (
      'default'   => '',
+     'alicorn'   => '',
      'crms'      => '/pt/web/crms',
      'crmsworld' => '/pt/web/crms',
      '2021'      => '/pt/web/2021',
@@ -160,7 +161,11 @@ sub get_fallback_path
 
     # Skin
     my $skin = new View::Skin($C);
-    my $skin_name = $skin->get_skin_name($C) || 'firebird';
+    my $skin_name = $skin->get_skin_name($C);
+    $skin_name = 'firebird' if ( $skin_name eq 'default' ); #  && $ENV{HOST_NAME} eq 'preview.babel.hathitrust.org' );
+    $skin_name = 'default' if ( $skin_name eq 'alicorn' );
+
+    print STDERR "AHOY AHOY $skin_name\n";
 
     # Local configuration
     my $config = $C->get_object('MdpConfig');
