@@ -160,7 +160,7 @@ sub get_fallback_path
 
     # Skin
     my $skin = new View::Skin($C);
-    my $skin_name = $skin->get_skin_name($C);
+    my $skin_name = $skin->get_skin_name($C) || 'firebird';
 
     # Local configuration
     my $config = $C->get_object('MdpConfig');
