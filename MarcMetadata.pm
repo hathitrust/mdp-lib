@@ -516,6 +516,18 @@ sub get_publisher {
     return ($unescape ? __xml_unescape($self->{_publisher}) : $self->{_publisher});
 }
 
+sub get_catalog_record_no
+{
+    my $self = shift;
+    return '' if ($self->{_metadatafailure});
+
+    my $root = $self->__get_document_root;
+    return '' unless($root);
+
+    my ($value) = $root->findvalue(qq{normalize-space(//controlfield[\@tag='001'])});
+    return $value;
+}
+
 # ---------------------------------------------------------------------
 
 =item __xml_unescape
