@@ -567,12 +567,12 @@ sub _get_where
     {
         # $where .= qq{(shared = 1 AND num_items > 0) OR (owner = ?)};
         # push @params, $user_id;
-        # push @params, @$owner_names;
-        # $where .= qq{( shared = 1 AND num_items > 0 ) OR ( owner IN ($owner_expr) )};
+        push @params, @$owner_names;
+        $where .= qq{( shared = 1 AND num_items > 0 ) OR ( owner IN ($owner_expr) )};
 
         ## 2023-05-15 - with 8K collections AND hiding the owner name, nobody is
         ## going to navigate to their collections with all_colls
-        $where .= qq{shared = 1 AND num_items > 0};
+        # $where .= qq{shared = 1 AND num_items > 0};
 
     }
     elsif ($coll_type eq "featured")
