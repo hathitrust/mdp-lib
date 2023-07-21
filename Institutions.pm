@@ -308,6 +308,7 @@ sub get_idp_list {
     my $results = [];
 
     my $inst = $C->get_object('Auth')->get_institution_code($C) || 'notaninstitution';
+    my %seen = ();
 
     foreach my $hash_ref ( sort { $a->{name} cmp $b->{name} } @$list_ref ) {
         my $add_to_list = 0;
@@ -325,6 +326,8 @@ sub get_idp_list {
             $add_to_list = 0;
         }
         next unless ($add_to_list);
+        next if ( $seen{$$hash_ref{inst_id}});
+        $seen{$$hash_ref{inst_id}} = 1;
 
         my $host = $ENV{'HTTP_HOST'} || 'localhost';
         my $idp_url = $hash_ref->{template};

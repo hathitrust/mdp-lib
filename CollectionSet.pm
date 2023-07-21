@@ -82,6 +82,13 @@ use DbUtils;
 use MdpConfig;
 use Debug::DUtils;
 
+our %COLLTYPES = (
+    all => 1,
+    all_colls => 1,
+    'my-collections' => 1,
+    featured => 1,
+    updated => 1
+);
 
 sub new
 {
@@ -504,6 +511,29 @@ sub list_colls
     return $array_ref;
 }
 
+sub count_colls
+{
+    my $self = shift;
+    my ( $coll_type, $sortkey, $direction, $slice_start, $recs_per_slice ) = @_;
+
+    my $coll_table_name          = $self->get_coll_table_name;
+    
+    my $statement = '';
+    my $SELECT = qq{SELECT COUNT(MColl_ID) };
+    my $FROM = qq{FROM $coll_table_name};
+    my ($WHERE, @params) = $self->_get_where($coll_type);
+    $statement = qq{$SELECT $FROM $WHERE;};
+
+    my $dbh       = $self->{'dbh'};
+    my $sth       = DbUtils::prep_n_execute( $dbh, $statement, @params );
+    my $array_ref = $sth->fetchrow_arrayref();
+
+    $sth->finish;
+
+    return $$array_ref[0];
+
+}
+
 # ---------------------------------------------------------------------
 
 =item _get_where
@@ -524,24 +554,39 @@ sub _get_where
 
     my ( $owner_names, $owner_expr ) = $self->_get_owner_expr($user);
 
-    ASSERT(($coll_type eq 'my_colls') || ( $coll_type eq 'my-collections') || ($coll_type eq 'pub_colls') || ($coll_type eq 'all_colls') || ($coll_type eq 'featured_colls'),
-           qq{CollectionSet::list_colls(coll_type) is $coll_type.  Should be my_colls or pub_colls});
+    # ASSERT(($coll_type eq 'my_colls') || ( $coll_type eq 'my-collections') || ($coll_type eq 'updated') || ($coll_type eq 'all_colls') || ($coll_type eq 'featured'),
+    #        qq{CollectionSet::list_colls(coll_type) is $coll_type.  Should be my_colls or pub_colls});
+    ASSERT(exists($COLLTYPES{$coll_type}), qq{CollectionSet::list_colls(coll_type) is $coll_type});
 
 
     if ($coll_type eq "pub_colls")
     {
         $where .= qq{shared = 1};
     }
-    elsif ($coll_type eq "all_colls")
+    elsif ($coll_type eq "all_colls" || $coll_type eq 'all')
     {
         # $where .= qq{(shared = 1 AND num_items > 0) OR (owner = ?)};
         # push @params, $user_id;
         push @params, @$owner_names;
         $where .= qq{( shared = 1 AND num_items > 0 ) OR ( owner IN ($owner_expr) )};
+
+        ## 2023-05-15 - with 8K collections AND hiding the owner name, nobody is
+        ## going to navigate to their collections with all_colls
+        # $where .= qq{shared = 1 AND num_items > 0};
+
     }
-    elsif ($coll_type eq "featured_colls")
+    elsif ($coll_type eq "featured")
     {
         $where .= qq{(shared = 1 AND num_items > 0 AND (featured IS NOT NULL OR featured != ''))};
+    }
+    elsif ($coll_type eq "updated")
+    {
+        require Date::Manip::Date;
+        my $updated_limit_date = new Date::Manip::Date;
+        $updated_limit_date->parse("30 days ago");
+        my $updated_limit = $updated_limit_date->printf("%Y-%m-%d %H:%M:%S");
+        push @params, @$owner_names, $updated_limit;
+        $where .= qq{( shared = 1 AND num_items > 0 ) OR ( owner IN ($owner_expr) ) AND (modified >= ?)};
     }
     else
     {

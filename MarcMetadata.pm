@@ -516,6 +516,42 @@ sub get_publisher {
     return ($unescape ? __xml_unescape($self->{_publisher}) : $self->{_publisher});
 }
 
+sub get_description
+{
+    my $self = shift;
+    my $unescape = shift;
+
+    return '' if ($self->{_metadatafailure});
+    return ($unescape ? __xml_unescape($self->{_description}) : $self->{_description}) if (defined $self->{_description});
+
+    my $root = $self->__get_document_root;
+    return '' unless($root);
+
+    my @tmp = ();
+    foreach my $subfield ( qw(a b c) ) {
+        my $text = $root->findvalue(qq{normalize-space(//datafield[\@tag='300']/subfield[\@code='$subfield'])});
+        push @tmp, $text if ( $text );
+    }
+
+    my $description = join(' ', @tmp);
+    $description =~ s,\s+, ,gsm;
+    $self->{_description} = $description;
+
+    return ($unescape ? __xml_unescape($self->{_description}) : $self->{_description});   
+}
+
+sub get_catalog_record_no
+{
+    my $self = shift;
+    return '' if ($self->{_metadatafailure});
+
+    my $root = $self->__get_document_root;
+    return '' unless($root);
+
+    my ($value) = $root->findvalue(qq{normalize-space(//controlfield[\@tag='001'])});
+    return $value;
+}
+
 # ---------------------------------------------------------------------
 
 =item __xml_unescape

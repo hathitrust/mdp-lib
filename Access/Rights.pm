@@ -1426,6 +1426,7 @@ sub _resolve_access_by_GeoIP {
     my $required_location = shift;
 
     return 'allow' if ( ! defined $ENV{REMOTE_ADDR} && ! defined $ENV{HTTP_HOST} );
+    return 'allow' if ( defined $ENV{FORCE_GEOIP} && $ENV{FORCE_GEOIP} eq 'US' );
 
     require Utils::GeoIP;
 
