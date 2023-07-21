@@ -19,6 +19,7 @@ BEGIN
 
 =cut
 use Encode;
+use JSON::XS;
 
 use Utils;
 use Debug::DUtils;
@@ -515,6 +516,30 @@ sub handle_CACHE_TIMESTAMP_PI
     }
     
     return qq{<Timestamp href="$href" modtime="$modtime" />};
+}
+
+sub handle_COMMON_ASSETS_PI
+    : PI_handler(COMMON_ASSETS)
+{
+    my ($C, $act, $piParamHashRef) = @_;
+
+    # default to netlify
+    my $stylesheet_link = q{//hathitrust-firebird-common.netlify.app/assets/index.css};
+    my $script_link = q{//hathitrust-firebird-common.netlify.app/assets/index.js};
+
+    my $path = q{/common/firebird};
+    my $manifest_filename = qq{$ENV{SDRROOT}/firebird-common/dist/manifest.json};
+    if ( -f $manifest_filename ) {
+        my $manifest_raw = Utils::read_file($manifest_filename);
+        my $manifest_data = JSON::XS::decode_json($$manifest_raw);
+        $stylesheet_link = $path . '/dist/' . $$manifest_data{'index.css'}{'file'};
+        $script_link = $path . '/dist/' . $$manifest_data{'index.html'}{'file'};
+    }
+
+    return <<XML;
+<Script path="$path">$script_link</Script>
+<Stylesheet path="$path">$stylesheet_link</Stylesheet>
+XML
 }
 
 

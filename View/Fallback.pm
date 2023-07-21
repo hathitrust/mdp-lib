@@ -59,12 +59,16 @@ use Debug::DUtils;
 # increases. 
 
 # NOTE: Skin name constants must agree with values in Skin.pm
+# skin values that start with `<` are treated as regexs to apply
+# against the application's default skin paths
 my %g_skin_map =
     (
      'default'   => '',
+     'alicorn'   => '<firebird',
+     '2021'      => '<firebird',
      'crms'      => '/pt/web/crms',
      'crmsworld' => '/pt/web/crms',
-     '2021'      => '/pt/web/2021',
+     'firebird'  => '',
     );
 
 # Map internal coll_ids to a permanent collection name '0000000000' is
@@ -161,6 +165,15 @@ sub get_fallback_path
     my $skin = new View::Skin($C);
     my $skin_name = $skin->get_skin_name($C);
 
+    ## force 2021 -> alicorn
+    $skin_name = 'alicorn' if ( $skin_name eq '2021' );
+
+    ## -- if (heaven forbid) you find yourself needing to build a 
+    ## -- new theme, uncomment these to change defaults before
+    ## -- updating all the global.conf configurations
+    # $skin_name = 'firebird' if ( $skin_name eq 'default' );
+    # $skin_name = 'default' if ( $skin_name eq 'alicorn' );
+
     # Local configuration
     my $config = $C->get_object('MdpConfig');
     if ( $config->has('skin_map') ) {
@@ -173,7 +186,16 @@ sub get_fallback_path
     my $skin_path = $g_skin_map{$skin_name};
     if ($skin_path)
     {
-        @fallback_path = ($skin_path, @fallback_path);
+        if ( $skin_path =~ m,^<, ) {
+            $skin_path = substr($skin_path, 1);
+            foreach (@fallback_path) {
+                s/$skin_path/$skin_name/g;
+            }
+        } else {
+            my $app_name = $C->get_object('App')->get_app_name;
+            $skin_path =~ s,<app>,$app_name,;
+            @fallback_path = ( $skin_path, @fallback_path );
+        }
     }
     
     return \@fallback_path;
