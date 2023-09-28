@@ -92,6 +92,10 @@ sub __initialize {
 
             $self->{_language_code} = $self->__get_language_code($marcxml_ref);
 
+            # extract title_display from Solr index
+            #my $title = $self->get_title($marcxml_ref);
+            #$self->{_title} = $title;
+
             my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
                 $self->{_root} = $root;
@@ -126,7 +130,7 @@ sub __get_solr_result {
     my $rs = new Search::Result::SLIP_Raw;
 
     my $safe_id = Identifier::get_safe_Solr_id($id);
-    my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord,language,language008};
+    my $query_string = qq{q=ht_id:$safe_id&start=0&rows=1&fl=fullrecord,language,language008,title_display};
     $rs = $searcher->get_Solr_raw_internal_query_result($C, $query_string, $rs);
 
     my $responseOk = $rs->http_status_ok;
@@ -384,33 +388,46 @@ PUBLIC
 
 # ---------------------------------------------------------------------
 sub get_title {
+
     my $self = shift;
-    my $unescape = shift;
+    my $marcxml_ref = shift;
+    
+    return undef if ($self->{_metadatafailure});
+    
+    if (defined $marcxml_ref) {
+        my $title = ;      
 
-    return '' if ($self->{_metadatafailure});
-    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
+        $self->{_title} = $marcxml_ref->{'id'};
 
-    my $root = $self->__get_document_root;
-    return '' unless($root);
+    return $self->{_title} if ($self->{_title});
 
-    my @tmp = ();
-    my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
-    if ($node) {
-        foreach my $code (qw(a b c)) {
-            my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
-            my ($value) = $subfield->textContent if ($subfield);
-            if ($value) {
-                push @tmp, $value;
-            }
-        }
-    }
+    #my $self = shift;
+    #my $unescape = shift;
 
-    my $title = join(' ', @tmp);
-    $title =~ s,\s+, ,gsm;
+    #return '' if ($self->{_metadatafailure});
+    #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
 
-    $self->{_title} = $title;
+    #my $root = $self->__get_document_root;
+    #return '' unless($root);
 
-    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
+    #my @tmp = ();
+    #my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
+    #if ($node) {
+    #    foreach my $code (qw(a b c)) {
+    #        my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
+    #        my ($value) = $subfield->textContent if ($subfield);
+    #        if ($value) {
+    #            push @tmp, $value;
+    #        }
+    #    }
+    #}
+
+    #my $title = join(' ', @tmp);
+    #$title =~ s,\s+, ,gsm;
+
+    #$self->{_title} = $title;
+
+    #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
 }
 
 # ---------------------------------------------------------------------
