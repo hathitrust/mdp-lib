@@ -93,9 +93,8 @@ sub __initialize {
             $self->{_language_code} = $self->__get_language_code($marcxml_ref);
 
             # extract title_display from Solr index
-            my $title = $marcxml_ref->{'title_display'};
-
-            $self->{_title} = $title;
+            #my $title = $self->get_title($marcxml_ref);
+            #$self->{_title} = $title;
 
             my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
@@ -389,39 +388,18 @@ PUBLIC
 
 # ---------------------------------------------------------------------
 sub get_title {
-    
+
     my $self = shift;
+    my $marcxml_ref = shift;
+    
     return '' if ($self->{_metadatafailure});
-    return $self->{_title};
 
-    #my $self = shift;
-    #my $unescape = shift;
+    if (defined $marcxml_ref) {
+        
+        $self->{_title} = $marcxml_ref->{'title_display'};
 
-    #return '' if ($self->{_metadatafailure});
-    #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
-
-    #my $root = $self->__get_document_root;
-    #return '' unless($root);
-
-    #my @tmp = ();
-    #my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
-    #if ($node) {
-    #    foreach my $code (qw(a b c)) {
-    #        my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
-    #        my ($value) = $subfield->textContent if ($subfield);
-    #        if ($value) {
-    #            push @tmp, $value;
-    #        }
-    #    }
-    #}
-
-    #my $title = join(' ', @tmp);
-    #$title =~ s,\s+, ,gsm;
-
-    #$self->{_title} = $title;
-
-    #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
-}
+    return $self->{_title} if ($self->{_title});
+    
 
 # ---------------------------------------------------------------------
 
