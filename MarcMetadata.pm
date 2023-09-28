@@ -93,8 +93,9 @@ sub __initialize {
             $self->{_language_code} = $self->__get_language_code($marcxml_ref);
 
             # extract title_display from Solr index
-            #my $title = $self->get_title($marcxml_ref);
-            #$self->{_title} = $title;
+            my $title = $marcxml_ref->{'title_display'};
+
+            $self->{_title} = $title;
 
             my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
@@ -388,18 +389,10 @@ PUBLIC
 
 # ---------------------------------------------------------------------
 sub get_title {
-
+    
     my $self = shift;
-    my $marcxml_ref = shift;
-    
-    return undef if ($self->{_metadatafailure});
-    
-    if (defined $marcxml_ref) {
-        my $title = ;      
-
-        $self->{_title} = $marcxml_ref->{'id'};
-
-    return $self->{_title} if ($self->{_title});
+    return '' if ($self->{_metadatafailure});
+    return $self->{_title};
 
     #my $self = shift;
     #my $unescape = shift;
