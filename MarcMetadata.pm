@@ -390,6 +390,7 @@ sub get_title {
     my $self = shift;
     my $marcxml_ref = shift;
     
+<<<<<<< HEAD
     return undef if ($self->{_metadatafailure});
     
     if (defined $marcxml_ref) {
@@ -426,6 +427,15 @@ sub get_title {
     #$self->{_title} = $title;
 
     #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
+=======
+    return '' if ($self->{_metadatafailure});
+
+    if (defined $marcxml_ref) {
+        $self->{_title} = $marcxml_ref->{'title_display'};
+    }
+
+    return $self->{_title} if ($self->{_title});
+>>>>>>> 6370401 (Keep previous and current logic to do not break pageturner)
 }
 
 # ---------------------------------------------------------------------
