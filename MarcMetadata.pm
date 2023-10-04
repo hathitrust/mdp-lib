@@ -390,52 +390,45 @@ sub get_title {
     my $self = shift;
     my $marcxml_ref = shift;
     
-<<<<<<< HEAD
     return undef if ($self->{_metadatafailure});
     
+    # Retrieve title_display for populating title field
     if (defined $marcxml_ref) {
         
-        $self->{_title} = $marcxml_ref->{'title_display'};
-        }
+        if (defined $marcxml_ref->{title_display}){
 
-    return $self->{_title} if ($self->{_title});
-
-    #my $self = shift;
-    #my $unescape = shift;
-
-    #return '' if ($self->{_metadatafailure});
-    #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
-
-    #my $root = $self->__get_document_root;
-    #return '' unless($root);
-
-    #my @tmp = ();
-    #my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
-    #if ($node) {
-    #    foreach my $code (qw(a b c)) {
-    #        my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
-    #        my ($value) = $subfield->textContent if ($subfield);
-    #        if ($value) {
-    #            push @tmp, $value;
-    #        }
-    #    }
-    #}
-
-    #my $title = join(' ', @tmp);
-    #$title =~ s,\s+, ,gsm;
-
-    #$self->{_title} = $title;
-
-    #return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
-=======
-    return '' if ($self->{_metadatafailure});
-
-    if (defined $marcxml_ref) {
-        $self->{_title} = $marcxml_ref->{'title_display'};
+            $self->{_title} = $marcxml_ref->{title_display}
+            return $self->{_title}
+        }   
     }
 
-    return $self->{_title} if ($self->{_title});
->>>>>>> 6370401 (Keep previous and current logic to do not break pageturner)
+    # Keep the original code that retrieve the title from Marc file to avoid any issue
+    my $unescape = shift;
+
+    return '' if ($self->{_metadatafailure});
+    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
+
+    my $root = $self->__get_document_root;
+    return '' unless($root);
+
+    my @tmp = ();
+    my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
+    if ($node) {
+        foreach my $code (qw(a b c)) {
+            my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
+            my ($value) = $subfield->textContent if ($subfield);
+            if ($value) {
+                push @tmp, $value;
+            }
+        }
+    }
+
+    my $title = join(' ', @tmp);
+    $title =~ s,\s+, ,gsm;
+
+    $self->{_title} = $title;
+
+    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
 }
 
 # ---------------------------------------------------------------------
