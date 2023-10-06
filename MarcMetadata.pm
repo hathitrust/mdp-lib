@@ -82,6 +82,7 @@ sub __initialize {
         $self->{_root} = $self->__get_document_root;
     }
     else {
+        my $marcxml_ref = $self->__get_solr_result($C, $id);
         if ($marcxml_ref && $$marcxml_ref) {
             $$marcxml_ref = Encode::decode_utf8($$marcxml_ref);
 
