@@ -82,7 +82,6 @@ sub __initialize {
         $self->{_root} = $self->__get_document_root;
     }
     else {
-        my $marcxml_ref = $self->__get_solr_result($C, $id);
         if ($marcxml_ref && $$marcxml_ref) {
             $$marcxml_ref = Encode::decode_utf8($$marcxml_ref);
 
@@ -92,7 +91,7 @@ sub __initialize {
             $self->{_language_code} = $self->__get_language_code($marcxml_ref);
 
             # extract title_display from Solr index
-            $self->{_title} = $self->get_title($marcxml_ref);
+            $self->{_title} = $self->__get_title($marcxml_ref);
 
             my $root = $self->__get_document_root($marcxml_ref);
             if ($root) {
@@ -336,6 +335,20 @@ sub get_language_code {
     return undef if ($self->{_metadatafailure});
     return $self->{_language_code};
 }
+# ---------------------------------------------------------------------
+
+=item get_title
+
+PUBLIC
+
+=cut
+
+# ---------------------------------------------------------------------
+sub get_title {
+    my $self = shift;
+    return undef if ($self->{_metadatafailure});
+    return $self->{_title};
+}
 
 # ---------------------------------------------------------------------
 
@@ -378,57 +391,24 @@ sub get_enumcron {
 
 # ---------------------------------------------------------------------
 
-=item get_title
+=item __get_title
 
 PUBLIC
 
 =cut
 
 # ---------------------------------------------------------------------
-sub get_title {
+sub __get_title {
 
     my $self = shift;
     my $marcxml_ref = shift;
-    
-    return undef if ($self->{_metadatafailure});
-    
-    # Retrieve title_display for populating title field
-    if (defined $marcxml_ref) {
-        
-        if (defined $marcxml_ref->{title_display}){
 
-            $self->{_title} = $marcxml_ref->{title_display}
-            return $self->{_title}
-        }   
-    }
+    # get the title_display out of the results first
+    my $title;
+    # <str name="title_display">Indian Law Enforcement Improvement Act of 1975 : hearings before the Subcommittee on Indian Affairs of the Committee on Interior and Insular Affairs, United States Senate, Ninety-fourth Congress, first [second] session, on S. 2010</str>
+    ( $title = $$marcxml_ref ) =~ s,.*?<str name="title_display">([^>]+)</str>.*,$1,;
 
-    # Keep the original code that retrieve the title from Marc file to avoid any issue
-    my $unescape = shift;
-
-    return '' if ($self->{_metadatafailure});
-    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title}) if (defined $self->{_title});
-
-    my $root = $self->__get_document_root;
-    return '' unless($root);
-
-    my @tmp = ();
-    my ($node) = $root->findnodes(qq{//datafield[\@tag='245']});
-    if ($node) {
-        foreach my $code (qw(a b c)) {
-            my ($subfield) = $node->findnodes(qq{subfield[\@code='$code']});
-            my ($value) = $subfield->textContent if ($subfield);
-            if ($value) {
-                push @tmp, $value;
-            }
-        }
-    }
-
-    my $title = join(' ', @tmp);
-    $title =~ s,\s+, ,gsm;
-
-    $self->{_title} = $title;
-
-    return ($unescape ? __xml_unescape($self->{_title}) : $self->{_title});
+    return $title;
 }
 
 # ---------------------------------------------------------------------
