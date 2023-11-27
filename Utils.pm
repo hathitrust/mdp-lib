@@ -103,10 +103,18 @@ sub Get_Legacy_Remote_User {
     return $remote_user;
 }
 
+# Returns an array of unique (Get_Remote_User, case-preserving REMOTE_USER if it exists,
+# EPPN components in case-preserving and lowercase-only forms)
 sub Get_Remote_User_Names {
     my @usernames = ( Get_Remote_User() );
+    if ( exists $ENV{REMOTE_USER} && defined $ENV{REMOTE_USER} && $ENV{REMOTE_USER} ) {
+        $value = $ENV{REMOTE_USER};
+        push @usernames, $value unless grep(/^$value$/, @usernames);
+    }
     if ( defined $ENV{eppn} && $ENV{eppn} ) {
-        foreach my $value ( split(/;/, lc $ENV{eppn} ) ) {
+        foreach my $value ( split(/;/, $ENV{eppn} ) ) {
+            push @usernames, $value unless ( grep(/^$value$/, @usernames) );
+            $value = lc $value;
             push @usernames, $value unless ( grep(/^$value$/, @usernames) );
         }
     }
