@@ -1530,6 +1530,9 @@ sub ProcessOwnerIds {
                     foreach my $ownerid_el ( $techmd_el->findnodes(qq{.//gbs:ownerID}) ) {
                         push @tmp, $ownerid_el->textContent;
                     }
+                    foreach my $scanid_el ( $techmd_el->findnodes(qq{.//gbs:scanID}) ) {
+                        push @tmp, $scanid_el->textContent;
+                    }
                     $$techmd_ownerid_map{$id} = [ sort @tmp ];
                 }
 
