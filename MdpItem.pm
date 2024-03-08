@@ -291,6 +291,9 @@ sub GetMdpItem {
     }
 
     my $delta = Time::HiRes::time() - $time0;
+    if(my $metrics = $C->{Metrics}) {
+      $metrics->observe("mdpitem_get_mdpitem_seconds",$delta, { cache => $cache_status });
+    }
     Utils::Logger::__Log_benchmark($C, 
         [["id", $id],["delta",$delta],["label","GetMdpItem"],["cache",$cache_status]], 'mdpitem');
 
