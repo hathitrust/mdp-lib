@@ -23,12 +23,12 @@ use strict;
 
 use Utils;
 use Utils::Logger;
+use Utils::MonitorRun;
 use Identifier;
 use Debug::DUtils;
 use Utils::Logger;
 
 # Perl
-use IPC::Run;
 use Time::HiRes qw();
 use File::Basename qw(basename dirname);
 
@@ -320,7 +320,7 @@ sub __run {
 
     my $stderr;
     my $time0 = Time::HiRes::time();
-    IPC::Run::run \@yes, '|',  $unzip, ">", "/dev/null", "2>>", \$stderr;
+    Utils::MonitorRun::run_with_stats(\@yes, '|',  $unzip, ">", "/dev/null", "2>>", \$stderr);
     my $system_retval = $? >> 8;
 
     my $cmd = join(' ', @$unzip);
@@ -341,6 +341,10 @@ sub __run {
     __extract_report($system_retval, $error_file, $cmd);
 
     my $delta = Time::HiRes::time() - $time0;
+    print STDERR "In Utils::Extract (parent mdp-lib)\n";
+    print STDERR "Time: $delta, ID $id\n";
+    print STDERR "Extracted file size " . (-s $test_filename) . "\n";
+    print STDERR "Command: $cmd\n";
     Utils::Logger::__Log_benchmark(undef, [["id", $id],["delta",$delta],["label","__run"],["cmd",$cmd]], 'extract');
 }
 
