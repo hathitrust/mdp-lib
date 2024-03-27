@@ -52,7 +52,7 @@ sub dumpstats {
       $self->{stats}{utime} += $utime;
       $self->{stats}{stime} += $stime;
 
-      my $iostats = `sudo -n /bin/cat /proc/$pid/io`;
+      my $iostats = `sudo -n /usr/local/bin/catprocio $pid`;
       if($iostats) {
         foreach my $line (split("\n",$iostats)) {
           my ($k, $v) = split(": ",$line);
