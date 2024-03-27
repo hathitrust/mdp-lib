@@ -292,6 +292,7 @@ sub GetMdpItem {
 
     my $delta = Time::HiRes::time() - $time0;
     if(my $metrics = $C->{Metrics}) {
+      $mdpItem->{_metrics} = $C->{Metrics};
       $metrics->observe("mdpitem_get_mdpitem_seconds",$delta, { cache => $cache_status });
     }
     Utils::Logger::__Log_benchmark($C, 
@@ -1837,6 +1838,7 @@ sub GetDirPathMaybeExtract {
                  $fileSystemLocation,
                  $pattern_arr_ref,
                  $exclude_pattern_arr_ref,
+                 $self->{_metrics}
                 );
     }
     else
@@ -1891,7 +1893,9 @@ sub GetFilePathMaybeExtract {
                  $self->GetId(),
                  $fileSystemLocation,
                  $fileName,
-                 $suffix
+                 $suffix,
+                 undef,
+                 $self->{_metrics}
                 );
     }
     else

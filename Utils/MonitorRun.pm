@@ -29,9 +29,11 @@ use POSIX;
 sub dumpstats {
   my $self = shift;
 
+  my $total_utime;
+  my $total_stime;
+
   foreach my $kid (@{$self->{KIDS}}) {
     my $pid = $kid->{PID};
-    print STDERR "DUMPING STATS for $kid->{PATH} $pid\n";
 
     # don't clobber exit status in the calling context
     local $?;
@@ -40,16 +42,29 @@ sub dumpstats {
       # see proc(5) (man 5 proc) for field definitions
       my @fields = split(' ',<$statfh>);
       my $status = $fields[2];
+      # only want to gather further stats if the process has just exited and we
+      # need to wait for it
+      next unless $status eq 'Z' and !$kid->{gotstats};
+
       my $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
       my $utime = $fields[13] / $clock_ticks;
       my $stime = $fields[14] / $clock_ticks;
-      # only want to gather further stats if the process has just exited and we
-      # need to wait for it
-      print STDERR "$pid status $status utime $utime stime $stime\n";
-      next unless $status eq 'Z';
-      system("ls -l /proc/$pid/io");
-      # TODO sudo cat /proc/$pid/io
-      # TODO can we get better (cumulative child) user/system time via getrusage than via /proc?
+      $self->{stats}{utime} += $utime;
+      $self->{stats}{stime} += $stime;
+
+      my $iostats = `sudo -n /bin/cat /proc/$pid/io`;
+      if($iostats) {
+        foreach my $line (split("\n",$iostats)) {
+          my ($k, $v) = split(": ",$line);
+          if($self->{stats}{$k}) {
+            $self->{stats}{$k} += $v;
+          } else {
+            $self->{stats}{$k} = $v;
+          }
+        }
+      }
+
+      $kid->{gotstats} = 1;
     }
   }
 
@@ -61,16 +76,18 @@ sub run_with_stats {
   # but still returns an object, so do some monkey business here and re-bless
   # into the subclass
   bless($h, "Utils::MonitorRun");
+  $h->{stats} = {};
+  $h->{stats}{utime} = 0;
+  $h->{stats}{stime} = 0;
 
   $h->dumpstats();
-  print STDERR "in run_with_stats; finishing\n";
-  return $h->finish();
+  $h->finish();
+  return $h->{stats};
 }
 
 sub reap_nb {
   my $self = shift;
 
-  print STDERR "in reap_nb, gathering io stats\n";
   $self->dumpstats();
 
   return $self->SUPER::reap_nb;
