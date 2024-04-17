@@ -1,4 +1,4 @@
-FROM debian:buster
+FROM debian:bullseye
 
 RUN sed -i 's/main.*/main contrib non-free/' /etc/apt/sources.list
 
@@ -133,6 +133,7 @@ RUN apt-get install -y \
   autoconf \
   bison \
   build-essential \
+  cpanminus \
   git \
   libffi-dev \
   libgdbm-dev \
@@ -148,7 +149,8 @@ RUN apt-get install -y \
   zlib1g-dev \
   netcat
 
-RUN cpan \
+RUN cpanm --notest \
+  Devel::Cover \
   File::Value \
   File::ANVL \
   File::Namaste \
@@ -163,9 +165,10 @@ RUN cpan \
   Test::Memory::Cycle \
   Mozilla::CA
 
-RUN mkdir /htapps
-RUN mkdir /htapps/babel
-RUN mkdir /htapps/babel/mdp-lib
-RUN mkdir /htapps/test.babel
-RUN mkdir /htapps/test.babel/mdp-lib
+RUN mkdir /ram
+RUN mkdir -p /htapps/babel/mdp-lib
+RUN mkdir -p /htapps/test.babel/mdp-lib
 RUN git clone https://github.com/hathitrust/slip-lib.git /htapps/babel/slip-lib
+
+WORKDIR /htapps/babel/mdp-lib
+

@@ -4,7 +4,7 @@ use strict;
 use Test::Harness;
 use FindBin;
 use lib "$FindBin::Bin/..";
-use lib "$FindBin::Bin/../../slip-lib";
+#use lib "$FindBin::Bin/../../slip-lib";
 use Term::ANSIColor qw(:constants);
 $Term::ANSIColor::AUTORESET = 1;
 

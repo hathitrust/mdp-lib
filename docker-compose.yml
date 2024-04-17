@@ -34,3 +34,6 @@ services:
     links:
       - mariadb
     command: bash -c "cd /htapps/babel/mdp-lib && bin/wait-for --timeout=60 mariadb:3306 -- t/test.pl"
+
+volumes:
+  ram:
