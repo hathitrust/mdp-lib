@@ -34,6 +34,7 @@ use Context;
 use Auth::Auth;
 use Identifier;
 use MarcMetadata;
+use Metrics;
 use MetsReadingOrder;
 use DataTypes;
 
@@ -291,10 +292,8 @@ sub GetMdpItem {
     }
 
     my $delta = Time::HiRes::time() - $time0;
-    if(my $metrics = $C->{Metrics}) {
-      $mdpItem->{_metrics} = $C->{Metrics};
-      $metrics->observe("mdpitem_get_mdpitem_seconds",$delta, { cache => $cache_status });
-    }
+
+    Metrics->new->observe("mdpitem_get_mdpitem_seconds", $delta, { cache => $cache_status });
     Utils::Logger::__Log_benchmark($C, 
         [["id", $id],["delta",$delta],["label","GetMdpItem"],["cache",$cache_status]], 'mdpitem');
 
@@ -1838,7 +1837,6 @@ sub GetDirPathMaybeExtract {
                  $fileSystemLocation,
                  $pattern_arr_ref,
                  $exclude_pattern_arr_ref,
-                 $self->{_metrics}
                 );
     }
     else
@@ -1893,9 +1891,7 @@ sub GetFilePathMaybeExtract {
                  $self->GetId(),
                  $fileSystemLocation,
                  $fileName,
-                 $suffix,
-                 undef,
-                 $self->{_metrics}
+                 $suffix
                 );
     }
     else

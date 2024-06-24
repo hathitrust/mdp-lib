@@ -26,6 +26,7 @@ use Utils::Logger;
 use Utils::MonitorRun;
 use Identifier;
 use Debug::DUtils;
+use Metrics;
 use Utils::Logger;
 
 # Perl
@@ -204,10 +205,9 @@ sub extract_file_to_temp_cache {
     my @unzip;
     push @unzip, $UNZIP_PROG, "-j", "-qq", "-d", $input_cache_dir, $zip_file, "$stripped_pairtree_id/$filename";
 
-    __run(id => $id, 
-      unzip => \@unzip, 
-      test_filename => "$input_cache_dir/$filename", 
-      metrics => $metrics);
+    __run(id => $id,
+      unzip => \@unzip,
+      test_filename => "$input_cache_dir/$filename");
 
     return
       (-e qq{$input_cache_dir/$filename})
@@ -292,7 +292,6 @@ sub extract_dir_to_temp_cache {
     my $file_sys_location = shift;
     my $patterns_arr_ref = shift;
     my $exclude_patterns_arr_ref = shift;
-    my $metrics = shift;
 
     my $stripped_pairtree_id = Identifier::get_pairtree_id_wo_namespace($id);
     my $zip_file = $file_sys_location . qq{/$stripped_pairtree_id.zip};
@@ -307,7 +306,7 @@ sub extract_dir_to_temp_cache {
         push @unzip, "-x", @$exclude_patterns_arr_ref;
     }
 
-    __run(id => $id, unzip => \@unzip, metrics => $metrics);
+    __run(id => $id, unzip => \@unzip);
 
     return $input_cache_dir;
 }
@@ -317,7 +316,6 @@ sub __run {
     my $id = $params{id};
     my $unzip = $params{unzip};
     my $test_filename = $params{test_filename};
-    my $metrics = $params{metrics};
 
     my $error_file = Utils::get_tmp_logdir() . '/extract-error';
 
@@ -350,9 +348,9 @@ sub __run {
     my $delta = Time::HiRes::time() - $time0;
     # TODO: Add io stats to __Log_benchmark output?
     Utils::Logger::__Log_benchmark(undef, [["id", $id],["delta",$delta],["label","__run"],["cmd",$cmd]], 'extract');
-
-    if($metrics and $test_filename) {
-      $metrics->observe("utils_extract_run_seconds",$delta);
+    if ($test_filename) {
+      my $metrics = Metrics->new;
+      $metrics->observe("utils_extract_run_seconds", $delta);
       # TODO add extracted size when extracting more than one file?
       $metrics->add("utils_extract_extracted_size_bytes",(-s $test_filename));
       while (my ($k, $v) = each %$run_stats) {
