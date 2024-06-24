@@ -161,7 +161,8 @@ RUN cpan \
   Test::Exception \
   Devel::Cycle \
   Test::Memory::Cycle \
-  Mozilla::CA
+  Mozilla::CA \
+  Prometheus::Tiny::Shared
 
 RUN mkdir /htapps
 RUN mkdir /htapps/babel
